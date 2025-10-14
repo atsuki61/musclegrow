@@ -1,0 +1,20 @@
+version: "3.8"
+services:
+  analytics:
+    platform: "linux/amd64"
+  studio:
+    platform: "linux/amd64"
+  kong:
+    platform: "linux/amd64"
+  db:
+    platform: "linux/amd64"
+  auth:
+    platform: "linux/amd64"
+  rest:
+    platform: "linux/amd64"
+  realtime:
+    platform: "linux/amd64"
+  storage:
+    platform: "linux/amd64"
+  meta:
+    platform: "linux/amd64"
