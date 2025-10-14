@@ -20,5 +20,4 @@ export const auth = betterAuth({
     },
   },
   plugins: [nextCookies()],
-  // Google認証の設定は後で追加
 });
