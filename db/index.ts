@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as authSchema from "./schemas/auth";
+import * as appSchema from "./schemas/app";
 
 // 環境変数からデータベースの接続文字列を取得
 const connectionString = process.env.DATABASE_URL!;
@@ -11,5 +12,6 @@ export const db = drizzle({
   client,
   schema: {
     ...authSchema,
+    ...appSchema,
   },
 });
