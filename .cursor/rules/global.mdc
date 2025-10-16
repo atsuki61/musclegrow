@@ -181,6 +181,85 @@ alwaysApply: true
 - **Tailwind**: ユーティリティファースト、インラインスタイルは避ける
 - **モバイルファースト**: スマホアプリ風の UI 設計
 
+### UI コンポーネント実装ルール（shadcn/ui 使用必須）
+
+**【最重要】すべての UI コンポーネントは shadcn/ui を使用すること**
+
+#### shadcn/ui 使用の原則
+
+1. **コンポーネント追加時の必須手順**:
+
+   - 新しい UI コンポーネントが必要な場合、まず shadcn/ui レジストリを確認
+   - 利用可能なコンポーネントがあれば、必ず shadcn/ui を使用
+   - カスタムコンポーネントは shadcn/ui で実装できない場合のみ作成
+
+2. **shadcn/ui MCP サーバーの活用**:
+
+   - `pnpx shadcn@latest add <component>` でコンポーネントを追加
+   - または MCP サーバー経由で「<component>コンポーネントを追加して」とリクエスト
+
+3. **利用可能な主要コンポーネント**:
+
+   - フォーム: `button`, `input`, `textarea`, `select`, `checkbox`, `radio-group`, `switch`, `label`, `form`
+   - レイアウト: `card`, `separator`, `sheet`, `dialog`, `drawer`, `tabs`, `accordion`
+   - フィードバック: `alert`, `toast`, `progress`, `skeleton`, `badge`
+   - ナビゲーション: `navigation-menu`, `dropdown-menu`, `menubar`, `breadcrumb`
+   - データ表示: `table`, `avatar`, `calendar`, `chart`
+   - その他: `tooltip`, `popover`, `context-menu`, `command`, `scroll-area`
+
+4. **shadcn/ui コンポーネントのカスタマイズ**:
+
+   - `src/components/ui/` に追加されたコンポーネントは必要に応じてカスタマイズ可能
+   - ただし、基本構造と variant システムは維持すること
+   - カスタマイズは Tailwind クラスで行い、インラインスタイルは避ける
+
+5. **禁止事項**:
+
+   - shadcn/ui で実装可能なのに、独自の UI コンポーネントを作成すること
+   - 生の HTML 要素（`<button>`, `<input>` など）を直接使用すること（shadcn/ui の Button, Input を使用）
+   - サードパーティの UI ライブラリを shadcn/ui の代わりに使用すること
+
+6. **実装例**:
+
+```typescript
+// ❌ 悪い例: 生のHTML要素を使用
+<button className="px-4 py-2 bg-blue-500 text-white rounded">クリック</button>;
+
+// ✅ 良い例: shadcn/ui の Button を使用
+import { Button } from "@/components/ui/button";
+
+<Button variant="default" size="default">
+  クリック
+</Button>;
+```
+
+```typescript
+// ❌ 悪い例: カスタムダイアログを作成
+const CustomDialog = () => {
+  return <div className="fixed inset-0 bg-black/50">...</div>;
+};
+
+// ✅ 良い例: shadcn/ui の Dialog を使用
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+<Dialog>
+  <DialogTrigger>開く</DialogTrigger>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>タイトル</DialogTitle>
+      <DialogDescription>説明</DialogDescription>
+    </DialogHeader>
+  </DialogContent>
+</Dialog>;
+```
+
 ### 初学者向けコード品質ルール
 
 #### 実装範囲の制限（最重要）
