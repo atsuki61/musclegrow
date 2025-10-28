@@ -36,8 +36,24 @@ export function FooterNav() {
                 ${!isActive ? "hover:text-foreground hover:bg-accent/50" : ""}
                 `}
             >
-              <Icon className="h-5 w-5" />
-              <span className="text-xs">{item.label}</span>
+              {isSpecial ? (
+                <div className="bg-primary text-primary-foreground rounded-full p-2 shadow-lg">
+                  <Icon className="h-6 w-6" />
+                </div>
+              ) : (
+                <Icon className="h-5 w-5" />
+              )}
+              <span
+                className={`text-xs ${
+                  isSpecial ? "font-semibold text-primary" : ""
+                }`}
+              >
+                {item.label}
+              </span>
+              {/* アクティブ状態のドット（特別ボタン以外） */}
+              {isActive && !isSpecial && (
+                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
+              )}
             </Link>
           );
         })}
