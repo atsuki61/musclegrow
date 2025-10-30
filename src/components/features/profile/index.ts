@@ -1,2 +1,2 @@
 // Profile feature exports
-// export * from "./profile-page";
+export { ProfilePage } from "./profile-page";

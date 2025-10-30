@@ -1,2 +1,2 @@
 // Home feature exports
-// export * from "./home-page";
+export { HomePage } from "./home-page";

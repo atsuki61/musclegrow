@@ -1,2 +1,2 @@
 // Record feature exports
-// export * from "./record-page";
+export { RecordPage } from "./record-page";
