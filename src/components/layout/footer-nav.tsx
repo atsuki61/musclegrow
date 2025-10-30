@@ -27,6 +27,7 @@ export function FooterNav() {
             <Link
               key={item.href}
               href={item.href}
+              aria-label={item.label}
               className={`
                 relative flex flex-col items-center gap-1.5 px-4 py-2
                 transition-all duration-200 ease-in-out
