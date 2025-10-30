@@ -31,6 +31,7 @@ export function FooterNav() {
                 relative flex flex-col items-center gap-1.5 px-4 py-2
                 transition-all duration-200 ease-in-out
                 rounded-lg
+                active:scale-95 active:brightness-90
                 ${isActive ? "text-primary" : "text-muted-foreground"}
                 ${isActive && !isSpecial ? "bg-primary/5" : ""}
                 ${!isActive ? "hover:text-foreground hover:bg-accent/50" : ""}
@@ -38,18 +39,12 @@ export function FooterNav() {
             >
               {isSpecial ? (
                 <div className="bg-primary text-primary-foreground rounded-full p-2 shadow-lg">
-                  <Icon className="h-6 w-6" />
+                  <Icon className="h-7 w-7" />
                 </div>
               ) : (
-                <Icon className="h-5 w-5" />
+                <Icon className="h-6 w-6" />
               )}
-              <span
-                className={`text-xs ${
-                  isSpecial ? "font-semibold text-primary" : ""
-                }`}
-              >
-                {item.label}
-              </span>
+
               {/* アクティブ状態のドット（特別ボタン以外） */}
               {isActive && !isSpecial && (
                 <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
