@@ -1,2 +1,2 @@
 // History feature exports
-// export * from "./history-page";
+export { HistoryPage } from "./history-page";
