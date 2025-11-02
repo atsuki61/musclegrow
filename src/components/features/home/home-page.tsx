@@ -1,11 +1,18 @@
+import { TotalDaysBadge } from "./total-days-badge";
+import { TodayMenuCard } from "./today-menu-card";
+import { TodayTipsCard } from "./today-tips-card";
+
 export function HomePage() {
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">ホーム</h1>
-      <p className="text-muted-foreground">
-        Big3進捗バーやヒートマップがここに表示されます
-      </p>
+    <div className="container mx-auto p-4 space-y-6">
+      {/* 合計記録日数（モックデータ） */}
+      <TotalDaysBadge days={180} />
+
+      {/* 今日のメニュー */}
+      <TodayMenuCard />
+
+      {/* 今日のTips */}
+      <TodayTipsCard />
     </div>
   );
 }
-
