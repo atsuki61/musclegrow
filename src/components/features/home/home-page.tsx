@@ -1,6 +1,4 @@
 import { TotalDaysBadge } from "./total-days-badge";
-import { TodayMenuCard } from "./today-menu-card";
-import { TodayTipsCard } from "./today-tips-card";
 import { Big3Progress } from "./big3-progress";
 
 export function HomePage() {
@@ -34,11 +32,6 @@ export function HomePage() {
         squat={big3Data.squat}
         deadlift={big3Data.deadlift}
       />
-      {/* 今日のメニュー */}
-      <TodayMenuCard />
-
-      {/* 今日のTips */}
-      <TodayTipsCard />
     </div>
   );
 }
