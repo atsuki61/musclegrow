@@ -1,5 +1,5 @@
-import { TotalDaysBadge } from "./total-days-badge";
 import { Big3Progress } from "./big3-progress";
+import { RecordButton } from "./record-button";
 
 export function HomePage() {
   // ダミーデータ（将来的にはAPIから取得）
@@ -24,14 +24,13 @@ export function HomePage() {
     },
   };
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      {/* 合計記録日数（モックデータ） */}
-      <TotalDaysBadge days={180} />
+    <div className="container mx-auto px-4 pt-0 pb-4 space-y-6">
       <Big3Progress
         benchPress={big3Data.benchPress}
         squat={big3Data.squat}
         deadlift={big3Data.deadlift}
       />
+      <RecordButton />
     </div>
   );
 }
