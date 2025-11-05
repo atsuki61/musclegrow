@@ -1,21 +1,26 @@
 "use client";
 
+import { DateSelector } from "./date-selector";
+
 export function RecordPage() {
+  const handleDateChange = (date: Date) => {
+    // TODO: 日付変更時の処理（後で実装）
+    console.log("日付が変更されました:", date);
+  };
+
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Headerエリア（後で実装） */}
+    <div className="flex flex-col min-h-screen -mt-14">
+      {/* Headerエリア */}
       <header className="sticky top-0 z-50 w-full border-b bg-background">
-        <div className="container mx-auto px-4">
-          <div className="flex h-14 items-center justify-between">
-            {/* Headerコンテンツは後で実装 */}
-            <div className="text-lg font-bold">記録</div>
-          </div>
+        <div className="flex h-14 items-center justify-center px-4">
+          {/* 日付選択を中央配置 */}
+          <DateSelector onDateChange={handleDateChange} />
         </div>
       </header>
 
       {/* 部位ナビゲーションエリア（後で実装） */}
       <nav className="sticky top-14 z-40 w-full border-b bg-background">
-        <div className="container mx-auto px-4">
+        <div className="px-4">
           {/* 部位ナビゲーションコンテンツは後で実装 */}
           <div className="flex h-12 items-center">部位ナビゲーション</div>
         </div>
