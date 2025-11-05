@@ -22,7 +22,7 @@ const BODY_PART_LABELS: Record<BodyPart, string> = {
   legs: "脚",
   shoulders: "肩",
   arms: "腕",
-  core: "体幹",
+  core: "腹筋",
   other: "その他",
 };
 
