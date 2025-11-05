@@ -1,11 +1,18 @@
 "use client";
 
 import { DateSelector } from "./date-selector";
+import { BodyPartNavigation } from "./body-part-navigation";
+import type { BodyPart } from "@/types/workout";
 
 export function RecordPage() {
   const handleDateChange = (date: Date) => {
     // TODO: 日付変更時の処理（後で実装）
     console.log("日付が変更されました:", date);
+  };
+
+  const handlePartChange = (part: BodyPart) => {
+    // TODO: 部位変更時の処理（後で実装）
+    console.log("部位が変更されました:", part);
   };
 
   return (
@@ -18,11 +25,10 @@ export function RecordPage() {
         </div>
       </header>
 
-      {/* 部位ナビゲーションエリア（後で実装） */}
+      {/* 部位ナビゲーションエリア */}
       <nav className="sticky top-14 z-40 w-full border-b bg-background">
         <div className="px-4">
-          {/* 部位ナビゲーションコンテンツは後で実装 */}
-          <div className="flex h-12 items-center">部位ナビゲーション</div>
+          <BodyPartNavigation onPartChange={handlePartChange} />
         </div>
       </nav>
 
