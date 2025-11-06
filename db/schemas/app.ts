@@ -89,6 +89,3 @@ export const sets = pgTable("sets", {
   failure: boolean("failure").default(false), // 限界まで追い込んだか
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
-
-
-
