@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BODY_PART_LABELS } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
 
 const BODY_PARTS: BodyPart[] = [
@@ -14,17 +15,6 @@ const BODY_PARTS: BodyPart[] = [
   "core",
   "other",
 ];
-
-const BODY_PART_LABELS: Record<BodyPart, string> = {
-  all: "全て",
-  chest: "胸",
-  back: "背中",
-  legs: "脚",
-  shoulders: "肩",
-  arms: "腕",
-  core: "腹筋",
-  other: "その他",
-};
 
 interface BodyPartNavigationProps {
   /** 選択された部位 */

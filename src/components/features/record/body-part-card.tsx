@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { getLastTrainedText } from "@/lib/utils";
+import { getLastTrainedText, isCardioExercise } from "@/lib/utils";
 import type { Exercise, MuscleSubGroup } from "@/types/workout";
 
 /**
@@ -62,57 +62,65 @@ export function BodyPartCard({
   onExerciseSelect,
 }: BodyPartCardProps) {
   // サブ分類ごとに種目をグループ化
-  const groupedExercises = exercises.reduce(
-    (acc, exercise) => {
-      const subGroup = exercise.muscleSubGroup || "other";
-      if (!acc[subGroup]) {
-        acc[subGroup] = [];
-      }
-      acc[subGroup].push(exercise);
-      return acc;
-    },
-    {} as Record<string, Exercise[]>
-  );
+  const groupedExercises = exercises.reduce((acc, exercise) => {
+    const subGroup = exercise.muscleSubGroup || "other";
+    if (!acc[subGroup]) {
+      acc[subGroup] = [];
+    }
+    acc[subGroup].push(exercise);
+    return acc;
+  }, {} as Record<string, Exercise[]>);
 
   return (
     <Card className="p-4">
       {/* ヘッダー */}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold">{bodyPart}</h2>
-        <span className="text-sm text-muted-foreground">{getLastTrainedText(lastTrainedAt)}</span>
+        <span className="text-sm text-muted-foreground">
+          {getLastTrainedText(lastTrainedAt)}
+        </span>
       </div>
 
       {/* サブ分類ごとのグループ */}
       <div className="space-y-6">
-        {Object.entries(groupedExercises).map(([subGroup, subGroupExercises]) => (
-          <div key={subGroup}>
-            {/* サブ分類見出し */}
-            <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
-              {MUSCLE_SUB_GROUP_LABELS[subGroup as MuscleSubGroup] || subGroup}
-            </h3>
+        {Object.entries(groupedExercises).map(
+          ([subGroup, subGroupExercises]) => (
+            <div key={subGroup}>
+              {/* サブ分類見出し */}
+              <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
+                {MUSCLE_SUB_GROUP_LABELS[subGroup as MuscleSubGroup] ||
+                  subGroup}
+              </h3>
 
-            {/* 種目グリッド（3行×n列） */}
-            <div className="grid grid-cols-3 gap-2">
-              {subGroupExercises
-                .filter((exercise) => exercise.tier === "initial")
-                .map((exercise) => {
-                  const maxWeight = maxWeights[exercise.id];
-                  return (
-                    <button
-                      key={exercise.id}
-                      onClick={() => onExerciseSelect?.(exercise)}
-                      className="flex flex-col items-center justify-center rounded-lg border bg-card p-3 text-center transition-colors hover:bg-muted active:bg-muted/80"
-                    >
-                      <span className="text-sm font-medium">{exercise.name}</span>
-                      <span className="mt-1 text-xs text-muted-foreground">
-                        MAX {maxWeight ? `${maxWeight}kg` : "-- kg"}
-                      </span>
-                    </button>
-                  );
-                })}
+              {/* 種目グリッド（3行×n列） */}
+              <div className="grid grid-cols-3 gap-2">
+                {subGroupExercises
+                  .filter((exercise) => exercise.tier === "initial")
+                  .map((exercise) => {
+                    const maxWeight = maxWeights[exercise.id];
+                    const isCardio = isCardioExercise(exercise);
+                    return (
+                      <button
+                        key={exercise.id}
+                        onClick={() => onExerciseSelect?.(exercise)}
+                        className="flex flex-col items-center justify-center rounded-lg border bg-card p-3 text-center transition-colors hover:bg-muted active:bg-muted/80"
+                      >
+                        <span className="text-sm font-medium">
+                          {exercise.name}
+                        </span>
+                        {/* 有酸素種目以外の場合のみMAX重量を表示 */}
+                        {!isCardio && (
+                          <span className="mt-1 text-xs text-muted-foreground">
+                            MAX {maxWeight ? `${maxWeight}kg` : "-- kg"}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        )}
       </div>
 
       {/* フッター */}
@@ -127,4 +135,3 @@ export function BodyPartCard({
     </Card>
   );
 }
-

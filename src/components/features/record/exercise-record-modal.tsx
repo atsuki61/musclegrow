@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ArrowLeft, BarChart3, Settings } from "lucide-react";
+import { isCardioExercise } from "@/lib/utils";
 import type { Exercise } from "@/types/workout";
 
 interface ExerciseRecordModalProps {
@@ -22,6 +23,8 @@ interface ExerciseRecordModalProps {
 /**
  * 種目記録モーダルコンポーネント
  * 種目をタップした際に表示される、セット記録の入力モーダル
+ *
+ * 有酸素種目と筋トレ種目で異なる入力フォームを表示（isCardioフラグで分岐）
  */
 export function ExerciseRecordModal({
   exercise,
@@ -32,6 +35,8 @@ export function ExerciseRecordModal({
   if (!exercise) {
     return null;
   }
+
+  const isCardio = isCardioExercise(exercise);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -89,13 +94,25 @@ export function ExerciseRecordModal({
           {/* TODO: 前回記録セクション実装後に追加 */}
 
           {/* 今日の記録セクション（後で実装） */}
-          {/* TODO: セット記録エリアを実装（ステップ8で実装） */}
+          {/* TODO: セット記録エリアを実装（ステップ8で実装予定）
+            - 筋トレ種目: 重量 × 回数（セットごと）
+            - 有酸素種目: 時速、距離、時間、消費カロリーなど
+            - isCardioフラグに基づいて別コンポーネントを表示
+          */}
           <div className="text-center text-muted-foreground py-8">
-            セット記録機能は準備中です
+            {isCardio ? (
+              <div>
+                <p>有酸素種目の記録機能は準備中です</p>
+                <p className="text-xs mt-2">
+                  （時速、速度、消費カロリー、距離、時間などの入力）
+                </p>
+              </div>
+            ) : (
+              <p>セット記録機能は準備中です</p>
+            )}
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
-
