@@ -6,18 +6,8 @@ import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
 import { ExerciseRecordModal } from "./exercise-record-modal";
 import { mockInitialExercises } from "@/lib/mock-exercises";
+import { BODY_PART_LABELS } from "@/lib/utils";
 import type { BodyPart, Exercise } from "@/types/workout";
-
-// 部位名のラベル定義
-const BODY_PART_LABELS: Record<Exclude<BodyPart, "all">, string> = {
-  chest: "胸",
-  back: "背中",
-  legs: "脚",
-  shoulders: "肩",
-  arms: "腕",
-  core: "腹筋",
-  other: "その他",
-};
 
 export function RecordPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
