@@ -89,7 +89,7 @@ export type Exercise = {
   id: string;
   name: string;
   nameEn?: string;
-  bodyPart: Exclude<BodyPart, "all" | "other">; // データベース用の値のみ（UI用の"all"と"other"は除外）
+  bodyPart: Exclude<BodyPart, "all">; // データベース用の値（UI用の"all"は除外、"other"は含む）
   muscleSubGroup?: MuscleSubGroup;
   primaryEquipment?: EquipmentType;
   tier: ExerciseTier;

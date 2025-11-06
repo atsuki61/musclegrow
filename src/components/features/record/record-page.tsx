@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
+import { mockInitialExercises } from "@/lib/mock-exercises";
 import type { BodyPart, Exercise } from "@/types/workout";
 
 // 部位名のラベル定義
@@ -25,39 +26,8 @@ export function RecordPage() {
   // TODO: 実際のAPIからデータを取得（現時点ではダミーデータ）
   useEffect(() => {
     // ダミーデータ（実際のAPIから取得する予定）
-    const dummyExercises: Exercise[] = [
-      {
-        id: "1",
-        name: "ベンチプレス",
-        nameEn: "Bench Press",
-        bodyPart: "chest",
-        muscleSubGroup: "chest_overall",
-        primaryEquipment: "barbell",
-        tier: "initial",
-        isBig3: true,
-      },
-      {
-        id: "2",
-        name: "ダンベルプレス",
-        nameEn: "Dumbbell Press",
-        bodyPart: "chest",
-        muscleSubGroup: "chest_overall",
-        primaryEquipment: "dumbbell",
-        tier: "initial",
-        isBig3: false,
-      },
-      {
-        id: "3",
-        name: "インクラインダンベルプレス",
-        nameEn: "Incline Dumbbell Press",
-        bodyPart: "chest",
-        muscleSubGroup: "chest_upper",
-        primaryEquipment: "dumbbell",
-        tier: "initial",
-        isBig3: false,
-      },
-    ];
-    setExercises(dummyExercises);
+    // 種目.mdの星マーク（☆）= tier: "initial" の種目をすべて含める
+    setExercises(mockInitialExercises);
   }, [selectedDate, selectedPart]);
 
   const handleDateChange = (date: Date) => {
@@ -94,7 +64,10 @@ export function RecordPage() {
       {/* 部位ナビゲーションエリア */}
       <nav className="sticky top-14 z-40 w-full border-b bg-background">
         <div className="px-4">
-          <BodyPartNavigation selectedPart={selectedPart} onPartChange={handlePartChange} />
+          <BodyPartNavigation
+            selectedPart={selectedPart}
+            onPartChange={handlePartChange}
+          />
         </div>
       </nav>
 
@@ -102,7 +75,9 @@ export function RecordPage() {
       <main className="flex-1 container mx-auto px-4 py-4">
         <div className="space-y-4">
           {bodyPartsToShow.map((bodyPart) => {
-            const bodyPartExercises = exercises.filter((e) => e.bodyPart === bodyPart);
+            const bodyPartExercises = exercises.filter(
+              (e) => e.bodyPart === bodyPart
+            );
             return (
               <BodyPartCard
                 key={bodyPart}
