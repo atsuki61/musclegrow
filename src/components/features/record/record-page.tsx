@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
+import { ExerciseRecordModal } from "./exercise-record-modal";
 import { mockInitialExercises } from "@/lib/mock-exercises";
 import type { BodyPart, Exercise } from "@/types/workout";
 
@@ -22,6 +23,8 @@ export function RecordPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedPart, setSelectedPart] = useState<BodyPart>("all");
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // TODO: 実際のAPIからデータを取得（現時点ではダミーデータ）
   useEffect(() => {
@@ -41,8 +44,13 @@ export function RecordPage() {
   };
 
   const handleExerciseSelect = (exercise: Exercise) => {
-    // TODO: 種目選択時にモーダルを表示
-    console.log("種目が選択されました:", exercise);
+    setSelectedExercise(exercise);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedExercise(null);
   };
 
   // 表示する部位を決定
@@ -89,6 +97,13 @@ export function RecordPage() {
           })}
         </div>
       </main>
+
+      {/* 種目記録モーダル */}
+      <ExerciseRecordModal
+        exercise={selectedExercise}
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+      />
     </div>
   );
 }
