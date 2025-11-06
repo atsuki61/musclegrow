@@ -99,60 +99,255 @@ const NAME_EN_MAP: Record<string, string> = {
 // tier: "initial" の種目定義（種目.mdの星マーク）
 const initialExercises = [
   // === 胸 ===
-  { name: "ベンチプレス", bodyPart: "chest", subGroup: "全体", tier: "initial", isBig3: true },
-  { name: "ダンベルプレス", bodyPart: "chest", subGroup: "全体", tier: "initial", isBig3: false },
-  { name: "チェストプレス", bodyPart: "chest", subGroup: "全体", tier: "initial", isBig3: false },
-  { name: "インクラインダンベルプレス", bodyPart: "chest", subGroup: "上部", tier: "initial", isBig3: false },
-  { name: "デクラインプレス", bodyPart: "chest", subGroup: "下部", tier: "initial", isBig3: false },
-  { name: "ディップス", bodyPart: "chest", subGroup: "下部", tier: "initial", isBig3: false },
-  { name: "ダンベルフライ", bodyPart: "chest", subGroup: "外側", tier: "initial", isBig3: false },
-  { name: "ペックフライ", bodyPart: "chest", subGroup: "外側", tier: "initial", isBig3: false },
+  {
+    name: "ベンチプレス",
+    bodyPart: "chest",
+    subGroup: "全体",
+    tier: "initial",
+    isBig3: true,
+  },
+  {
+    name: "ダンベルプレス",
+    bodyPart: "chest",
+    subGroup: "全体",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "チェストプレス",
+    bodyPart: "chest",
+    subGroup: "全体",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "インクラインダンベルプレス",
+    bodyPart: "chest",
+    subGroup: "上部",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "デクラインプレス",
+    bodyPart: "chest",
+    subGroup: "下部",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "ディップス",
+    bodyPart: "chest",
+    subGroup: "下部",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "ダンベルフライ",
+    bodyPart: "chest",
+    subGroup: "外側",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "ペックフライ",
+    bodyPart: "chest",
+    subGroup: "外側",
+    tier: "initial",
+    isBig3: false,
+  },
   // === 背中 ===
-  { name: "デッドリフト", bodyPart: "back", subGroup: "全体", tier: "initial", isBig3: true },
-  { name: "懸垂", bodyPart: "back", subGroup: "全体", tier: "initial", isBig3: false },
-  { name: "ラットプルダウン", bodyPart: "back", subGroup: "幅", tier: "initial", isBig3: false },
-  { name: "シーテッドロー", bodyPart: "back", subGroup: "厚み", tier: "initial", isBig3: false },
-  { name: "ワンハンドローイング", bodyPart: "back", subGroup: "厚み", tier: "initial", isBig3: false },
+  {
+    name: "デッドリフト",
+    bodyPart: "back",
+    subGroup: "全体",
+    tier: "initial",
+    isBig3: true,
+  },
+  {
+    name: "懸垂",
+    bodyPart: "back",
+    subGroup: "全体",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "ラットプルダウン",
+    bodyPart: "back",
+    subGroup: "幅",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "シーテッドロー",
+    bodyPart: "back",
+    subGroup: "厚み",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "ワンハンドローイング",
+    bodyPart: "back",
+    subGroup: "厚み",
+    tier: "initial",
+    isBig3: false,
+  },
   // === 脚 ===
-  { name: "スクワット", bodyPart: "legs", subGroup: "大腿四頭筋", tier: "initial", isBig3: true },
-  { name: "レッグプレス", bodyPart: "legs", subGroup: "大腿四頭筋", tier: "initial", isBig3: false },
-  { name: "レッグエクステンション", bodyPart: "legs", subGroup: "大腿四頭筋", tier: "initial", isBig3: false },
-  { name: "ブルガリアンスクワット", bodyPart: "legs", subGroup: "大腿四頭筋", tier: "initial", isBig3: false },
-  { name: "レッグカール", bodyPart: "legs", subGroup: "ハムストリングス", tier: "initial", isBig3: false },
+  {
+    name: "スクワット",
+    bodyPart: "legs",
+    subGroup: "大腿四頭筋",
+    tier: "initial",
+    isBig3: true,
+  },
+  {
+    name: "レッグプレス",
+    bodyPart: "legs",
+    subGroup: "大腿四頭筋",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "レッグエクステンション",
+    bodyPart: "legs",
+    subGroup: "大腿四頭筋",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "ブルガリアンスクワット",
+    bodyPart: "legs",
+    subGroup: "大腿四頭筋",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "レッグカール",
+    bodyPart: "legs",
+    subGroup: "ハムストリングス",
+    tier: "initial",
+    isBig3: false,
+  },
   // === 肩 ===
-  { name: "ダンベルショルダープレス", bodyPart: "shoulders", subGroup: "全体", tier: "initial", isBig3: false },
-  { name: "ショルダープレス（スミス）", bodyPart: "shoulders", subGroup: "全体", tier: "initial", isBig3: false },
-  { name: "サイドレイズ", bodyPart: "shoulders", subGroup: "中部", tier: "initial", isBig3: false },
-  { name: "リアデルトフライ", bodyPart: "shoulders", subGroup: "後部", tier: "initial", isBig3: false },
+  {
+    name: "ダンベルショルダープレス",
+    bodyPart: "shoulders",
+    subGroup: "全体",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "ショルダープレス（スミス）",
+    bodyPart: "shoulders",
+    subGroup: "全体",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "サイドレイズ",
+    bodyPart: "shoulders",
+    subGroup: "中部",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "リアデルトフライ",
+    bodyPart: "shoulders",
+    subGroup: "後部",
+    tier: "initial",
+    isBig3: false,
+  },
   // === 腕 ===
-  { name: "バーベルカール", bodyPart: "arms", subGroup: "上腕二頭筋", tier: "initial", isBig3: false },
-  { name: "インクラインダンベルカール", bodyPart: "arms", subGroup: "上腕二頭筋", tier: "initial", isBig3: false },
-  { name: "ダンベルハンマーカール", bodyPart: "arms", subGroup: "上腕二頭筋", tier: "initial", isBig3: false },
-  { name: "トライセプスプッシュダウン", bodyPart: "arms", subGroup: "上腕三頭筋", tier: "initial", isBig3: false },
-  { name: "スカルクラッシャー", bodyPart: "arms", subGroup: "上腕三頭筋", tier: "initial", isBig3: false },
+  {
+    name: "バーベルカール",
+    bodyPart: "arms",
+    subGroup: "上腕二頭筋",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "インクラインダンベルカール",
+    bodyPart: "arms",
+    subGroup: "上腕二頭筋",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "ダンベルハンマーカール",
+    bodyPart: "arms",
+    subGroup: "上腕二頭筋",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "トライセプスプッシュダウン",
+    bodyPart: "arms",
+    subGroup: "上腕三頭筋",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "スカルクラッシャー",
+    bodyPart: "arms",
+    subGroup: "上腕三頭筋",
+    tier: "initial",
+    isBig3: false,
+  },
   // === 腹筋 ===
-  { name: "レッグレイズ", bodyPart: "core", subGroup: "腹直筋", tier: "initial", isBig3: false },
-  { name: "プランク", bodyPart: "core", subGroup: "腹横筋", tier: "initial", isBig3: false },
-  { name: "ロータリートーソ", bodyPart: "core", subGroup: "腹斜筋", tier: "initial", isBig3: false },
+  {
+    name: "レッグレイズ",
+    bodyPart: "core",
+    subGroup: "腹直筋",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "プランク",
+    bodyPart: "core",
+    subGroup: "腹横筋",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "ロータリートーソ",
+    bodyPart: "core",
+    subGroup: "腹斜筋",
+    tier: "initial",
+    isBig3: false,
+  },
   // === その他 ===
-  { name: "ランニング（トレッドミル／屋外）", bodyPart: "other", subGroup: "有酸素", tier: "initial", isBig3: false },
-  { name: "エアロバイク（バイク）", bodyPart: "other", subGroup: "有酸素", tier: "initial", isBig3: false },
+  {
+    name: "ランニング（トレッドミル／屋外）",
+    bodyPart: "other",
+    subGroup: "有酸素",
+    tier: "initial",
+    isBig3: false,
+  },
+  {
+    name: "エアロバイク（バイク）",
+    bodyPart: "other",
+    subGroup: "有酸素",
+    tier: "initial",
+    isBig3: false,
+  },
 ];
 
 // ダミーデータを生成（Exercise型に変換）
-export const mockInitialExercises: Exercise[] = initialExercises.map((exercise, index) => {
-  const subGroup = SUB_GROUP_MAP[exercise.subGroup] || undefined;
-  const equipment = getEquipmentType(exercise.name) as Exercise["primaryEquipment"];
+export const mockInitialExercises: Exercise[] = initialExercises.map(
+  (exercise, index) => {
+    const subGroup = SUB_GROUP_MAP[exercise.subGroup] || undefined;
+    const equipment = getEquipmentType(
+      exercise.name
+    ) as Exercise["primaryEquipment"];
 
-  return {
-    id: `mock-${index + 1}`,
-    name: exercise.name,
-    nameEn: NAME_EN_MAP[exercise.name],
-    bodyPart: exercise.bodyPart as Exercise["bodyPart"],
-    muscleSubGroup: subGroup as Exercise["muscleSubGroup"],
-    primaryEquipment: equipment,
-    tier: exercise.tier as Exercise["tier"],
-    isBig3: exercise.isBig3,
-  };
-});
-
+    return {
+      id: `mock-${index + 1}`,
+      name: exercise.name,
+      nameEn: NAME_EN_MAP[exercise.name],
+      bodyPart: exercise.bodyPart as Exercise["bodyPart"],
+      muscleSubGroup: subGroup as Exercise["muscleSubGroup"],
+      primaryEquipment: equipment,
+      tier: exercise.tier as Exercise["tier"],
+      isBig3: exercise.isBig3,
+    };
+  }
+);
