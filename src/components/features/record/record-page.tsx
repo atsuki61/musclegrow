@@ -1,19 +1,85 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
-import type { BodyPart } from "@/types/workout";
+import { BodyPartCard } from "./body-part-card";
+import type { BodyPart, Exercise } from "@/types/workout";
+
+// 部位名のラベル定義
+const BODY_PART_LABELS: Record<Exclude<BodyPart, "all">, string> = {
+  chest: "胸",
+  back: "背中",
+  legs: "脚",
+  shoulders: "肩",
+  arms: "腕",
+  core: "腹筋",
+  other: "その他",
+};
 
 export function RecordPage() {
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedPart, setSelectedPart] = useState<BodyPart>("all");
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+
+  // TODO: 実際のAPIからデータを取得（現時点ではダミーデータ）
+  useEffect(() => {
+    // ダミーデータ（実際のAPIから取得する予定）
+    const dummyExercises: Exercise[] = [
+      {
+        id: "1",
+        name: "ベンチプレス",
+        nameEn: "Bench Press",
+        bodyPart: "chest",
+        muscleSubGroup: "chest_overall",
+        primaryEquipment: "barbell",
+        tier: "initial",
+        isBig3: true,
+      },
+      {
+        id: "2",
+        name: "ダンベルプレス",
+        nameEn: "Dumbbell Press",
+        bodyPart: "chest",
+        muscleSubGroup: "chest_overall",
+        primaryEquipment: "dumbbell",
+        tier: "initial",
+        isBig3: false,
+      },
+      {
+        id: "3",
+        name: "インクラインダンベルプレス",
+        nameEn: "Incline Dumbbell Press",
+        bodyPart: "chest",
+        muscleSubGroup: "chest_upper",
+        primaryEquipment: "dumbbell",
+        tier: "initial",
+        isBig3: false,
+      },
+    ];
+    setExercises(dummyExercises);
+  }, [selectedDate, selectedPart]);
+
   const handleDateChange = (date: Date) => {
-    // TODO: 日付変更時の処理（後で実装）
-    console.log("日付が変更されました:", date);
+    setSelectedDate(date);
+    // TODO: 日付変更時にデータを再取得
   };
 
   const handlePartChange = (part: BodyPart) => {
-    // TODO: 部位変更時の処理（後で実装）
-    console.log("部位が変更されました:", part);
+    setSelectedPart(part);
+    // TODO: 部位変更時にフィルタリング
   };
+
+  const handleExerciseSelect = (exercise: Exercise) => {
+    // TODO: 種目選択時にモーダルを表示
+    console.log("種目が選択されました:", exercise);
+  };
+
+  // 表示する部位を決定
+  const bodyPartsToShow: Exclude<BodyPart, "all">[] =
+    selectedPart === "all"
+      ? ["chest", "back", "legs", "shoulders", "arms", "core", "other"]
+      : [selectedPart];
 
   return (
     <div className="flex flex-col min-h-screen -mt-14">
@@ -21,24 +87,31 @@ export function RecordPage() {
       <header className="sticky top-0 z-50 w-full border-b bg-background">
         <div className="flex h-14 items-center justify-center px-4">
           {/* 日付選択を中央配置 */}
-          <DateSelector onDateChange={handleDateChange} />
+          <DateSelector date={selectedDate} onDateChange={handleDateChange} />
         </div>
       </header>
 
       {/* 部位ナビゲーションエリア */}
       <nav className="sticky top-14 z-40 w-full border-b bg-background">
         <div className="px-4">
-          <BodyPartNavigation onPartChange={handlePartChange} />
+          <BodyPartNavigation selectedPart={selectedPart} onPartChange={handlePartChange} />
         </div>
       </nav>
 
       {/* メインコンテンツエリア */}
       <main className="flex-1 container mx-auto px-4 py-4">
         <div className="space-y-4">
-          {/* 部位カードは後で実装 */}
-          <p className="text-muted-foreground text-center py-8">
-            部位カードがここに表示されます
-          </p>
+          {bodyPartsToShow.map((bodyPart) => {
+            const bodyPartExercises = exercises.filter((e) => e.bodyPart === bodyPart);
+            return (
+              <BodyPartCard
+                key={bodyPart}
+                bodyPart={BODY_PART_LABELS[bodyPart]}
+                exercises={bodyPartExercises}
+                onExerciseSelect={handleExerciseSelect}
+              />
+            );
+          })}
         </div>
       </main>
     </div>

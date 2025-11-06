@@ -37,7 +37,10 @@ export const exercises = pgTable("exercises", {
     .$defaultFn(() => nanoid(10)),
   name: text("name").notNull(), // 種目名（例: "ベンチプレス"）
   nameEn: text("name_en"), // 英語名（例: "Bench Press"）
-  bodyPart: text("body_part").notNull(), // 部位: chest, back, legs, shoulders, arms, core
+  bodyPart: text("body_part").notNull(), // 部位: chest, back, legs, shoulders, arms, core, other
+  muscleSubGroup: text("muscle_sub_group"), // サブ分類（例: "chest_overall", "legs_quads"）
+  primaryEquipment: text("primary_equipment"), // 主要機材: barbell, dumbbell, machine, cable, bodyweight, kettlebell
+  tier: text("tier").default("selectable").notNull(), // 表示階層: initial, selectable, custom
   isBig3: boolean("is_big3").default(false).notNull(), // Big3種目か
   description: text("description"), // 種目の説明
   videoUrl: text("video_url"), // デモ動画URL
