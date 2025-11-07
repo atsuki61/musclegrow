@@ -102,3 +102,29 @@ export type Exercise = {
   createdAt?: Date;
 };
 
+/**
+ * セット記録（入力用）
+ * モーダル内で入力・編集する際に使用
+ */
+export type SetRecord = {
+  id: string; // 一時的なID（nanoidなど）
+  setOrder: number; // セット順（1, 2, 3...）
+  weight: number; // 重量（kg）
+  reps: number; // 回数
+  rpe?: number | null; // 主観的疲労度（RPE: 1-10）
+  isWarmup?: boolean; // ウォームアップセットか
+  restSeconds?: number | null; // セット間の休憩時間（秒）
+  notes?: string | null; // セットごとのメモ
+  failure?: boolean; // 限界まで追い込んだか
+};
+
+/**
+ * 前回記録のセット情報
+ */
+export type PreviousSetRecord = {
+  setOrder: number;
+  weight: number;
+  reps: number;
+  date: Date;
+};
+
