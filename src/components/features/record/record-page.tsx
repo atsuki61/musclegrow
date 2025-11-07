@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
@@ -12,16 +12,17 @@ import type { BodyPart, Exercise } from "@/types/workout";
 export function RecordPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedPart, setSelectedPart] = useState<BodyPart>("all");
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  // 初期値として直接設定（useEffectを使わない）
+  const [exercises] = useState<Exercise[]>(mockInitialExercises);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // TODO: 実際のAPIからデータを取得（現時点ではダミーデータ）
-  useEffect(() => {
-    // ダミーデータ（実際のAPIから取得する予定）
-    // 種目.mdの星マーク（☆）= tier: "initial" の種目をすべて含める
-    setExercises(mockInitialExercises);
-  }, [selectedDate, selectedPart]);
+  // 将来的に日付や部位が変更された時にデータを再取得する場合は、以下のuseEffectを使用
+  // useEffect(() => {
+  //   // 実際のAPIからデータを取得
+  //   fetchExercises(selectedDate, selectedPart).then(setExercises);
+  // }, [selectedDate, selectedPart]);
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
