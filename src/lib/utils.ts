@@ -31,6 +31,31 @@ export function isCardioExercise(exercise: Exercise): boolean {
 }
 
 /**
+ * 1RM（1レップ最大値）を計算する
+ * Epley式を使用: 1RM = 重量 × (1 + 回数 / 30)
+ * @param weight 重量（kg）
+ * @param reps 回数
+ * @returns 1RM（kg）、計算できない場合はnull
+ */
+export function calculate1RM(weight: number, reps: number): number | null {
+  // 重量または回数が0以下の場合は計算不可
+  if (weight <= 0 || reps <= 0) {
+    return null;
+  }
+
+  // 回数が1の場合はそのまま重量を返す
+  if (reps === 1) {
+    return weight;
+  }
+
+  // Epley式で計算
+  const oneRM = weight * (1 + reps / 30);
+
+  // 小数点第1位で四捨五入
+  return Math.round(oneRM * 10) / 10;
+}
+
+/**
  * 最後のトレーニングからの経過時間をテキスト形式で返す
  * @param lastTrainedAt 最後のトレーニング日時（未設定の場合はundefined）
  * @returns 経過時間のテキスト（例: "12日5時間前"、"初回"）
