@@ -14,7 +14,9 @@ export function RecordPage() {
   const [selectedPart, setSelectedPart] = useState<BodyPart>("all");
   // 初期値として直接設定（useEffectを使わない）
   const [exercises] = useState<Exercise[]>(mockInitialExercises);
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
+    null
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // TODO: 実際のAPIからデータを取得（現時点ではダミーデータ）
@@ -94,6 +96,7 @@ export function RecordPage() {
         exercise={selectedExercise}
         isOpen={isModalOpen}
         onClose={handleModalClose}
+        date={selectedDate}
       />
     </div>
   );
