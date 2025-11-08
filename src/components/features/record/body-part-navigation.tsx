@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BODY_PART_LABELS } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
@@ -31,22 +30,14 @@ export function BodyPartNavigation({
   selectedPart = "all",
   onPartChange,
 }: BodyPartNavigationProps) {
-  const [activePart, setActivePart] = useState<BodyPart>(selectedPart);
-
-  // selectedPartが変更された時にactivePartを更新
-  useEffect(() => {
-    setActivePart(selectedPart);
-  }, [selectedPart]);
-
   const handlePartChange = (part: BodyPart) => {
-    setActivePart(part);
     onPartChange?.(part);
     // TODO: 該当部位のカードにスクロール（後で実装）
   };
 
   return (
     <Tabs
-      value={activePart}
+      value={selectedPart}
       onValueChange={(value) => handlePartChange(value as BodyPart)}
     >
       <TabsList className="h-12 w-full justify-start overflow-x-auto">

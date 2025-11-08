@@ -117,7 +117,6 @@ export function ExerciseRecordModal({
                 size="icon"
                 onClick={() => {
                   // TODO: グラフ表示機能（後で実装）
-                  console.log("グラフ表示");
                 }}
                 className="h-8 w-8"
                 aria-label="グラフ表示"
@@ -129,7 +128,6 @@ export function ExerciseRecordModal({
                 size="icon"
                 onClick={() => {
                   // TODO: 設定機能（後で実装）
-                  console.log("設定");
                 }}
                 className="h-8 w-8"
                 aria-label="設定"
