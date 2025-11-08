@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Plus, Copy, Trash2 } from "lucide-react";
 import { calculate1RM } from "@/lib/utils";
 import type { SetRecord } from "@/types/workout";
@@ -13,6 +14,149 @@ interface SetRecordFormProps {
   sets: SetRecord[];
   /** セット記録のリストを更新するコールバック */
   onSetsChange: (sets: SetRecord[]) => void;
+}
+
+interface SetRowProps {
+  /** セット記録 */
+  set: SetRecord;
+  /** セットのインデックス */
+  index: number;
+  /** 最後のセットかどうか */
+  isLast: boolean;
+  /** 前のセットが存在するかどうか */
+  hasPreviousSet: boolean;
+  /** セットの値を更新するコールバック */
+  onSetChange: (
+    setId: string,
+    field: keyof SetRecord,
+    value: number | string | boolean
+  ) => void;
+  /** 前のセットをコピーするコールバック */
+  onCopyPrevious: (index: number) => void;
+  /** セットを削除するコールバック */
+  onDelete: (setId: string) => void;
+}
+
+/**
+ * 入力値を数値に変換する（重量用）
+ */
+const parseWeight = (value: string): number => {
+  return parseFloat(value) || 0;
+};
+
+/**
+ * 入力値を数値に変換する（回数用）
+ */
+const parseReps = (value: string): number => {
+  return parseInt(value, 10) || 0;
+};
+
+/**
+ * セット行コンポーネント
+ * 1つのセットの入力フィールドとアクションボタンを表示
+ */
+function SetRow({
+  set,
+  index,
+  isLast,
+  hasPreviousSet,
+  onSetChange,
+  onCopyPrevious,
+  onDelete,
+}: SetRowProps) {
+  const oneRM = calculate1RM(set.weight, set.reps);
+
+  return (
+    <div>
+      {/* セット行 */}
+      <div className="flex items-end gap-2">
+        {/* セット番号 */}
+        <div className="w-12 shrink-0">
+          <span className="text-sm font-semibold text-muted-foreground">
+            {index + 1}
+          </span>
+        </div>
+
+        {/* 重量入力 */}
+        <div className="flex-1">
+          <Input
+            type="number"
+            placeholder="重量"
+            value={set.weight || ""}
+            onChange={(e) => {
+              const value = parseWeight(e.target.value);
+              onSetChange(set.id, "weight", value);
+            }}
+            min="0"
+            step="0.5"
+            className="text-base h-9"
+          />
+          <span className="text-xs text-muted-foreground mt-0.5 block">kg</span>
+        </div>
+
+        {/* ×記号 */}
+        <span className="text-lg font-bold text-muted-foreground pb-1">×</span>
+
+        {/* 回数入力 */}
+        <div className="flex-1">
+          <Input
+            type="number"
+            placeholder="回数"
+            value={set.reps || ""}
+            onChange={(e) => {
+              const value = parseReps(e.target.value);
+              onSetChange(set.id, "reps", value);
+            }}
+            min="0"
+            step="1"
+            className="text-base h-9"
+          />
+          <span className="text-xs text-muted-foreground mt-0.5 block">回</span>
+        </div>
+
+        {/* 1RM表示 */}
+        <div className="flex-1 text-center pb-1">
+          {oneRM ? (
+            <div>
+              <div className="text-base font-semibold">{oneRM}kg</div>
+              <span className="text-xs text-muted-foreground">1RM</span>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground">--</div>
+          )}
+        </div>
+
+        {/* アクションボタン */}
+        <div className="flex gap-1 shrink-0">
+          {/* コピーボタン（最初のセット以外） */}
+          {hasPreviousSet && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onCopyPrevious(index)}
+              className="h-7 w-7 p-0"
+              aria-label="前のセットをコピー"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {/* 削除ボタン */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(set.id)}
+            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+            aria-label="セットを削除"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* セット間の区切り線（最後のセット以外） */}
+      {!isLast && <Separator className="mt-3" />}
+    </div>
+  );
 }
 
 /**
@@ -98,125 +242,53 @@ export function SetRecordForm({ sets, onSetsChange }: SetRecordFormProps) {
         <h3 className="font-semibold text-lg">今日の記録</h3>
       </div>
 
-      {/* セットリスト */}
-      <div className="space-y-3">
-        {sets.map((set, index) => {
-          const oneRM = calculate1RM(set.weight, set.reps);
+      {/* セット記録カード（1枚） */}
+      <Card className="hover:shadow-md transition-shadow">
+        <CardContent className="p-3">
+          {sets.length === 0 ? (
+            /* セットが0件の場合 */
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="text-sm">セットを追加してください</p>
+            </div>
+          ) : (
+            /* セットリスト */
+            <div className="space-y-3">
+              {sets.map((set, index) => (
+                <SetRow
+                  key={set.id}
+                  set={set}
+                  index={index}
+                  isLast={index === sets.length - 1}
+                  hasPreviousSet={index > 0}
+                  onSetChange={handleSetChange}
+                  onCopyPrevious={handleCopyPreviousSet}
+                  onDelete={handleDeleteSet}
+                />
+              ))}
+            </div>
+          )}
 
-          return (
-            <Card key={set.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                {/* セットヘッダー */}
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-bold text-lg">セット{index + 1}</span>
-                  <div className="flex gap-2">
-                    {/* コピーボタン（最初のセット以外） */}
-                    {index > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyPreviousSet(index)}
-                        className="h-8 w-8 p-0"
-                        aria-label="前のセットをコピー"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {/* 削除ボタン */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteSet(set.id)}
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                      aria-label="セットを削除"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+          {/* セット追加ボタン（カード内） */}
+          <div className="mt-4 pt-3 border-t">
+            <Button
+              variant="outline"
+              onClick={handleAddSet}
+              className="w-full"
+              disabled={sets.length >= 50} // 最大50セットまで
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              セットを追加
+            </Button>
 
-                {/* 入力フィールド */}
-                <div className="flex items-center gap-2">
-                  {/* 重量入力 */}
-                  <div className="flex-1">
-                    <Input
-                      type="number"
-                      placeholder="重量"
-                      value={set.weight || ""}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value) || 0;
-                        handleSetChange(set.id, "weight", value);
-                      }}
-                      min="0"
-                      step="0.5"
-                      className="text-lg"
-                    />
-                    <span className="text-xs text-muted-foreground mt-1 block">
-                      kg
-                    </span>
-                  </div>
-
-                  {/* ×記号 */}
-                  <span className="text-xl font-bold text-muted-foreground">
-                    ×
-                  </span>
-
-                  {/* 回数入力 */}
-                  <div className="flex-1">
-                    <Input
-                      type="number"
-                      placeholder="回数"
-                      value={set.reps || ""}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value, 10) || 0;
-                        handleSetChange(set.id, "reps", value);
-                      }}
-                      min="0"
-                      step="1"
-                      className="text-lg"
-                    />
-                    <span className="text-xs text-muted-foreground mt-1 block">
-                      回
-                    </span>
-                  </div>
-
-                  {/* 1RM表示 */}
-                  <div className="flex-1 text-center">
-                    {oneRM ? (
-                      <div>
-                        <div className="text-lg font-semibold">{oneRM}kg</div>
-                        <span className="text-xs text-muted-foreground">
-                          1RM
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="text-sm text-muted-foreground">--</div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* セット追加ボタン */}
-      <Button
-        variant="outline"
-        onClick={handleAddSet}
-        className="w-full"
-        disabled={sets.length >= 50} // 最大50セットまで
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        セットを追加
-      </Button>
-
-      {/* 最大セット数に達した場合のメッセージ */}
-      {sets.length >= 50 && (
-        <p className="text-xs text-muted-foreground text-center">
-          最大50セットまで追加できます
-        </p>
-      )}
+            {/* 最大セット数に達した場合のメッセージ */}
+            {sets.length >= 50 && (
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                最大50セットまで追加できます
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
