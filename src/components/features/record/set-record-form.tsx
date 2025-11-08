@@ -69,10 +69,25 @@ function SetRow({
   return (
     <div>
       {/* セット行 */}
-      <div className="flex items-end gap-2">
-        {/* セット番号 */}
-        <div className="w-12 shrink-0">
-          <span className="text-sm font-semibold text-muted-foreground">
+      <div className="flex items-start sm:items-end gap-1.5">
+        {/* コピーと番号をまとめたカラム（1セット目でも同じ幅を確保） */}
+        <div className="w-10 shrink-0 flex flex-col items-center">
+          {/* コピーボタン（最初のセット以外）または透明なプレースホルダー */}
+          {hasPreviousSet ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onCopyPrevious(index)}
+              className="h-7 w-7 p-0 mb-1"
+              aria-label="前のセットをコピー"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+          ) : (
+            <div className="h-7 w-7 mb-1" aria-hidden="true" />
+          )}
+          {/* セット番号 */}
+          <span className="text-sm font-medium text-muted-foreground">
             {index + 1}
           </span>
         </div>
@@ -91,7 +106,9 @@ function SetRow({
             step="0.5"
             className="text-base h-9"
           />
-          <span className="text-xs text-muted-foreground mt-0.5 block">kg</span>
+          <span className="text-xs text-muted-foreground mt-0.5 block text-right">
+            kg
+          </span>
         </div>
 
         {/* ×記号 */}
@@ -111,7 +128,9 @@ function SetRow({
             step="1"
             className="text-base h-9"
           />
-          <span className="text-xs text-muted-foreground mt-0.5 block">回</span>
+          <span className="text-xs text-muted-foreground mt-0.5 block text-right">
+            回
+          </span>
         </div>
 
         {/* 1RM表示 */}
@@ -126,21 +145,8 @@ function SetRow({
           )}
         </div>
 
-        {/* アクションボタン */}
-        <div className="flex gap-1 shrink-0">
-          {/* コピーボタン（最初のセット以外） */}
-          {hasPreviousSet && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onCopyPrevious(index)}
-              className="h-7 w-7 p-0"
-              aria-label="前のセットをコピー"
-            >
-              <Copy className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          {/* 削除ボタン */}
+        {/* 削除ボタン（右端） */}
+        <div className="shrink-0">
           <Button
             variant="ghost"
             size="sm"
