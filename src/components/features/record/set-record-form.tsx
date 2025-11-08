@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,20 +36,51 @@ interface SetRowProps {
   onCopyPrevious: (index: number) => void;
   /** セットを削除するコールバック */
   onDelete: (setId: string) => void;
+  /** セット行のref（自動スクロール用） */
+  setRowRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 /**
  * 入力値を数値に変換する（重量用）
+ * NaN、無限大、負の値を0に変換して安全性を確保
  */
 const parseWeight = (value: string): number => {
-  return parseFloat(value) || 0;
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 };
 
 /**
  * 入力値を数値に変換する（回数用）
+ * NaN、無限大、負の値を0に変換して安全性を確保
  */
 const parseReps = (value: string): number => {
-  return parseInt(value, 10) || 0;
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+};
+
+/**
+ * 入力値の長さに応じてフォントサイズのクラスを返す
+ * 画面サイズと値の長さの両方を考慮して動的に調整
+ * - 小さい画面（モバイル）: 値の長さに応じて小さく調整（見切れ防止）
+ * - 大きい画面（デスクトップ）: より大きなフォントサイズを使用（可読性向上）
+ */
+const getFontSizeClass = (value: number | string | undefined): string => {
+  const valueStr = value?.toString() || "";
+  const length = valueStr.length;
+
+  // 空欄または短い値（1-3文字）
+  if (length === 0 || length <= 3) {
+    // モバイル: text-base, デスクトップ: text-lg
+    return "text-base sm:text-lg";
+  }
+  // 中程度の値（4-5文字）
+  if (length <= 5) {
+    // モバイル: text-sm, デスクトップ: text-base
+    return "text-sm sm:text-base";
+  }
+  // 長い値（6文字以上）
+  // モバイル: text-xs, デスクトップ: text-sm
+  return "text-xs sm:text-sm";
 };
 
 /**
@@ -63,16 +95,35 @@ function SetRow({
   onSetChange,
   onCopyPrevious,
   onDelete,
+  setRowRef,
 }: SetRowProps) {
   const oneRM = calculate1RM(set.weight, set.reps);
 
   return (
-    <div>
+    <div ref={setRowRef}>
       {/* セット行 */}
-      <div className="flex items-end gap-2">
-        {/* セット番号 */}
-        <div className="w-12 shrink-0">
-          <span className="text-sm font-semibold text-muted-foreground">
+      <div className="flex items-start sm:items-end gap-1.5">
+        {/* コピーと番号をまとめたカラム（1セット目でも同じ幅を確保） */}
+        <div className="w-10 shrink-0 flex flex-col items-center">
+          {/* コピーボタン（最初のセット以外）または透明なプレースホルダー */}
+          {hasPreviousSet ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onCopyPrevious(index)}
+              className="h-7 w-7 p-0 mb-1"
+              aria-label="前のセットをコピー"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+          ) : (
+            <div
+              className="h-[28px] w-7 flex items-center justify-center mb-1"
+              aria-hidden="true"
+            />
+          )}
+          {/* セット番号 */}
+          <span className="text-sm font-medium text-muted-foreground">
             {index + 1}
           </span>
         </div>
@@ -89,9 +140,13 @@ function SetRow({
             }}
             min="0"
             step="0.5"
-            className="text-base h-9"
+            className={`${getFontSizeClass(
+              set.weight
+            )} placeholder:text-xs sm:placeholder:text-sm h-9 text-center`}
           />
-          <span className="text-xs text-muted-foreground mt-0.5 block">kg</span>
+          <span className="text-xs text-muted-foreground mt-0.5 block text-right">
+            kg
+          </span>
         </div>
 
         {/* ×記号 */}
@@ -109,13 +164,17 @@ function SetRow({
             }}
             min="0"
             step="1"
-            className="text-base h-9"
+            className={`${getFontSizeClass(
+              set.reps
+            )} placeholder:text-xs sm:placeholder:text-sm h-9 text-center`}
           />
-          <span className="text-xs text-muted-foreground mt-0.5 block">回</span>
+          <span className="text-xs text-muted-foreground mt-0.5 block text-right">
+            回
+          </span>
         </div>
 
         {/* 1RM表示 */}
-        <div className="flex-1 text-center pb-1">
+        <div className="w-20 shrink-0 text-center pb-1">
           {oneRM ? (
             <div>
               <div className="text-base font-semibold">{oneRM}kg</div>
@@ -126,21 +185,8 @@ function SetRow({
           )}
         </div>
 
-        {/* アクションボタン */}
-        <div className="flex gap-1 shrink-0">
-          {/* コピーボタン（最初のセット以外） */}
-          {hasPreviousSet && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onCopyPrevious(index)}
-              className="h-7 w-7 p-0"
-              aria-label="前のセットをコピー"
-            >
-              <Copy className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          {/* 削除ボタン */}
+        {/* 削除ボタン（右端） */}
+        <div className="shrink-0">
           <Button
             variant="ghost"
             size="sm"
@@ -164,6 +210,11 @@ function SetRow({
  * 筋トレ種目用の重量×回数入力フォーム
  */
 export function SetRecordForm({ sets, onSetsChange }: SetRecordFormProps) {
+  // 最後のセットへのref（自動スクロール用）
+  const lastSetRef = useRef<HTMLDivElement>(null);
+  // 前回のセット数を追跡（セット追加を検知するため）
+  const previousSetsLengthRef = useRef<number>(sets.length);
+
   /**
    * 新しいセットを作成する
    */
@@ -193,6 +244,24 @@ export function SetRecordForm({ sets, onSetsChange }: SetRecordFormProps) {
     const newSet = createNewSet(sets.length + 1);
     onSetsChange([...sets, newSet]);
   };
+
+  /**
+   * セットが追加された際に、最後のセットまで自動スクロール
+   */
+  useEffect(() => {
+    // セット数が増えた場合のみスクロール（削除時はスクロールしない）
+    if (sets.length > previousSetsLengthRef.current && lastSetRef.current) {
+      // 少し遅延を入れて、DOMの更新を待つ
+      setTimeout(() => {
+        lastSetRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "end",
+        });
+      }, 100);
+    }
+    // 前回のセット数を更新
+    previousSetsLengthRef.current = sets.length;
+  }, [sets.length]);
 
   /**
    * セットを削除する
@@ -252,19 +321,23 @@ export function SetRecordForm({ sets, onSetsChange }: SetRecordFormProps) {
             </div>
           ) : (
             /* セットリスト */
-            <div className="space-y-3">
-              {sets.map((set, index) => (
-                <SetRow
-                  key={set.id}
-                  set={set}
-                  index={index}
-                  isLast={index === sets.length - 1}
-                  hasPreviousSet={index > 0}
-                  onSetChange={handleSetChange}
-                  onCopyPrevious={handleCopyPreviousSet}
-                  onDelete={handleDeleteSet}
-                />
-              ))}
+            <div className="space-y-[10px]">
+              {sets.map((set, index) => {
+                const isLast = index === sets.length - 1;
+                return (
+                  <SetRow
+                    key={set.id}
+                    set={set}
+                    index={index}
+                    isLast={isLast}
+                    hasPreviousSet={index > 0}
+                    onSetChange={handleSetChange}
+                    onCopyPrevious={handleCopyPreviousSet}
+                    onDelete={handleDeleteSet}
+                    setRowRef={isLast ? lastSetRef : undefined}
+                  />
+                );
+              })}
             </div>
           )}
 
