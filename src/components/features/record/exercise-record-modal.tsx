@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import { isCardioExercise } from "@/lib/utils";
 import { SetRecordForm } from "./set-record-form";
 import type { Exercise, SetRecord } from "@/types/workout";
 import { Separator } from "@/components/ui/separator";
+import { useWorkoutSession } from "@/hooks/use-workout-session";
 
 interface ExerciseRecordModalProps {
   /** 選択された種目 */
@@ -22,6 +23,8 @@ interface ExerciseRecordModalProps {
   isOpen: boolean;
   /** モーダルを閉じる時のコールバック */
   onClose: () => void;
+  /** 記録する日付 */
+  date: Date;
 }
 
 /**
@@ -34,9 +37,8 @@ export function ExerciseRecordModal({
   exercise,
   isOpen,
   onClose,
+  date,
 }: ExerciseRecordModalProps) {
-  // セット記録の状態管理（筋トレ種目の場合のみ）
-  const [sets, setSets] = useState<SetRecord[]>([]);
   // 前回のexercise.idを追跡するref（exercise変更時のリセット用）
   const previousExerciseIdRef = useRef<string | null>(null);
 
@@ -55,35 +57,33 @@ export function ExerciseRecordModal({
     failure: false,
   });
 
-  /**
-   * モーダルが閉じられたときにセットをリセット
-   */
-  useEffect(() => {
-    if (!isOpen) {
-      setSets([]);
-      previousExerciseIdRef.current = null;
-    }
-  }, [isOpen]);
+  // ローカルストレージを使用したセット記録管理
+  const { sets, setSets, saveSets } = useWorkoutSession({
+    date,
+    exerciseId: exercise?.id || null,
+    isOpen,
+    // 筋トレ種目の場合のみ初期セットを作成
+    createInitialSet: isCardio ? undefined : createInitialSet,
+  });
 
   /**
-   * exerciseが変更されたとき、またはモーダルが開いたときに初期セットを追加（筋トレ種目の場合のみ）
+   * exerciseが変更されたときの処理
    */
   useEffect(() => {
-    if (!isOpen || !exercise || isCardio) {
-      return;
-    }
-
-    // exerciseが変更された場合はリセットして初期セットを追加
-    if (previousExerciseIdRef.current !== exercise.id) {
+    if (exercise) {
       previousExerciseIdRef.current = exercise.id;
-      setSets([createInitialSet()]);
     }
-  }, [isOpen, exercise, isCardio]);
+  }, [exercise]);
 
   /**
    * モーダルを閉じる時の処理
+   * セット記録を自動保存
    */
   const handleClose = () => {
+    // セット記録を保存
+    if (exercise && sets.length > 0) {
+      saveSets(sets);
+    }
     onClose();
   };
 
