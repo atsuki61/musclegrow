@@ -12,9 +12,11 @@ import {
 import { ArrowLeft, BarChart3, Settings } from "lucide-react";
 import { isCardioExercise } from "@/lib/utils";
 import { SetRecordForm } from "./set-record-form";
-import type { Exercise, SetRecord } from "@/types/workout";
+import { CardioRecordForm } from "./cardio-record-form";
+import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { Separator } from "@/components/ui/separator";
 import { useWorkoutSession } from "@/hooks/use-workout-session";
+import { useCardioSession } from "@/hooks/use-cardio-session";
 
 interface ExerciseRecordModalProps {
   /** 選択された種目 */
@@ -46,24 +48,56 @@ export function ExerciseRecordModal({
   const isCardio = exercise ? isCardioExercise(exercise) : false;
 
   /**
-   * 初期セットを作成する
+   * 初期セットを作成する（筋トレ種目用）
    */
-  const createInitialSet = (): SetRecord => ({
+  const createInitialSet = (): SetRecord => {
+    const isTimeBased = exercise
+      ? exercise.name.toLowerCase().includes("プランク") ||
+        exercise.name.toLowerCase().includes("plank")
+      : false;
+
+    return {
+      id: nanoid(),
+      setOrder: 1,
+      // 時間ベース種目以外は重量入力欄を表示（自重種目は任意なのでundefinedで初期化）
+      weight: isTimeBased ? undefined : undefined,
+      reps: 0,
+      duration: isTimeBased ? 0 : undefined,
+      isWarmup: false,
+      failure: false,
+    };
+  };
+
+  /**
+   * 初期記録を作成する（有酸素種目用）
+   */
+  const createInitialCardioRecord = (): CardioRecord => ({
     id: nanoid(),
-    setOrder: 1,
-    weight: 0,
-    reps: 0,
-    isWarmup: false,
-    failure: false,
+    duration: 0,
+    distance: null,
+    speed: null,
+    calories: null,
+    heartRate: null,
+    notes: null,
+    date: new Date(),
   });
 
-  // ローカルストレージを使用したセット記録管理
+  // ローカルストレージを使用したセット記録管理（筋トレ種目用）
   const { sets, setSets, saveSets } = useWorkoutSession({
     date,
     exerciseId: exercise?.id || null,
     isOpen,
     // 筋トレ種目の場合のみ初期セットを作成
     createInitialSet: isCardio ? undefined : createInitialSet,
+  });
+
+  // ローカルストレージを使用した有酸素種目記録管理
+  const { records, setRecords, saveRecords } = useCardioSession({
+    date,
+    exerciseId: exercise?.id || null,
+    isOpen,
+    // 有酸素種目の場合のみ初期記録を作成
+    createInitialRecord: isCardio ? createInitialCardioRecord : undefined,
   });
 
   /**
@@ -77,12 +111,21 @@ export function ExerciseRecordModal({
 
   /**
    * モーダルを閉じる時の処理
-   * セット記録を自動保存
+   * セット記録または有酸素種目記録を自動保存
    */
   const handleClose = () => {
-    // セット記録を保存
-    if (exercise && sets.length > 0) {
-      saveSets(sets);
+    if (exercise) {
+      if (isCardio) {
+        // 有酸素種目の記録を保存
+        if (records.length > 0) {
+          saveRecords(records);
+        }
+      } else {
+        // 筋トレ種目のセット記録を保存
+        if (sets.length > 0) {
+          saveSets(sets);
+        }
+      }
     }
     onClose();
   };
@@ -146,16 +189,18 @@ export function ExerciseRecordModal({
 
               {/* 今日の記録セクション */}
               {isCardio ? (
-                // 有酸素種目の場合（後で実装）
-                <div className="text-center text-muted-foreground py-8">
-                  <p>有酸素種目の記録機能は準備中です</p>
-                  <p className="text-xs mt-2">
-                    （時速、速度、消費カロリー、距離、時間などの入力）
-                  </p>
-                </div>
+                // 有酸素種目の場合: 有酸素種目記録フォームを表示
+                <CardioRecordForm
+                  records={records}
+                  onRecordsChange={setRecords}
+                />
               ) : (
                 // 筋トレ種目の場合: セット記録フォームを表示
-                <SetRecordForm sets={sets} onSetsChange={setSets} />
+                <SetRecordForm
+                  exercise={exercise}
+                  sets={sets}
+                  onSetsChange={setSets}
+                />
               )}
             </div>
           </>
