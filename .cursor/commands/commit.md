@@ -5,4 +5,4 @@
 1. `git add .` で変更をステージする
 2. `git commit` のコメントとしてその内容を反映する
 3. `git push` でリモートリポジトリにプッシュする
-4. プルリクエストを作成する（GitKraken MCPツールまたはGitHub CLIを使用）
+4. プルリクエストを作成する（GitKraken MCP ツールまたは GitHub CLI を使用）
