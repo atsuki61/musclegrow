@@ -109,8 +109,9 @@ export type Exercise = {
 export type SetRecord = {
   id: string; // 一時的なID（nanoidなど）
   setOrder: number; // セット順（1, 2, 3...）
-  weight: number; // 重量（kg）
+  weight?: number; // 重量（kg）- 自重種目や時間ベース種目ではオプショナル
   reps: number; // 回数
+  duration?: number | null; // 時間ベース種目用（秒）- プランクなど
   rpe?: number | null; // 主観的疲労度（RPE: 1-10）
   isWarmup?: boolean; // ウォームアップセットか
   restSeconds?: number | null; // セット間の休憩時間（秒）
@@ -126,5 +127,21 @@ export type PreviousSetRecord = {
   weight: number;
   reps: number;
   date: Date;
+};
+
+/**
+ * 有酸素種目の記録（入力用）
+ * モーダル内で入力・編集する際に使用
+ */
+export type CardioRecord = {
+  id: string; // 一時的なID（nanoidなど）
+  duration: number; // 時間（分）
+  distance?: number | null; // 距離（km）
+  speed?: number | null; // 速度（km/h）- 距離と時間から自動計算可能
+  calories?: number | null; // 消費カロリー（kcal）
+  heartRate?: number | null; // 心拍数（bpm）
+  incline?: number | null; // 傾斜（%）- トレッドミル用
+  notes?: string | null; // メモ
+  date: Date; // 記録日時
 };
 

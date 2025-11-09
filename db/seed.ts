@@ -1,155 +1,11 @@
 import { nanoid } from "nanoid";
 import { db } from "./index";
 import { exercises } from "./schemas/app";
-
-// サブ分類のマッピング
-const SUB_GROUP_MAP: Record<string, string> = {
-  全体: "chest_overall",
-  上部: "chest_upper",
-  下部: "chest_lower",
-  外側: "chest_outer",
-  幅: "back_width",
-  厚み: "back_thickness",
-  "僧帽筋・下部": "back_traps",
-  大腿四頭筋: "legs_quads",
-  ハムストリングス: "legs_hamstrings",
-  臀筋: "legs_glutes",
-  下腿: "legs_calves",
-  前部: "shoulders_front",
-  中部: "shoulders_middle",
-  後部: "shoulders_rear",
-  上腕二頭筋: "arms_biceps",
-  上腕三頭筋: "arms_triceps",
-  腹直筋: "core_rectus",
-  腹横筋: "core_transverse",
-  腹斜筋: "core_obliques",
-};
-
-// 機材タイプのマッピング
-function getEquipmentType(name: string): string {
-  if (name.includes("バーベル") || name.includes("BB")) return "barbell";
-  if (name.includes("ダンベル") || name.includes("DB")) return "dumbbell";
-  if (
-    name.includes("マシン") ||
-    name.includes("スミス") ||
-    name.includes("チェストプレス") ||
-    name.includes("レッグ")
-  )
-    return "machine";
-  if (name.includes("ケーブル") || name.includes("C")) return "cable";
-  if (
-    name.includes("自重") ||
-    name.includes("ディップス") ||
-    name.includes("プッシュアップ") ||
-    name.includes("プランク") ||
-    name.includes("クランチ") ||
-    name.includes("レイズ") ||
-    name.includes("懸垂") ||
-    name.includes("バーピー")
-  )
-    return "bodyweight";
-  if (name.includes("ケトルベル")) return "kettlebell";
-  if (
-    name.includes("ランニング") ||
-    name.includes("バイク") ||
-    name.includes("トレッドミル") ||
-    name.includes("エアロ") ||
-    name.includes("ローイング") ||
-    name.includes("ステア") ||
-    name.includes("クロス")
-  )
-    return "machine";
-  return "other";
-}
-
-// 英語名のマッピング
-const NAME_EN_MAP: Record<string, string> = {
-  ベンチプレス: "Bench Press",
-  ダンベルプレス: "Dumbbell Press",
-  チェストプレス: "Chest Press",
-  インクラインダンベルプレス: "Incline Dumbbell Press",
-  "インクラインベンチプレス（バーベル）": "Incline Bench Press",
-  デクラインプレス: "Decline Press",
-  "デクラインベンチプレス（バーベル）": "Decline Bench Press",
-  ディップス: "Dips",
-  ダンベルフライ: "Dumbbell Fly",
-  ペックフライ: "Pec Fly",
-  ケーブルフライ: "Cable Fly",
-  ケーブルクロスオーバー: "Cable Crossover",
-  "プッシュアップ（腕立て伏せ）": "Push-up",
-  デッドリフト: "Deadlift",
-  懸垂: "Chin-up",
-  ラットプルダウン: "Lat Pulldown",
-  リバースグリップラットプルダウン: "Reverse Grip Lat Pulldown",
-  ワイドグリップチンニング: "Wide Grip Chin-up",
-  バーベルローイング: "Barbell Row",
-  シーテッドロー: "Seated Row",
-  ワンハンドローイング: "One Hand Row",
-  "T バーローイング": "T-Bar Row",
-  ケーブルローイング: "Cable Row",
-  ハイパーエクステンション: "Hyperextension",
-  シュラッグ: "Shrug",
-  フェイスプル: "Face Pull",
-  スクワット: "Squat",
-  レッグプレス: "Leg Press",
-  レッグエクステンション: "Leg Extension",
-  ブルガリアンスクワット: "Bulgarian Squat",
-  スプリットスクワット: "Split Squat",
-  ランジ: "Lunge",
-  ステップアップ: "Step-up",
-  レッグカール: "Leg Curl",
-  ルーマニアンデッドリフト: "Romanian Deadlift",
-  ヒップスラスト: "Hip Thrust",
-  "ヒップスラスト（バーベル）": "Barbell Hip Thrust",
-  カーフレイズ: "Calf Raise",
-  ダンベルショルダープレス: "Dumbbell Shoulder Press",
-  "ショルダープレス（スミス）": "Smith Machine Shoulder Press",
-  ミリタリープレス: "Military Press",
-  アーノルドプレス: "Arnold Press",
-  フロントレイズ: "Front Raise",
-  バーベルフロントレイズ: "Barbell Front Raise",
-  サイドレイズ: "Side Raise",
-  ケーブルラテラルレイズ: "Cable Lateral Raise",
-  アップライトロウ: "Upright Row",
-  リアデルトフライ: "Rear Delt Fly",
-  リバースペックフライ: "Reverse Pec Fly",
-  ケーブルリアデルトフライ: "Cable Rear Delt Fly",
-  バーベルカール: "Barbell Curl",
-  インクラインダンベルカール: "Incline Dumbbell Curl",
-  ダンベルハンマーカール: "Dumbbell Hammer Curl",
-  プリーチャーカール: "Preacher Curl",
-  コンセントレーションカール: "Concentration Curl",
-  リバースカール: "Reverse Curl",
-  ケーブルカール: "Cable Curl",
-  トライセプスプッシュダウン: "Triceps Pushdown",
-  スカルクラッシャー: "Skull Crusher",
-  ケーブルキックバック: "Cable Kickback",
-  ナローベンチプレス: "Close Grip Bench Press",
-  オーバーヘッドエクステンション: "Overhead Extension",
-  "ディップス（三頭筋）": "Triceps Dips",
-  クローズグリッププッシュアップ: "Close Grip Push-up",
-  クランチ: "Crunch",
-  レッグレイズ: "Leg Raise",
-  アブドミナルクランチ: "Abdominal Crunch",
-  シットアップベンチ: "Sit-up Bench",
-  マウンテンクライマー: "Mountain Climber",
-  ハンギングレッグレイズ: "Hanging Leg Raise",
-  シットアップ: "Sit-up",
-  プランク: "Plank",
-  アブローラー: "Ab Roller",
-  ロータリートーソ: "Russian Twist",
-  サイドプランク: "Side Plank",
-  ロシアンツイスト: "Russian Twist",
-  バイシクルクランチ: "Bicycle Crunch",
-  "ランニング（トレッドミル／屋外）": "Running",
-  "エアロバイク（バイク）": "Exercise Bike",
-  ローイングマシン: "Rowing Machine",
-  ステアクライマー: "Stair Climber",
-  クロストレーナー: "Elliptical",
-  スピンバイク: "Spin Bike",
-  バーピー: "Burpee",
-  ケトルベルスイング: "Kettlebell Swing",
-};
+import {
+  SUB_GROUP_MAP,
+  NAME_EN_MAP,
+  getEquipmentType,
+} from "../src/lib/exercise-mappings";
 
 // 種目データの定義（種目.mdから抽出）
 const seedExercises = [
@@ -622,13 +478,6 @@ const seedExercises = [
     isBig3: false,
   },
   {
-    name: "ディップス（三頭筋）",
-    bodyPart: "arms",
-    subGroup: "上腕三頭筋",
-    tier: "selectable",
-    isBig3: false,
-  },
-  {
     name: "クローズグリッププッシュアップ",
     bodyPart: "arms",
     subGroup: "上腕三頭筋",
@@ -773,21 +622,6 @@ const seedExercises = [
     name: "スピンバイク",
     bodyPart: "other",
     subGroup: "有酸素",
-    tier: "selectable",
-    isBig3: false,
-  },
-  // その他の全身運動
-  {
-    name: "バーピー",
-    bodyPart: "other",
-    subGroup: "その他の全身運動",
-    tier: "selectable",
-    isBig3: false,
-  },
-  {
-    name: "ケトルベルスイング",
-    bodyPart: "other",
-    subGroup: "その他の全身運動",
     tier: "selectable",
     isBig3: false,
   },

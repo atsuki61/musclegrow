@@ -31,6 +31,44 @@ export function isCardioExercise(exercise: Exercise): boolean {
 }
 
 /**
+ * 時間ベースの種目かどうかを判定する
+ * プランクなど、重量や回数ではなく時間で記録する種目
+ * @param exercise 種目情報
+ * @returns 時間ベース種目の場合true、それ以外はfalse
+ */
+export function isTimeBasedExercise(exercise: Exercise): boolean {
+  const timeBasedKeywords = ["プランク", "plank"];
+  return timeBasedKeywords.some((keyword) =>
+    exercise.name.toLowerCase().includes(keyword.toLowerCase())
+  );
+}
+
+/**
+ * 重量入力が必要な種目かどうかを判定する
+ * 有酸素種目や時間ベース種目では重量入力が不要
+ * 自重種目や腹筋種目でも重量入力欄は表示されるが、入力は任意
+ * @param exercise 種目情報
+ * @returns 重量入力が必要な場合true、不要な場合false
+ */
+export function requiresWeightInput(exercise: Exercise): boolean {
+  // 有酸素種目は重量不要
+  if (isCardioExercise(exercise)) return false;
+  // 時間ベース種目は重量不要
+  if (isTimeBasedExercise(exercise)) return false;
+  // それ以外は重量入力欄を表示（自重種目や腹筋種目でも任意入力として表示）
+  return true;
+}
+
+/**
+ * 自重種目かどうかを判定する
+ * @param exercise 種目情報
+ * @returns 自重種目の場合true、それ以外はfalse
+ */
+export function isBodyweightExercise(exercise: Exercise): boolean {
+  return exercise.primaryEquipment === "bodyweight";
+}
+
+/**
  * 1RM（1レップ最大値）を計算する
  * Epley式を使用: 1RM = 重量 × (1 + 回数 / 30)
  * @param weight 重量（kg）
