@@ -5,6 +5,7 @@ import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
 import { ExerciseRecordModal } from "./exercise-record-modal";
+import { AddExerciseModal } from "./add-exercise-modal";
 import { mockInitialExercises } from "@/lib/mock-exercises";
 import { BODY_PART_LABELS } from "@/lib/utils";
 import type { BodyPart, Exercise } from "@/types/workout";
@@ -13,11 +14,15 @@ export function RecordPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedPart, setSelectedPart] = useState<BodyPart>("all");
   // 初期値として直接設定（useEffectを使わない）
-  const [exercises] = useState<Exercise[]>(mockInitialExercises);
+  const [exercises, setExercises] = useState<Exercise[]>(mockInitialExercises);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
     null
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
+  const [addExerciseBodyPart, setAddExerciseBodyPart] = useState<
+    Exclude<BodyPart, "all">
+  >("chest");
 
   // TODO: 実際のAPIからデータを取得（現時点ではダミーデータ）
   // 将来的に日付や部位が変更された時にデータを再取得する場合は、以下のuseEffectを使用
@@ -44,6 +49,29 @@ export function RecordPage() {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedExercise(null);
+  };
+
+  /**
+   * 種目追加モーダルを開く
+   */
+  const handleAddExerciseClick = (bodyPart: Exclude<BodyPart, "all">) => {
+    setAddExerciseBodyPart(bodyPart);
+    setIsAddExerciseModalOpen(true);
+  };
+
+  /**
+   * 種目を追加する
+   */
+  const handleAddExercise = (exercise: Exercise) => {
+    // 既存の種目リストに追加
+    setExercises((prev) => [...prev, exercise]);
+  };
+
+  /**
+   * 種目追加モーダルを閉じる
+   */
+  const handleAddExerciseModalClose = () => {
+    setIsAddExerciseModalOpen(false);
   };
 
   // 表示する部位を決定
@@ -85,6 +113,7 @@ export function RecordPage() {
                 bodyPart={BODY_PART_LABELS[bodyPart]}
                 exercises={bodyPartExercises}
                 onExerciseSelect={handleExerciseSelect}
+                onAddExerciseClick={() => handleAddExerciseClick(bodyPart)}
               />
             );
           })}
@@ -97,6 +126,15 @@ export function RecordPage() {
         isOpen={isModalOpen}
         onClose={handleModalClose}
         date={selectedDate}
+      />
+
+      {/* 種目追加モーダル */}
+      <AddExerciseModal
+        isOpen={isAddExerciseModalOpen}
+        onClose={handleAddExerciseModalClose}
+        onAddExercise={handleAddExercise}
+        allExercises={exercises}
+        initialBodyPart={addExerciseBodyPart}
       />
     </div>
   );

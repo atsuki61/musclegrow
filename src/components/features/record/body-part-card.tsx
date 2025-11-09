@@ -2,40 +2,8 @@
 
 import { Card } from "@/components/ui/card";
 import { getLastTrainedText, isCardioExercise } from "@/lib/utils";
+import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
 import type { Exercise, MuscleSubGroup } from "@/types/workout";
-
-/**
- * サブ分類のラベル定義
- */
-const MUSCLE_SUB_GROUP_LABELS: Record<MuscleSubGroup, string> = {
-  // 胸
-  chest_overall: "全体",
-  chest_upper: "上部",
-  chest_lower: "下部",
-  chest_outer: "外側",
-  // 背中
-  back_overall: "全体",
-  back_width: "幅",
-  back_thickness: "厚み",
-  back_traps: "僧帽筋・下部（首の付け根～肩）",
-  // 脚
-  legs_quads: "大腿四頭筋（太ももの前側）",
-  legs_hamstrings: "ハムストリングス（太ももの後側）",
-  legs_glutes: "臀筋（お尻）",
-  legs_calves: "下腿（ふくらはぎ）",
-  // 肩
-  shoulders_overall: "全体",
-  shoulders_front: "前部",
-  shoulders_middle: "中部",
-  shoulders_rear: "後部",
-  // 腕
-  arms_biceps: "上腕二頭筋（力こぶ）",
-  arms_triceps: "上腕三頭筋（二の腕の後ろ）",
-  // 腹筋
-  core_rectus: "腹直筋（お腹の前側）",
-  core_transverse: "腹横筋（お腹の深い部分）",
-  core_obliques: "腹斜筋（お腹の横側）",
-};
 
 interface BodyPartCardProps {
   /** 部位名 */
@@ -48,6 +16,8 @@ interface BodyPartCardProps {
   lastTrainedAt?: Date;
   /** 種目選択時のコールバック */
   onExerciseSelect?: (exercise: Exercise) => void;
+  /** 種目追加ボタンクリック時のコールバック */
+  onAddExerciseClick?: () => void;
 }
 
 /**
@@ -60,6 +30,7 @@ export function BodyPartCard({
   maxWeights = {},
   lastTrainedAt,
   onExerciseSelect,
+  onAddExerciseClick,
 }: BodyPartCardProps) {
   // サブ分類ごとに種目をグループ化
   const groupedExercises = exercises.reduce((acc, exercise) => {
@@ -125,7 +96,10 @@ export function BodyPartCard({
 
       {/* フッター */}
       <div className="mt-4 flex gap-2">
-        <button className="flex-1 rounded-md border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted">
+        <button
+          onClick={onAddExerciseClick}
+          className="flex-1 rounded-md border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+        >
           種目を追加
         </button>
         <button className="flex-1 rounded-md border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted">
