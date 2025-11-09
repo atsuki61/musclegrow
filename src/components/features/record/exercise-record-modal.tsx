@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,14 @@ import { ArrowLeft, BarChart3, Settings } from "lucide-react";
 import { isCardioExercise } from "@/lib/utils";
 import { SetRecordForm } from "./set-record-form";
 import { CardioRecordForm } from "./cardio-record-form";
+import {
+  PreviousWorkoutRecordCard,
+  PreviousCardioRecordCard,
+} from "./previous-record-card";
+import {
+  getPreviousWorkoutRecord,
+  getPreviousCardioRecord,
+} from "@/lib/previous-record";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { Separator } from "@/components/ui/separator";
 import { useWorkoutSession } from "@/hooks/use-workout-session";
@@ -46,6 +54,20 @@ export function ExerciseRecordModal({
 
   // exerciseが存在する場合のみisCardioを計算
   const isCardio = exercise ? isCardioExercise(exercise) : false;
+
+  // 前回記録の表示/非表示状態
+  const [showPreviousRecord, setShowPreviousRecord] = useState(false);
+
+  // 前回記録を取得
+  const previousRecord = useMemo(() => {
+    if (!exercise || !isOpen) return null;
+
+    if (isCardio) {
+      return getPreviousCardioRecord(date, exercise.id);
+    } else {
+      return getPreviousWorkoutRecord(date, exercise.id);
+    }
+  }, [exercise, date, isOpen, isCardio]);
 
   /**
    * 初期セットを作成する（筋トレ種目用）
@@ -127,8 +149,38 @@ export function ExerciseRecordModal({
         }
       }
     }
+    // 前回記録の表示状態をリセット
+    setShowPreviousRecord(false);
     onClose();
   };
+
+  /**
+   * 前回記録をコピーする
+   */
+  const handleCopyPreviousRecord = () => {
+    if (!previousRecord) return;
+
+    if (isCardio && "records" in previousRecord) {
+      // 有酸素種目の場合
+      setRecords(previousRecord.records);
+    } else if (!isCardio && "sets" in previousRecord) {
+      // 筋トレ種目の場合
+      const copiedSets: SetRecord[] = previousRecord.sets.map((set) => ({
+        ...set,
+        id: nanoid(), // 新しいIDを生成
+      }));
+      setSets(copiedSets);
+    }
+  };
+
+  /**
+   * exerciseが変更されたときに前回記録の表示状態をリセット
+   */
+  useEffect(() => {
+    if (exercise) {
+      setShowPreviousRecord(false);
+    }
+  }, [exercise]);
 
   // exerciseがnullの場合はDialogを表示しない（早期リターンではなく、openプロップで制御）
   return (
@@ -181,8 +233,34 @@ export function ExerciseRecordModal({
 
             {/* コンテンツエリア */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-              {/* 前回記録セクション（後で実装） */}
-              {/* TODO: 前回記録を表示（フェーズ2で実装） */}
+              {/* 前回記録セクション */}
+              {previousRecord && (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setShowPreviousRecord(!showPreviousRecord)}
+                    className="text-xs text-muted-foreground hover:text-foreground underline transition-colors"
+                  >
+                    前回の記録を表示する
+                  </button>
+                  {showPreviousRecord && (
+                    <>
+                      {isCardio && "records" in previousRecord ? (
+                        <PreviousCardioRecordCard
+                          records={previousRecord.records}
+                          date={previousRecord.date}
+                          onCopy={handleCopyPreviousRecord}
+                        />
+                      ) : !isCardio && "sets" in previousRecord ? (
+                        <PreviousWorkoutRecordCard
+                          sets={previousRecord.sets}
+                          date={previousRecord.date}
+                          onCopy={handleCopyPreviousRecord}
+                        />
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* セパレーター */}
               <Separator className="bg-border/60" />
