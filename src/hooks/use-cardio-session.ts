@@ -1,24 +1,24 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { SetRecord } from "@/types/workout";
+import type { CardioRecord } from "@/types/workout";
 
 /**
- * ローカルストレージのキーを生成
+ * ローカルストレージのキーを生成（有酸素種目用）
  * 日付と種目IDを組み合わせて一意のキーを作成
  */
 const getStorageKey = (date: Date, exerciseId: string): string => {
   const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD形式
-  return `workout_${dateStr}_${exerciseId}`;
+  return `cardio_${dateStr}_${exerciseId}`;
 };
 
 /**
- * ローカルストレージからセット記録を取得
+ * ローカルストレージから有酸素種目の記録を取得
  */
-const loadSetsFromStorage = (
+const loadCardioRecordsFromStorage = (
   date: Date,
   exerciseId: string
-): SetRecord[] | null => {
+): CardioRecord[] | null => {
   if (typeof window === "undefined") return null;
 
   try {
@@ -26,135 +26,146 @@ const loadSetsFromStorage = (
     const stored = localStorage.getItem(key);
     if (!stored) return null;
 
-    const parsed = JSON.parse(stored) as SetRecord[];
-    return parsed;
+    const parsed = JSON.parse(stored) as CardioRecord[];
+    // 日付文字列をDateオブジェクトに変換
+    return parsed.map((record) => ({
+      ...record,
+      date: new Date(record.date),
+    }));
   } catch (error) {
-    console.error("Failed to load sets from storage:", error);
+    console.error("Failed to load cardio records from storage:", error);
     return null;
   }
 };
 
 /**
- * ローカルストレージにセット記録を保存
+ * ローカルストレージに有酸素種目の記録を保存
  * 外部からも使用可能にするためエクスポート
  */
-export const saveSetsToStorage = (
+export const saveCardioRecordsToStorage = (
   date: Date,
   exerciseId: string,
-  sets: SetRecord[]
+  records: CardioRecord[]
 ): void => {
   if (typeof window === "undefined") return;
 
   try {
     const key = getStorageKey(date, exerciseId);
-    // 空のセット（重量0、回数0、時間0のみ）は保存しない
-    const hasValidData = sets.some(
-      (set) =>
-        (set.weight ?? 0) > 0 || set.reps > 0 || (set.duration ?? 0) > 0
+    // 空の記録（時間0、距離0のみ）は保存しない
+    const hasValidData = records.some(
+      (record) =>
+        record.duration > 0 ||
+        (record.distance ?? 0) > 0 ||
+        (record.calories ?? 0) > 0 ||
+        (record.heartRate ?? 0) > 0 ||
+        (record.incline ?? 0) > 0
     );
     if (hasValidData) {
-      localStorage.setItem(key, JSON.stringify(sets));
+      localStorage.setItem(key, JSON.stringify(records));
     } else {
       // 無効なデータの場合は削除
       localStorage.removeItem(key);
     }
   } catch (error) {
-    console.error("Failed to save sets to storage:", error);
+    console.error("Failed to save cardio records to storage:", error);
   }
 };
 
 /**
- * ローカルストレージからセット記録を削除
+ * ローカルストレージから有酸素種目の記録を削除
  */
-const removeSetsFromStorage = (date: Date, exerciseId: string): void => {
+const removeCardioRecordsFromStorage = (
+  date: Date,
+  exerciseId: string
+): void => {
   if (typeof window === "undefined") return;
 
   try {
     const key = getStorageKey(date, exerciseId);
     localStorage.removeItem(key);
   } catch (error) {
-    console.error("Failed to remove sets from storage:", error);
+    console.error("Failed to remove cardio records from storage:", error);
   }
 };
 
-interface UseWorkoutSessionOptions {
+interface UseCardioSessionOptions {
   /** 日付 */
   date: Date;
   /** 種目ID */
   exerciseId: string | null;
   /** モーダルが開いているかどうか */
   isOpen: boolean;
-  /** 初期セットを作成する関数（オプション） */
-  createInitialSet?: () => SetRecord;
+  /** 初期記録を作成する関数（オプション） */
+  createInitialRecord?: () => CardioRecord;
 }
 
 /**
- * ワークアウトセッション管理フック
- * ローカルストレージを使用してセット記録を保存・読み込み
+ * 有酸素種目セッション管理フック
+ * ローカルストレージを使用して有酸素種目の記録を保存・読み込み
  */
-export function useWorkoutSession({
+export function useCardioSession({
   date,
   exerciseId,
   isOpen,
-  createInitialSet,
-}: UseWorkoutSessionOptions) {
-  const [sets, setSets] = useState<SetRecord[]>([]);
+  createInitialRecord,
+}: UseCardioSessionOptions) {
+  const [records, setRecords] = useState<CardioRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   // 前回の日付と種目IDを追跡（日付変更時の自動保存用）
   const previousDateRef = useRef<Date>(date);
   const previousExerciseIdRef = useRef<string | null>(exerciseId);
 
   /**
-   * セット記録を読み込む
+   * 有酸素種目の記録を読み込む
    */
-  const loadSets = useCallback(() => {
+  const loadRecords = useCallback(() => {
     if (!exerciseId || !isOpen) {
-      setSets([]);
+      setRecords([]);
       return;
     }
 
     setIsLoading(true);
-    const loaded = loadSetsFromStorage(date, exerciseId);
+    const loaded = loadCardioRecordsFromStorage(date, exerciseId);
     if (loaded && loaded.length > 0) {
-      setSets(loaded);
+      setRecords(loaded);
     } else {
-      // 保存済みデータがない場合、初期セットを作成（指定されている場合）
-      if (createInitialSet) {
-        setSets([createInitialSet()]);
+      // 保存済みデータがない場合、初期記録を作成（指定されている場合）
+      if (createInitialRecord) {
+        setRecords([createInitialRecord()]);
       } else {
-        setSets([]);
+        setRecords([]);
       }
     }
     setIsLoading(false);
-  }, [date, exerciseId, isOpen, createInitialSet]);
+  }, [date, exerciseId, isOpen, createInitialRecord]);
 
   /**
-   * セット記録を保存する
+   * 有酸素種目の記録を保存する
    */
-  const saveSets = useCallback(
-    (setsToSave: SetRecord[]) => {
+  const saveRecords = useCallback(
+    (recordsToSave: CardioRecord[]) => {
       if (!exerciseId) return;
 
-      saveSetsToStorage(date, exerciseId, setsToSave);
+      saveCardioRecordsToStorage(date, exerciseId, recordsToSave);
     },
     [date, exerciseId]
   );
 
   /**
-   * セット記録を削除する
+   * 有酸素種目の記録を削除する
    */
-  const removeSets = useCallback(() => {
+  const removeRecords = useCallback(() => {
     if (!exerciseId) return;
 
-    removeSetsFromStorage(date, exerciseId);
-    setSets([]);
+    removeCardioRecordsFromStorage(date, exerciseId);
+    setRecords([]);
   }, [date, exerciseId]);
 
-  // setsの最新値を保持するref（日付変更時の保存用）
-  const setsRef = useRef<SetRecord[]>(sets);
+  // recordsの最新値を保持するref（日付変更時の保存用）
+  const recordsRef = useRef<CardioRecord[]>(records);
   useEffect(() => {
-    setsRef.current = sets;
-  }, [sets]);
+    recordsRef.current = records;
+  }, [records]);
 
   /**
    * 日付または種目が変更された時に、前回のデータを保存
@@ -168,13 +179,13 @@ export function useWorkoutSession({
       (dateChanged || exerciseChanged) &&
       isOpen &&
       previousExerciseIdRef.current &&
-      setsRef.current.length > 0
+      recordsRef.current.length > 0
     ) {
       // 前回の日付と種目IDでデータを保存
-      saveSetsToStorage(
+      saveCardioRecordsToStorage(
         previousDateRef.current,
         previousExerciseIdRef.current,
-        setsRef.current
+        recordsRef.current
       );
     }
 
@@ -188,20 +199,20 @@ export function useWorkoutSession({
    */
   useEffect(() => {
     if (isOpen && exerciseId) {
-      loadSets();
+      loadRecords();
     } else if (!isOpen) {
       // モーダルが閉じられた時はリセット
-      setSets([]);
+      setRecords([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, exerciseId, date.toISOString()]);
 
   return {
-    sets,
-    setSets,
+    records,
+    setRecords,
     isLoading,
-    saveSets,
-    removeSets,
-    loadSets,
+    saveRecords,
+    removeRecords,
+    loadRecords,
   };
 }

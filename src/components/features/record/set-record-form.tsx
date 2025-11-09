@@ -7,10 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Copy, Trash2 } from "lucide-react";
-import { calculate1RM } from "@/lib/utils";
-import type { SetRecord } from "@/types/workout";
+import {
+  calculate1RM,
+  requiresWeightInput,
+  isTimeBasedExercise,
+  isBodyweightExercise,
+} from "@/lib/utils";
+import type { Exercise, SetRecord } from "@/types/workout";
 
 interface SetRecordFormProps {
+  /** 種目情報 */
+  exercise: Exercise;
   /** セット記録のリスト */
   sets: SetRecord[];
   /** セット記録のリストを更新するコールバック */
@@ -18,6 +25,8 @@ interface SetRecordFormProps {
 }
 
 interface SetRowProps {
+  /** 種目情報 */
+  exercise: Exercise;
   /** セット記録 */
   set: SetRecord;
   /** セットのインデックス */
@@ -59,6 +68,15 @@ const parseReps = (value: string): number => {
 };
 
 /**
+ * 入力値を数値に変換する（時間用）
+ * NaN、無限大、負の値を0に変換して安全性を確保
+ */
+const parseDuration = (value: string): number => {
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+};
+
+/**
  * 入力値の長さに応じてフォントサイズのクラスを返す
  * 画面サイズと値の長さの両方を考慮して動的に調整
  * - 小さい画面（モバイル）: 値の長さに応じて小さく調整（見切れ防止）
@@ -88,6 +106,7 @@ const getFontSizeClass = (value: number | string | undefined): string => {
  * 1つのセットの入力フィールドとアクションボタンを表示
  */
 function SetRow({
+  exercise,
   set,
   index,
   isLast,
@@ -97,7 +116,11 @@ function SetRow({
   onDelete,
   setRowRef,
 }: SetRowProps) {
-  const oneRM = calculate1RM(set.weight, set.reps);
+  const needsWeight = requiresWeightInput(exercise);
+  const isTimeBased = isTimeBasedExercise(exercise);
+  const isBodyweight = isBodyweightExercise(exercise);
+  // 重量が入力されている場合のみ1RMを計算
+  const oneRM = set.weight && set.weight > 0 ? calculate1RM(set.weight, set.reps) : null;
 
   return (
     <div ref={setRowRef}>
@@ -128,50 +151,81 @@ function SetRow({
           </span>
         </div>
 
-        {/* 重量入力 */}
-        <div className="flex-1">
-          <Input
-            type="number"
-            placeholder="重量"
-            value={set.weight || ""}
-            onChange={(e) => {
-              const value = parseWeight(e.target.value);
-              onSetChange(set.id, "weight", value);
-            }}
-            min="0"
-            step="0.5"
-            className={`${getFontSizeClass(
-              set.weight
-            )} placeholder:text-xs sm:placeholder:text-sm h-9 text-center`}
-          />
-          <span className="text-xs text-muted-foreground mt-0.5 block text-right">
-            kg
-          </span>
-        </div>
+        {/* 時間ベース種目の場合: 時間入力 */}
+        {isTimeBased ? (
+          <div className="flex-1">
+            <Input
+              type="number"
+              placeholder="時間"
+              value={set.duration || ""}
+              onChange={(e) => {
+                const value = parseDuration(e.target.value);
+                onSetChange(set.id, "duration", value);
+              }}
+              min="0"
+              step="1"
+              className={`${getFontSizeClass(
+                set.duration ?? undefined
+              )} placeholder:text-xs sm:placeholder:text-sm h-9 text-center`}
+            />
+            <span className="text-xs text-muted-foreground mt-0.5 block text-right">
+              秒
+            </span>
+          </div>
+        ) : (
+          <>
+            {/* 重量入力（時間ベース種目以外は常に表示、自重種目は任意） */}
+            {needsWeight && (
+              <>
+                <div className="flex-1">
+                  <Input
+                    type="number"
+                    placeholder={isBodyweight ? "重量（任意）" : "重量"}
+                    value={set.weight || ""}
+                    onChange={(e) => {
+                      const value = parseWeight(e.target.value);
+                      onSetChange(set.id, "weight", value);
+                    }}
+                    min="0"
+                    step="0.5"
+                    className={`${getFontSizeClass(
+                      set.weight
+                    )} placeholder:text-xs sm:placeholder:text-sm h-9 text-center`}
+                  />
+                  <span className="text-xs text-muted-foreground mt-0.5 block text-right">
+                    kg
+                  </span>
+                </div>
 
-        {/* ×記号 */}
-        <span className="text-lg font-bold text-muted-foreground pb-1">×</span>
+                {/* ×記号 */}
+                <span className="text-lg font-bold text-muted-foreground pb-1">
+                  ×
+                </span>
+              </>
+            )}
 
-        {/* 回数入力 */}
-        <div className="flex-1">
-          <Input
-            type="number"
-            placeholder="回数"
-            value={set.reps || ""}
-            onChange={(e) => {
-              const value = parseReps(e.target.value);
-              onSetChange(set.id, "reps", value);
-            }}
-            min="0"
-            step="1"
-            className={`${getFontSizeClass(
-              set.reps
-            )} placeholder:text-xs sm:placeholder:text-sm h-9 text-center`}
-          />
-          <span className="text-xs text-muted-foreground mt-0.5 block text-right">
-            回
-          </span>
-        </div>
+            {/* 回数入力 */}
+            <div className="flex-1">
+              <Input
+                type="number"
+                placeholder="回数"
+                value={set.reps || ""}
+                onChange={(e) => {
+                  const value = parseReps(e.target.value);
+                  onSetChange(set.id, "reps", value);
+                }}
+                min="0"
+                step="1"
+                className={`${getFontSizeClass(
+                  set.reps
+                )} placeholder:text-xs sm:placeholder:text-sm h-9 text-center`}
+              />
+              <span className="text-xs text-muted-foreground mt-0.5 block text-right">
+                回
+              </span>
+            </div>
+          </>
+        )}
 
         {/* 1RM表示 */}
         <div className="w-20 shrink-0 text-center pb-1">
@@ -208,8 +262,13 @@ function SetRow({
 /**
  * セット記録フォームコンポーネント
  * 筋トレ種目用の重量×回数入力フォーム
+ * 種目のタイプに応じて、重量入力、回数入力、時間入力を切り替える
  */
-export function SetRecordForm({ sets, onSetsChange }: SetRecordFormProps) {
+export function SetRecordForm({
+  exercise,
+  sets,
+  onSetsChange,
+}: SetRecordFormProps) {
   // 最後のセットへのref（自動スクロール用）
   const lastSetRef = useRef<HTMLDivElement>(null);
   // 前回のセット数を追跡（セット追加を検知するため）
@@ -218,14 +277,19 @@ export function SetRecordForm({ sets, onSetsChange }: SetRecordFormProps) {
   /**
    * 新しいセットを作成する
    */
-  const createNewSet = (setOrder: number): SetRecord => ({
-    id: nanoid(),
-    setOrder,
-    weight: 0,
-    reps: 0,
-    isWarmup: false,
-    failure: false,
-  });
+  const createNewSet = (setOrder: number): SetRecord => {
+    const isTimeBased = isTimeBasedExercise(exercise);
+    return {
+      id: nanoid(),
+      setOrder,
+      // 時間ベース種目以外は重量入力欄を表示（自重種目は任意なのでundefinedで初期化）
+      weight: isTimeBased ? undefined : undefined,
+      reps: isTimeBased ? 0 : 0, // 時間ベースでもrepsは0で初期化（表示はしない）
+      duration: isTimeBased ? 0 : undefined,
+      isWarmup: false,
+      failure: false,
+    };
+  };
 
   /**
    * セット順序を再計算する
@@ -293,13 +357,23 @@ export function SetRecordForm({ sets, onSetsChange }: SetRecordFormProps) {
 
     const previousSet = sets[index - 1];
     const currentSet = sets[index];
+    const isTimeBased = isTimeBasedExercise(exercise);
 
     // 1回の更新で複数フィールドを変更
-    const updatedSets = sets.map((set) =>
-      set.id === currentSet.id
-        ? { ...set, weight: previousSet.weight, reps: previousSet.reps }
-        : set
-    );
+    const updatedSets = sets.map((set) => {
+      if (set.id === currentSet.id) {
+        const updated: SetRecord = { ...set };
+        if (isTimeBased) {
+          updated.duration = previousSet.duration;
+        } else {
+          // 時間ベース種目以外は重量と回数をコピー（重量が入力されている場合のみ）
+          updated.weight = previousSet.weight;
+          updated.reps = previousSet.reps;
+        }
+        return updated;
+      }
+      return set;
+    });
     onSetsChange(updatedSets);
   };
 
@@ -327,6 +401,7 @@ export function SetRecordForm({ sets, onSetsChange }: SetRecordFormProps) {
                 return (
                   <SetRow
                     key={set.id}
+                    exercise={exercise}
                     set={set}
                     index={index}
                     isLast={isLast}
