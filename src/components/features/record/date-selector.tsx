@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { format, addDays, subDays } from "date-fns";
+import { useState, useEffect } from "react";
+import { format, addDays, subDays, isAfter, startOfDay } from "date-fns";
+import { ja } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 interface DateSelectorProps {
   /** 選択された日付 */
@@ -13,18 +20,40 @@ interface DateSelectorProps {
 }
 
 /**
+ * 今日の終わりの時刻（23:59:59.999）を取得する
+ */
+function getTodayEnd(): Date {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  return today;
+}
+
+/**
+ * 日付が有効かどうかを判定する（未来の日付は無効）
+ */
+function isDateValid(date: Date): boolean {
+  return date <= getTodayEnd();
+}
+
+/**
  * 日付選択コンポーネント
  * 前日/翌日に移動するボタンと日付表示を提供
+ * 日付をクリックするとカレンダーダイアログが表示される
  */
 export function DateSelector({ date, onDateChange }: DateSelectorProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(date || new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  // propsのdateが変更されたときに内部状態を更新
+  useEffect(() => {
+    if (date) {
+      setSelectedDate(date);
+    }
+  }, [date]);
 
   // 日付を更新する関数
   const updateDate = (newDate: Date) => {
-    // 未来の日付は選択不可
-    const today = new Date();
-    today.setHours(23, 59, 59, 999); // 今日の終わりまで
-    if (newDate > today) {
+    if (!isDateValid(newDate)) {
       return;
     }
 
@@ -41,12 +70,16 @@ export function DateSelector({ date, onDateChange }: DateSelectorProps) {
   // 翌日に移動
   const handleNextDay = () => {
     const nextDay = addDays(selectedDate, 1);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-
-    // 未来の日付は選択不可
-    if (nextDay <= today) {
+    if (isDateValid(nextDay)) {
       updateDate(nextDay);
+    }
+  };
+
+  // カレンダーで日付を選択したときの処理
+  const handleCalendarSelect = (newDate: Date | undefined) => {
+    if (newDate) {
+      updateDate(newDate);
+      setIsCalendarOpen(false);
     }
   };
 
@@ -59,9 +92,12 @@ export function DateSelector({ date, onDateChange }: DateSelectorProps) {
 
   // 翌日が選択可能かどうかを判定
   const nextDay = addDays(selectedDate, 1);
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
-  const canGoNext = nextDay <= todayEnd;
+  const canGoNext = isDateValid(nextDay);
+
+  // 未来の日付を無効化する関数
+  const isDateDisabled = (date: Date) => {
+    return isAfter(startOfDay(date), startOfDay(today));
+  };
 
   return (
     <div className="flex items-center gap-2">
@@ -76,19 +112,30 @@ export function DateSelector({ date, onDateChange }: DateSelectorProps) {
         <ChevronLeft className="h-4 w-4" />
       </Button>
 
-      {/* 日付表示 */}
-      <button
-        onClick={() => {
-          // TODO: カレンダーダイアログを表示（後で実装）
-        }}
-        className="text-lg font-semibold px-2 py-1 hover:bg-muted rounded-md transition-colors"
-        aria-label={`日付を選択: ${formattedDate}`}
-      >
-        {formattedDate}
-        {isToday && (
-          <span className="ml-1 text-xs text-muted-foreground">(今日)</span>
-        )}
-      </button>
+      {/* カレンダーダイアログ */}
+      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+        <PopoverTrigger asChild>
+          <button
+            className="text-lg font-semibold px-2 py-1 hover:bg-muted rounded-md transition-colors"
+            aria-label={`日付を選択: ${formattedDate}`}
+          >
+            {formattedDate}
+            {isToday && (
+              <span className="ml-1 text-xs text-muted-foreground">(今日)</span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="center">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={handleCalendarSelect}
+            disabled={isDateDisabled}
+            locale={ja}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
 
       {/* 翌日ボタン */}
       <Button
