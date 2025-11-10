@@ -144,4 +144,3 @@ export type CardioRecord = {
   notes?: string | null; // メモ
   date: Date; // 記録日時
 };
-

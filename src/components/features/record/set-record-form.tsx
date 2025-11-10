@@ -120,7 +120,8 @@ function SetRow({
   const isTimeBased = isTimeBasedExercise(exercise);
   const isBodyweight = isBodyweightExercise(exercise);
   // 重量が入力されている場合のみ1RMを計算
-  const oneRM = set.weight && set.weight > 0 ? calculate1RM(set.weight, set.reps) : null;
+  const oneRM =
+    set.weight && set.weight > 0 ? calculate1RM(set.weight, set.reps) : null;
 
   return (
     <div ref={setRowRef}>
