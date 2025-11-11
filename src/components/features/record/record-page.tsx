@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
@@ -8,6 +8,7 @@ import { ExerciseRecordModal } from "./exercise-record-modal";
 import { AddExerciseModal } from "./add-exercise-modal";
 import { mockInitialExercises } from "@/lib/mock-exercises";
 import { BODY_PART_LABELS } from "@/lib/utils";
+import { calculateMaxWeights } from "@/lib/max-weight";
 import type { BodyPart, Exercise } from "@/types/workout";
 
 export function RecordPage() {
@@ -20,9 +21,10 @@ export function RecordPage() {
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
-  const [addExerciseBodyPart, setAddExerciseBodyPart] = useState<
-    Exclude<BodyPart, "all">
-  >("chest");
+  const [addExerciseBodyPart, setAddExerciseBodyPart] =
+    useState<Exclude<BodyPart, "all">>("chest");
+  // MAX重量の状態（初期値は空のオブジェクトでサーバー/クライアント一致を保証）
+  const [maxWeights, setMaxWeights] = useState<Record<string, number>>({});
 
   // TODO: 実際のAPIからデータを取得（現時点ではダミーデータ）
   // 将来的に日付や部位が変更された時にデータを再取得する場合は、以下のuseEffectを使用
@@ -49,6 +51,8 @@ export function RecordPage() {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedExercise(null);
+    // モーダルが閉じたときにMAX重量を再計算
+    setMaxWeights(calculateMaxWeights());
   };
 
   /**
@@ -65,6 +69,8 @@ export function RecordPage() {
   const handleAddExercise = (exercise: Exercise) => {
     // 既存の種目リストに追加
     setExercises((prev) => [...prev, exercise]);
+    // 種目が追加されたときにMAX重量を再計算
+    setMaxWeights(calculateMaxWeights());
   };
 
   /**
@@ -73,6 +79,11 @@ export function RecordPage() {
   const handleAddExerciseModalClose = () => {
     setIsAddExerciseModalOpen(false);
   };
+
+  // クライアント側でのみMAX重量を計算（Hydrationエラーを防ぐため）
+  useEffect(() => {
+    setMaxWeights(calculateMaxWeights());
+  }, []);
 
   // 表示する部位を決定
   const bodyPartsToShow: Exclude<BodyPart, "all">[] =
@@ -112,6 +123,7 @@ export function RecordPage() {
                 key={bodyPart}
                 bodyPart={BODY_PART_LABELS[bodyPart]}
                 exercises={bodyPartExercises}
+                maxWeights={maxWeights}
                 onExerciseSelect={handleExerciseSelect}
                 onAddExerciseClick={() => handleAddExerciseClick(bodyPart)}
               />

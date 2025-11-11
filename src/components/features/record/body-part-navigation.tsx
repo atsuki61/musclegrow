@@ -32,7 +32,6 @@ export function BodyPartNavigation({
 }: BodyPartNavigationProps) {
   const handlePartChange = (part: BodyPart) => {
     onPartChange?.(part);
-    // TODO: 該当部位のカードにスクロール（後で実装）
   };
 
   return (
