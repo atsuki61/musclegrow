@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ArrowLeft, BarChart3, Settings } from "lucide-react";
-import { isCardioExercise } from "@/lib/utils";
+import { isCardioExercise, isTimeBasedExercise } from "@/lib/utils";
 import { SetRecordForm } from "./set-record-form";
 import { CardioRecordForm } from "./cardio-record-form";
 import {
@@ -73,10 +73,7 @@ export function ExerciseRecordModal({
    * 初期セットを作成する（筋トレ種目用）
    */
   const createInitialSet = (): SetRecord => {
-    const isTimeBased = exercise
-      ? exercise.name.toLowerCase().includes("プランク") ||
-        exercise.name.toLowerCase().includes("plank")
-      : false;
+    const isTimeBased = exercise ? isTimeBasedExercise(exercise) : false;
 
     return {
       id: nanoid(),
