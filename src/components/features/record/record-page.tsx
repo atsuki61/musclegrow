@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
@@ -10,6 +10,10 @@ import { mockInitialExercises } from "@/lib/mock-exercises";
 import { getExercises, saveExercise } from "@/lib/api";
 import { BODY_PART_LABELS } from "@/lib/utils";
 import { calculateMaxWeights } from "@/lib/max-weight";
+import {
+  getLastTrainedDates,
+  getLastTrainedDatesByBodyPart,
+} from "@/lib/last-trained";
 import type { BodyPart, Exercise } from "@/types/workout";
 
 export function RecordPage() {
@@ -26,6 +30,10 @@ export function RecordPage() {
     useState<Exclude<BodyPart, "all">>("chest");
   // MAX重量の状態（初期値は空のオブジェクトでサーバー/クライアント一致を保証）
   const [maxWeights, setMaxWeights] = useState<Record<string, number>>({});
+  // 最後のトレーニング日時の状態（初期値は空のオブジェクトでサーバー/クライアント一致を保証）
+  const [lastTrainedDatesByBodyPart, setLastTrainedDatesByBodyPart] = useState<
+    Record<BodyPart, Date | undefined>
+  >({} as Record<BodyPart, Date | undefined>);
 
   // ページロード時にデータベースから種目を取得
   useEffect(() => {
@@ -40,13 +48,15 @@ export function RecordPage() {
             (e) => !dbExerciseIds.has(e.id)
           );
           setExercises([...result.data, ...mockExercisesToAdd]);
-        } else {
-          // エラー時はモックデータのみを使用
-          console.error("種目取得エラー:", result.error);
         }
+        // result.successがfalseでも、result.dataが空配列の場合はモックデータを使用するため
+        // エラーログは出力しない（サーバー側で既に処理済み）
       } catch (error) {
-        console.error("種目取得エラー:", error);
-        // エラー時はモックデータのみを使用
+        // 予期しないエラーの場合のみ開発環境でログ出力
+        if (process.env.NODE_ENV === "development") {
+          console.error("種目取得エラー:", error);
+        }
+        // エラー時はモックデータのみを使用（既に初期値として設定済み）
       }
     };
 
@@ -68,11 +78,23 @@ export function RecordPage() {
     setIsModalOpen(true);
   };
 
+  /**
+   * MAX重量と最後のトレーニング日時を再計算する
+   */
+  const recalculateStats = useCallback(() => {
+    const newMaxWeights = calculateMaxWeights();
+    setMaxWeights(newMaxWeights);
+    const lastTrainedDates = getLastTrainedDates();
+    setLastTrainedDatesByBodyPart(
+      getLastTrainedDatesByBodyPart(exercises, lastTrainedDates)
+    );
+  }, [exercises]);
+
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedExercise(null);
-    // モーダルが閉じたときにMAX重量を再計算
-    setMaxWeights(calculateMaxWeights());
+    // モーダルが閉じたときに統計情報を再計算
+    recalculateStats();
   };
 
   /**
@@ -102,8 +124,8 @@ export function RecordPage() {
       // 既存種目を選択した場合は、そのままリストに追加（tierを"initial"に変更済み）
       setExercises((prev) => [...prev, exercise]);
     }
-    // 種目が追加されたときにMAX重量を再計算
-    setMaxWeights(calculateMaxWeights());
+    // 種目が追加されたときに統計情報を再計算
+    recalculateStats();
   };
 
   /**
@@ -113,10 +135,10 @@ export function RecordPage() {
     setIsAddExerciseModalOpen(false);
   };
 
-  // クライアント側でのみMAX重量を計算（Hydrationエラーを防ぐため）
+  // クライアント側でのみ統計情報を計算（Hydrationエラーを防ぐため）
   useEffect(() => {
-    setMaxWeights(calculateMaxWeights());
-  }, []);
+    recalculateStats();
+  }, [recalculateStats]);
 
   // 表示する部位を決定
   const bodyPartsToShow: Exclude<BodyPart, "all">[] =
@@ -157,6 +179,7 @@ export function RecordPage() {
                 bodyPart={BODY_PART_LABELS[bodyPart]}
                 exercises={bodyPartExercises}
                 maxWeights={maxWeights}
+                lastTrainedAt={lastTrainedDatesByBodyPart[bodyPart]}
                 onExerciseSelect={handleExerciseSelect}
                 onAddExerciseClick={() => handleAddExerciseClick(bodyPart)}
               />
