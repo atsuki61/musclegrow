@@ -13,6 +13,7 @@ import {
   saveSets as saveSetsAction,
   getSets as getSetsAction,
 } from "./actions/sets";
+import { getBig3MaxWeights as getBig3MaxWeightsAction } from "./actions/big3-progress";
 import type { Exercise, SetRecord } from "@/types/workout";
 
 /**
@@ -59,9 +60,7 @@ export async function saveWorkoutSession({
 /**
  * 指定日付のワークアウトセッションを取得する
  */
-export async function getWorkoutSession(
-  date: string
-): Promise<{
+export async function getWorkoutSession(date: string): Promise<{
   success: boolean;
   error?: string;
   data?: {
@@ -108,4 +107,19 @@ export async function getSets({
   data?: SetRecord[];
 }> {
   return await getSetsAction({ sessionId, exerciseId });
+}
+
+/**
+ * Big3種目の最大重量を取得する
+ */
+export async function getBig3MaxWeights(): Promise<{
+  success: boolean;
+  error?: string;
+  data?: {
+    benchPress: { exerciseId: string; maxWeight: number };
+    squat: { exerciseId: string; maxWeight: number };
+    deadlift: { exerciseId: string; maxWeight: number };
+  };
+}> {
+  return await getBig3MaxWeightsAction();
 }
