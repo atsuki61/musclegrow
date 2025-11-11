@@ -57,11 +57,24 @@ export async function getBig3MaxWeights(): Promise<Big3MaxWeightsResult> {
             : and(isNull(exercises.userId), eq(exercises.isBig3, true))
         );
     } catch (dbError) {
-      // データベース接続エラーの場合は、空のデータを返してローカルストレージから取得させる
-      if (
+      // エラーメッセージを取得（ネストされたエラーオブジェクトにも対応）
+      const errorMessage =
+        dbError instanceof Error ? dbError.message : String(dbError);
+      const causeMessage =
         dbError instanceof Error &&
-        (dbError.message.includes("ECONNREFUSED") ||
-          dbError.message.includes("connect"))
+        "cause" in dbError &&
+        dbError.cause instanceof Error
+          ? dbError.cause.message
+          : "";
+
+      // データベース接続エラーまたはスキーマエラーの場合は、空のデータを返してローカルストレージから取得させる
+      if (
+        errorMessage.includes("ECONNREFUSED") ||
+        errorMessage.includes("connect") ||
+        errorMessage.includes("does not exist") ||
+        causeMessage.includes("ECONNREFUSED") ||
+        causeMessage.includes("connect") ||
+        causeMessage.includes("does not exist")
       ) {
         return createEmptyBig3Data();
       }
