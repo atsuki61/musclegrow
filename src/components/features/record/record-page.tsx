@@ -9,6 +9,7 @@ import { AddExerciseModal } from "./add-exercise-modal";
 import { mockInitialExercises } from "@/lib/mock-exercises";
 import { getExercises, saveExercise } from "@/lib/api";
 import { BODY_PART_LABELS } from "@/lib/utils";
+import { calculateMaxWeights } from "@/lib/max-weight";
 import type { BodyPart, Exercise } from "@/types/workout";
 
 export function RecordPage() {
@@ -23,6 +24,8 @@ export function RecordPage() {
   const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
   const [addExerciseBodyPart, setAddExerciseBodyPart] =
     useState<Exclude<BodyPart, "all">>("chest");
+  // MAX重量の状態（初期値は空のオブジェクトでサーバー/クライアント一致を保証）
+  const [maxWeights, setMaxWeights] = useState<Record<string, number>>({});
 
   // ページロード時にデータベースから種目を取得
   useEffect(() => {
@@ -68,6 +71,8 @@ export function RecordPage() {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedExercise(null);
+    // モーダルが閉じたときにMAX重量を再計算
+    setMaxWeights(calculateMaxWeights());
   };
 
   /**
@@ -97,6 +102,8 @@ export function RecordPage() {
       // 既存種目を選択した場合は、そのままリストに追加（tierを"initial"に変更済み）
       setExercises((prev) => [...prev, exercise]);
     }
+    // 種目が追加されたときにMAX重量を再計算
+    setMaxWeights(calculateMaxWeights());
   };
 
   /**
@@ -105,6 +112,11 @@ export function RecordPage() {
   const handleAddExerciseModalClose = () => {
     setIsAddExerciseModalOpen(false);
   };
+
+  // クライアント側でのみMAX重量を計算（Hydrationエラーを防ぐため）
+  useEffect(() => {
+    setMaxWeights(calculateMaxWeights());
+  }, []);
 
   // 表示する部位を決定
   const bodyPartsToShow: Exclude<BodyPart, "all">[] =
@@ -144,6 +156,7 @@ export function RecordPage() {
                 key={bodyPart}
                 bodyPart={BODY_PART_LABELS[bodyPart]}
                 exercises={bodyPartExercises}
+                maxWeights={maxWeights}
                 onExerciseSelect={handleExerciseSelect}
                 onAddExerciseClick={() => handleAddExerciseClick(bodyPart)}
               />
