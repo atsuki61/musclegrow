@@ -1,12 +1,10 @@
 "use client";
 
 import type { SetRecord } from "@/types/workout";
-import { parseStorageKey } from "./local-storage-utils";
 
 /**
- * ローカルストレージから各種目の全記録を取得し、実際のMAX重量を計算する
- * 1RM（理論値）ではなく、実際に入力された最大重量を返す
- * @returns 種目IDをキーとするMAX重量のマップ（実際の最大重量）
+ * ローカルストレージから各種目の全記録を取得し、MAX重量を計算する
+ * @returns 種目IDをキーとするMAX重量のマップ（実際に挙げた重量の最大値）
  */
 export function calculateMaxWeights(): Record<string, number> {
   if (typeof window === "undefined") return {};
@@ -19,10 +17,11 @@ export function calculateMaxWeights(): Record<string, number> {
       const key = localStorage.key(i);
       if (!key || !key.startsWith("workout_")) continue;
 
-      const parsed = parseStorageKey(key);
-      if (!parsed) continue;
+      // キー形式: workout_YYYY-MM-DD_exerciseId
+      const parts = key.split("_");
+      if (parts.length < 3) continue;
 
-      const { exerciseId } = parsed;
+      const exerciseId = parts.slice(2).join("_"); // exerciseIdにアンダースコアが含まれる可能性があるため
       const stored = localStorage.getItem(key);
       if (!stored) continue;
 

@@ -2,6 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { CardioRecord } from "@/types/workout";
+import {
+  saveWorkoutSession,
+  getWorkoutSession,
+  saveCardioRecords as saveCardioRecordsToAPI,
+  getCardioRecords as getCardioRecordsFromAPI,
+} from "@/lib/api";
 
 /**
  * ローカルストレージのキーを生成（有酸素種目用）
@@ -117,14 +123,57 @@ export function useCardioSession({
 
   /**
    * 有酸素種目の記録を読み込む
+   * データベースから取得を試み、失敗した場合はローカルストレージから取得
    */
-  const loadRecords = useCallback(() => {
+  const loadRecords = useCallback(async () => {
     if (!exerciseId || !isOpen) {
       setRecords([]);
       return;
     }
 
     setIsLoading(true);
+
+    // まずデータベースから取得を試みる
+    try {
+      const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD形式
+      const sessionResult = await getWorkoutSession(dateStr);
+
+      if (sessionResult.success && sessionResult.data) {
+        // セッションが存在する場合、有酸素記録を取得
+        const recordsResult = await getCardioRecordsFromAPI({
+          sessionId: sessionResult.data.id,
+          exerciseId,
+        });
+
+        if (
+          recordsResult.success &&
+          recordsResult.data &&
+          recordsResult.data.length > 0
+        ) {
+          // データベースから取得できた場合
+          // セッションの日付を各記録に設定
+          const recordsWithDate = recordsResult.data.map((record) => ({
+            ...record,
+            date: new Date(sessionResult.data!.date),
+          }));
+          setRecords(recordsWithDate);
+          // ローカルストレージにも同期（オフライン対応）
+          saveCardioRecordsToStorage(date, exerciseId, recordsWithDate);
+          setIsLoading(false);
+          return;
+        }
+      }
+    } catch (error) {
+      // データベース取得エラーは無視してローカルストレージから取得
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "データベースからの取得に失敗、ローカルストレージから取得:",
+          error
+        );
+      }
+    }
+
+    // データベースから取得できなかった場合、ローカルストレージから取得
     const loaded = loadCardioRecordsFromStorage(date, exerciseId);
     if (loaded && loaded.length > 0) {
       setRecords(loaded);
@@ -141,12 +190,41 @@ export function useCardioSession({
 
   /**
    * 有酸素種目の記録を保存する
+   * ローカルストレージに即座に保存し、認証済みの場合はデータベースにも保存
    */
   const saveRecords = useCallback(
-    (recordsToSave: CardioRecord[]) => {
+    async (recordsToSave: CardioRecord[]) => {
       if (!exerciseId) return;
 
+      // 1. ローカルストレージに即座に保存（既存の動作を維持）
       saveCardioRecordsToStorage(date, exerciseId, recordsToSave);
+
+      // 2. データベースにも保存を試みる（非同期、エラー時はログのみ）
+      try {
+        const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD形式
+
+        // セッションを保存または取得
+        const sessionResult = await saveWorkoutSession({
+          date: dateStr,
+        });
+
+        if (sessionResult.success && sessionResult.data) {
+          // 有酸素記録を保存
+          await saveCardioRecordsToAPI({
+            sessionId: sessionResult.data.id,
+            exerciseId,
+            records: recordsToSave,
+          });
+        }
+      } catch (error) {
+        // データベース保存エラーはログのみ（ローカルストレージは保存済み）
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "データベースへの保存に失敗（ローカルストレージは保存済み）:",
+            error
+          );
+        }
+      }
     },
     [date, exerciseId]
   );
@@ -181,12 +259,35 @@ export function useCardioSession({
       previousExerciseIdRef.current &&
       recordsRef.current.length > 0
     ) {
-      // 前回の日付と種目IDでデータを保存
+      // 前回の日付と種目IDでデータを保存（ローカルストレージ）
       saveCardioRecordsToStorage(
         previousDateRef.current,
         previousExerciseIdRef.current,
         recordsRef.current
       );
+
+      // データベースにも保存を試みる（非同期、エラー時はログのみ）
+      // 前回の日付でセッションを取得または作成してから保存
+      (async () => {
+        try {
+          const previousDateStr = previousDateRef.current.toISOString().split("T")[0];
+          const sessionResult = await saveWorkoutSession({
+            date: previousDateStr,
+          });
+
+          if (sessionResult.success && sessionResult.data) {
+            await saveCardioRecordsToAPI({
+              sessionId: sessionResult.data.id,
+              exerciseId: previousExerciseIdRef.current!,
+              records: recordsRef.current,
+            });
+          }
+        } catch (error) {
+          if (process.env.NODE_ENV === "development") {
+            console.warn("日付変更時のデータベース保存に失敗:", error);
+          }
+        }
+      })();
     }
 
     // 参照を更新

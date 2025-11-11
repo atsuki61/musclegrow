@@ -13,7 +13,11 @@ import {
   saveSets as saveSetsAction,
   getSets as getSetsAction,
 } from "./actions/sets";
-import type { Exercise, SetRecord } from "@/types/workout";
+import {
+  saveCardioRecords as saveCardioRecordsAction,
+  getCardioRecords as getCardioRecordsAction,
+} from "./actions/cardio-records";
+import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 
 /**
  * 種目を保存する（カスタム種目）
@@ -108,4 +112,44 @@ export async function getSets({
   data?: SetRecord[];
 }> {
   return await getSetsAction({ sessionId, exerciseId });
+}
+
+/**
+ * 有酸素種目の記録を保存する
+ */
+export async function saveCardioRecords({
+  sessionId,
+  exerciseId,
+  records: recordsToSave,
+}: {
+  sessionId: string;
+  exerciseId: string;
+  records: CardioRecord[];
+}): Promise<{
+  success: boolean;
+  error?: string;
+  data?: { count: number };
+}> {
+  return await saveCardioRecordsAction({
+    sessionId,
+    exerciseId,
+    records: recordsToSave,
+  });
+}
+
+/**
+ * 指定セッション・種目の有酸素記録を取得する
+ */
+export async function getCardioRecords({
+  sessionId,
+  exerciseId,
+}: {
+  sessionId: string;
+  exerciseId: string;
+}): Promise<{
+  success: boolean;
+  error?: string;
+  data?: CardioRecord[];
+}> {
+  return await getCardioRecordsAction({ sessionId, exerciseId });
 }
