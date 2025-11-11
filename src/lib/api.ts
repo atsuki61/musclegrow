@@ -63,9 +63,7 @@ export async function saveWorkoutSession({
 /**
  * 指定日付のワークアウトセッションを取得する
  */
-export async function getWorkoutSession(
-  date: string
-): Promise<{
+export async function getWorkoutSession(date: string): Promise<{
   success: boolean;
   error?: string;
   data?: {
