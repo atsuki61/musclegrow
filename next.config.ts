@@ -1,20 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Windows環境でのファイル監視の問題を緩和
-  // Turbopack使用時はwebpack設定は無視されますが、
-  // `dev:webpack` コマンドで通常のwebpackモードを使用する場合に有効です
-  webpack: (config, { dev, isServer }) => {
-    if (dev && !isServer) {
-      // ファイル監視の設定を最適化（Windows環境での競合を緩和）
-      config.watchOptions = {
-        poll: 1000, // 1秒ごとにポーリング
-        aggregateTimeout: 300, // 300ms待機してから再コンパイル
-        ignored: /node_modules/,
-      };
-    }
-    return config;
-  },
   // 開発サーバーのエントリーポイント管理を最適化
   // エラーが発生してもサーバーを継続させる
   onDemandEntries: {

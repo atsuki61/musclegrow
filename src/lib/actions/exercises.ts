@@ -2,24 +2,9 @@
 
 import { db } from "../../../db";
 import { exercises } from "../../../db/schemas/app";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, or, isNull } from "drizzle-orm";
 import type { Exercise } from "@/types/workout";
-
-/**
- * 現在のユーザーIDを取得する
- */
-async function getCurrentUserId(): Promise<string | null> {
-  try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-    return session?.user?.id ?? null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * 種目を保存する（カスタム種目）

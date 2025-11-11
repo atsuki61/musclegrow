@@ -2,13 +2,20 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { SetRecord } from "@/types/workout";
+import {
+  saveWorkoutSession,
+  getWorkoutSession,
+  saveSets as saveSetsToAPI,
+  getSets as getSetsFromAPI,
+} from "@/lib/api";
+import { formatDateToString } from "@/lib/utils";
 
 /**
  * ローカルストレージのキーを生成
  * 日付と種目IDを組み合わせて一意のキーを作成
  */
 const getStorageKey = (date: Date, exerciseId: string): string => {
-  const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD形式
+  const dateStr = formatDateToString(date);
   return `workout_${dateStr}_${exerciseId}`;
 };
 
@@ -49,8 +56,7 @@ export const saveSetsToStorage = (
     const key = getStorageKey(date, exerciseId);
     // 空のセット（重量0、回数0、時間0のみ）は保存しない
     const hasValidData = sets.some(
-      (set) =>
-        (set.weight ?? 0) > 0 || set.reps > 0 || (set.duration ?? 0) > 0
+      (set) => (set.weight ?? 0) > 0 || set.reps > 0 || (set.duration ?? 0) > 0
     );
     if (hasValidData) {
       localStorage.setItem(key, JSON.stringify(sets));
@@ -106,14 +112,52 @@ export function useWorkoutSession({
 
   /**
    * セット記録を読み込む
+   * データベースから取得を試み、失敗した場合はローカルストレージから取得
    */
-  const loadSets = useCallback(() => {
+  const loadSets = useCallback(async () => {
     if (!exerciseId || !isOpen) {
       setSets([]);
       return;
     }
 
     setIsLoading(true);
+
+    // まずデータベースから取得を試みる
+    try {
+      const dateStr = formatDateToString(date);
+      const sessionResult = await getWorkoutSession(dateStr);
+
+      if (sessionResult.success && sessionResult.data) {
+        // セッションが存在する場合、セット記録を取得
+        const setsResult = await getSetsFromAPI({
+          sessionId: sessionResult.data.id,
+          exerciseId,
+        });
+
+        if (
+          setsResult.success &&
+          setsResult.data &&
+          setsResult.data.length > 0
+        ) {
+          // データベースから取得できた場合
+          setSets(setsResult.data);
+          // ローカルストレージにも同期（オフライン対応）
+          saveSetsToStorage(date, exerciseId, setsResult.data);
+          setIsLoading(false);
+          return;
+        }
+      }
+    } catch (error) {
+      // データベース取得エラーは無視してローカルストレージから取得
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "データベースからの取得に失敗、ローカルストレージから取得:",
+          error
+        );
+      }
+    }
+
+    // データベースから取得できなかった場合、ローカルストレージから取得
     const loaded = loadSetsFromStorage(date, exerciseId);
     if (loaded && loaded.length > 0) {
       setSets(loaded);
@@ -130,12 +174,41 @@ export function useWorkoutSession({
 
   /**
    * セット記録を保存する
+   * ローカルストレージに即座に保存し、認証済みの場合はデータベースにも保存
    */
   const saveSets = useCallback(
-    (setsToSave: SetRecord[]) => {
+    async (setsToSave: SetRecord[]) => {
       if (!exerciseId) return;
 
+      // 1. ローカルストレージに即座に保存（既存の動作を維持）
       saveSetsToStorage(date, exerciseId, setsToSave);
+
+      // 2. データベースにも保存を試みる（非同期、エラー時はログのみ）
+      try {
+        const dateStr = formatDateToString(date);
+
+        // セッションを保存または取得
+        const sessionResult = await saveWorkoutSession({
+          date: dateStr,
+        });
+
+        if (sessionResult.success && sessionResult.data) {
+          // セット記録を保存
+          await saveSetsToAPI({
+            sessionId: sessionResult.data.id,
+            exerciseId,
+            sets: setsToSave,
+          });
+        }
+      } catch (error) {
+        // データベース保存エラーはログのみ（ローカルストレージは保存済み）
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "データベースへの保存に失敗（ローカルストレージは保存済み）:",
+            error
+          );
+        }
+      }
     },
     [date, exerciseId]
   );
@@ -170,12 +243,35 @@ export function useWorkoutSession({
       previousExerciseIdRef.current &&
       setsRef.current.length > 0
     ) {
-      // 前回の日付と種目IDでデータを保存
+      // 前回の日付と種目IDでデータを保存（ローカルストレージ）
       saveSetsToStorage(
         previousDateRef.current,
         previousExerciseIdRef.current,
         setsRef.current
       );
+
+      // データベースにも保存を試みる（非同期、エラー時はログのみ）
+      // 前回の日付でセッションを取得または作成してから保存
+      (async () => {
+        try {
+          const previousDateStr = formatDateToString(previousDateRef.current);
+          const sessionResult = await saveWorkoutSession({
+            date: previousDateStr,
+          });
+
+          if (sessionResult.success && sessionResult.data) {
+            await saveSetsToAPI({
+              sessionId: sessionResult.data.id,
+              exerciseId: previousExerciseIdRef.current!,
+              sets: setsRef.current,
+            });
+          }
+        } catch (error) {
+          if (process.env.NODE_ENV === "development") {
+            console.warn("日付変更時のデータベース保存に失敗:", error);
+          }
+        }
+      })();
     }
 
     // 参照を更新
