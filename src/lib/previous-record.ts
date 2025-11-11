@@ -4,7 +4,6 @@
  */
 
 import type { SetRecord, CardioRecord } from "@/types/workout";
-import { parseStorageKey, parseDateString } from "./local-storage-utils";
 
 /**
  * 日付文字列を比較する（YYYY-MM-DD形式）
@@ -42,17 +41,19 @@ export const getPreviousWorkoutRecord = (
       // workout_で始まるキーのみを対象
       if (!key.startsWith("workout_")) continue;
 
-      const parsed = parseStorageKey(key);
-      if (!parsed) continue;
+      // キーから日付と種目IDを抽出
+      const parts = key.split("_");
+      if (parts.length !== 3) continue;
 
-      const { dateStr, exerciseId: exerciseIdFromKey } = parsed;
+      const dateStr = parts[1];
+      const exerciseIdFromKey = parts[2];
 
       // 種目IDが一致しない場合はスキップ
       if (exerciseIdFromKey !== exerciseId) continue;
 
       // 日付をパース
-      const recordDate = parseDateString(dateStr);
-      if (!recordDate) continue;
+      const recordDate = new Date(dateStr + "T00:00:00");
+      if (isNaN(recordDate.getTime())) continue;
 
       // 現在の日付より前の日付のみを対象
       if (!isDateBefore(recordDate, currentDate)) continue;
@@ -117,17 +118,19 @@ export const getPreviousCardioRecord = (
       // cardio_で始まるキーのみを対象
       if (!key.startsWith("cardio_")) continue;
 
-      const parsed = parseStorageKey(key);
-      if (!parsed) continue;
+      // キーから日付と種目IDを抽出
+      const parts = key.split("_");
+      if (parts.length !== 3) continue;
 
-      const { dateStr, exerciseId: exerciseIdFromKey } = parsed;
+      const dateStr = parts[1];
+      const exerciseIdFromKey = parts[2];
 
       // 種目IDが一致しない場合はスキップ
       if (exerciseIdFromKey !== exerciseId) continue;
 
       // 日付をパース
-      const recordDate = parseDateString(dateStr);
-      if (!recordDate) continue;
+      const recordDate = new Date(dateStr + "T00:00:00");
+      if (isNaN(recordDate.getTime())) continue;
 
       // 現在の日付より前の日付のみを対象
       if (!isDateBefore(recordDate, currentDate)) continue;

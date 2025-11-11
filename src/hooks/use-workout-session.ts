@@ -8,14 +8,13 @@ import {
   saveSets as saveSetsToAPI,
   getSets as getSetsFromAPI,
 } from "@/lib/api";
-import { formatDateToString } from "@/lib/utils";
 
 /**
  * ローカルストレージのキーを生成
  * 日付と種目IDを組み合わせて一意のキーを作成
  */
 const getStorageKey = (date: Date, exerciseId: string): string => {
-  const dateStr = formatDateToString(date);
+  const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD形式
   return `workout_${dateStr}_${exerciseId}`;
 };
 
@@ -124,7 +123,7 @@ export function useWorkoutSession({
 
     // まずデータベースから取得を試みる
     try {
-      const dateStr = formatDateToString(date);
+      const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD形式
       const sessionResult = await getWorkoutSession(dateStr);
 
       if (sessionResult.success && sessionResult.data) {
@@ -185,7 +184,7 @@ export function useWorkoutSession({
 
       // 2. データベースにも保存を試みる（非同期、エラー時はログのみ）
       try {
-        const dateStr = formatDateToString(date);
+        const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD形式
 
         // セッションを保存または取得
         const sessionResult = await saveWorkoutSession({
@@ -254,7 +253,9 @@ export function useWorkoutSession({
       // 前回の日付でセッションを取得または作成してから保存
       (async () => {
         try {
-          const previousDateStr = formatDateToString(previousDateRef.current);
+          const previousDateStr = previousDateRef.current
+            .toISOString()
+            .split("T")[0];
           const sessionResult = await saveWorkoutSession({
             date: previousDateStr,
           });
