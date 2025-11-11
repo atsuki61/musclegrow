@@ -112,3 +112,12 @@ export function getLastTrainedText(lastTrainedAt?: Date): string {
   }
   return `${diffHours}時間前`;
 }
+
+/**
+ * DateオブジェクトをYYYY-MM-DD形式の文字列に変換する
+ * @param date 変換するDateオブジェクト
+ * @returns YYYY-MM-DD形式の文字列
+ */
+export function formatDateToString(date: Date): string {
+  return date.toISOString().split("T")[0];
+}
