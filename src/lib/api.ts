@@ -18,6 +18,8 @@ import {
   getCardioRecords as getCardioRecordsAction,
 } from "./actions/cardio-records";
 import { getBig3MaxWeights as getBig3MaxWeightsAction } from "./actions/big3-progress";
+import { getWorkoutSessionsByDateRange as getWorkoutSessionsByDateRangeAction } from "./actions/workout-sessions";
+import { getSessionDetails as getSessionDetailsAction } from "./actions/history";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 
 /**
@@ -166,4 +168,46 @@ export async function getBig3MaxWeights(): Promise<{
   };
 }> {
   return await getBig3MaxWeightsAction();
+}
+
+/**
+ * 日付範囲でワークアウトセッション一覧を取得する
+ */
+export async function getWorkoutSessionsByDateRange({
+  startDate,
+  endDate,
+}: {
+  startDate: string; // YYYY-MM-DD形式
+  endDate: string; // YYYY-MM-DD形式
+}): Promise<{
+  success: boolean;
+  error?: string;
+  data?: Array<{
+    id: string;
+    date: string;
+    note?: string | null;
+    durationMinutes?: number | null;
+  }>;
+}> {
+  return await getWorkoutSessionsByDateRangeAction({ startDate, endDate });
+}
+
+/**
+ * セッションIDでそのセッションの全種目とセット記録を取得する
+ */
+export async function getSessionDetails(sessionId: string): Promise<{
+  success: boolean;
+  error?: string;
+  data?: {
+    workoutExercises: Array<{
+      exerciseId: string;
+      sets: SetRecord[];
+    }>;
+    cardioExercises: Array<{
+      exerciseId: string;
+      records: CardioRecord[];
+    }>;
+  };
+}> {
+  return await getSessionDetailsAction(sessionId);
 }
