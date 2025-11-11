@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,11 @@ import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { Separator } from "@/components/ui/separator";
 import { useWorkoutSession } from "@/hooks/use-workout-session";
 import { useCardioSession } from "@/hooks/use-cardio-session";
+import {
+  setRecordSchema,
+  cardioRecordSchema,
+  validateItems,
+} from "@/lib/validations";
 
 interface ExerciseRecordModalProps {
   /** 選択された種目 */
@@ -49,9 +54,6 @@ export function ExerciseRecordModal({
   onClose,
   date,
 }: ExerciseRecordModalProps) {
-  // 前回のexercise.idを追跡するref（exercise変更時のリセット用）
-  const previousExerciseIdRef = useRef<string | null>(null);
-
   // exerciseが存在する場合のみisCardioを計算
   const isCardio = exercise ? isCardioExercise(exercise) : false;
 
@@ -78,9 +80,10 @@ export function ExerciseRecordModal({
     return {
       id: nanoid(),
       setOrder: 1,
-      // 時間ベース種目以外は重量入力欄を表示（自重種目は任意なのでundefinedで初期化）
-      weight: isTimeBased ? undefined : undefined,
+      // 重量は任意（自重種目は任意なのでundefinedで初期化）
+      weight: undefined,
       reps: 0,
+      // 時間ベース種目の場合のみdurationを設定
       duration: isTimeBased ? 0 : undefined,
       isWarmup: false,
       failure: false,
@@ -120,32 +123,52 @@ export function ExerciseRecordModal({
   });
 
   /**
-   * exerciseが変更されたときの処理
-   */
-  useEffect(() => {
-    if (exercise) {
-      previousExerciseIdRef.current = exercise.id;
-    }
-  }, [exercise]);
-
-  /**
    * モーダルを閉じる時の処理
-   * セット記録または有酸素種目記録を自動保存
+   * セット記録または有酸素種目記録を自動保存（バリデーション付き）
    */
   const handleClose = () => {
-    if (exercise) {
-      if (isCardio) {
-        // 有酸素種目の記録を保存
-        if (records.length > 0) {
+    if (!exercise) {
+      setShowPreviousRecord(false);
+      onClose();
+      return;
+    }
+
+    if (isCardio) {
+      // 有酸素種目の記録をバリデーションして保存
+      if (records.length > 0) {
+        const invalidRecords = validateItems(
+          records,
+          cardioRecordSchema,
+          "有酸素記録"
+        );
+
+        if (invalidRecords.length === 0) {
           saveRecords(records);
+        } else {
+          console.warn(
+            `有酸素記録の保存をスキップしました（エラー: ${invalidRecords.join(
+              ", "
+            )}）`
+          );
         }
-      } else {
-        // 筋トレ種目のセット記録を保存
-        if (sets.length > 0) {
+      }
+    } else {
+      // 筋トレ種目のセット記録をバリデーションして保存
+      if (sets.length > 0) {
+        const invalidSets = validateItems(sets, setRecordSchema, "セット");
+
+        if (invalidSets.length === 0) {
           saveSets(sets);
+        } else {
+          console.warn(
+            `セット記録の保存をスキップしました（エラー: ${invalidSets.join(
+              ", "
+            )}）`
+          );
         }
       }
     }
+
     // 前回記録の表示状態をリセット
     setShowPreviousRecord(false);
     onClose();
