@@ -89,3 +89,24 @@ export const sets = pgTable("sets", {
   failure: boolean("failure").default(false), // 限界まで追い込んだか
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// ⑤ cardio_records テーブル - 有酸素種目の記録
+export const cardioRecords = pgTable("cardio_records", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid(10)),
+  sessionId: text("session_id")
+    .notNull()
+    .references(() => workoutSessions.id, { onDelete: "cascade" }),
+  exerciseId: text("exercise_id")
+    .notNull()
+    .references(() => exercises.id, { onDelete: "restrict" }),
+  duration: integer("duration").notNull(), // 時間（分）
+  distance: numeric("distance", { precision: 6, scale: 2 }), // 距離（km）例: 5.50
+  speed: numeric("speed", { precision: 5, scale: 2 }), // 速度（km/h）例: 10.50
+  calories: integer("calories"), // 消費カロリー（kcal）
+  heartRate: integer("heart_rate"), // 心拍数（bpm）
+  incline: numeric("incline", { precision: 4, scale: 1 }), // 傾斜（%）例: 5.0
+  notes: text("notes"), // メモ
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

@@ -2,7 +2,6 @@
 
 import type { BodyPart, Exercise } from "@/types/workout";
 import type { SetRecord, CardioRecord } from "@/types/workout";
-import { parseStorageKey, parseDateString } from "./local-storage-utils";
 
 /**
  * ローカルストレージから各種目の最後のトレーニング日時を取得する
@@ -21,14 +20,16 @@ export function getLastTrainedDates(): Record<string, Date> {
 
       // workout_* または cardio_* キーを処理
       if (key.startsWith("workout_")) {
-        const parsed = parseStorageKey(key);
-        if (!parsed) continue;
+        // キー形式: workout_YYYY-MM-DD_exerciseId
+        const parts = key.split("_");
+        if (parts.length < 3) continue;
 
-        const { dateStr, exerciseId } = parsed;
+        const dateStr = parts[1]; // YYYY-MM-DD形式
+        const exerciseId = parts.slice(2).join("_"); // exerciseIdにアンダースコアが含まれる可能性があるため
 
         try {
-          const recordDate = parseDateString(dateStr);
-          if (!recordDate) continue;
+          const recordDate = new Date(dateStr + "T00:00:00");
+          if (isNaN(recordDate.getTime())) continue;
 
           const stored = localStorage.getItem(key);
           if (!stored) continue;
@@ -55,14 +56,16 @@ export function getLastTrainedDates(): Record<string, Date> {
           continue;
         }
       } else if (key.startsWith("cardio_")) {
-        const parsed = parseStorageKey(key);
-        if (!parsed) continue;
+        // キー形式: cardio_YYYY-MM-DD_exerciseId
+        const parts = key.split("_");
+        if (parts.length < 3) continue;
 
-        const { dateStr, exerciseId } = parsed;
+        const dateStr = parts[1]; // YYYY-MM-DD形式
+        const exerciseId = parts.slice(2).join("_");
 
         try {
-          const recordDate = parseDateString(dateStr);
-          if (!recordDate) continue;
+          const recordDate = new Date(dateStr + "T00:00:00");
+          if (isNaN(recordDate.getTime())) continue;
 
           const stored = localStorage.getItem(key);
           if (!stored) continue;
