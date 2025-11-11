@@ -7,6 +7,7 @@ import { BodyPartCard } from "./body-part-card";
 import { ExerciseRecordModal } from "./exercise-record-modal";
 import { AddExerciseModal } from "./add-exercise-modal";
 import { mockInitialExercises } from "@/lib/mock-exercises";
+import { getExercises, saveExercise } from "@/lib/api";
 import { BODY_PART_LABELS } from "@/lib/utils";
 import { calculateMaxWeights } from "@/lib/max-weight";
 import type { BodyPart, Exercise } from "@/types/workout";
@@ -14,7 +15,7 @@ import type { BodyPart, Exercise } from "@/types/workout";
 export function RecordPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedPart, setSelectedPart] = useState<BodyPart>("all");
-  // 初期値として直接設定（useEffectを使わない）
+  // 初期値としてモックデータを設定（データベースから取得するまで）
   const [exercises, setExercises] = useState<Exercise[]>(mockInitialExercises);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
     null
@@ -26,12 +27,31 @@ export function RecordPage() {
   // MAX重量の状態（初期値は空のオブジェクトでサーバー/クライアント一致を保証）
   const [maxWeights, setMaxWeights] = useState<Record<string, number>>({});
 
-  // TODO: 実際のAPIからデータを取得（現時点ではダミーデータ）
-  // 将来的に日付や部位が変更された時にデータを再取得する場合は、以下のuseEffectを使用
-  // useEffect(() => {
-  //   // 実際のAPIからデータを取得
-  //   fetchExercises(selectedDate, selectedPart).then(setExercises);
-  // }, [selectedDate, selectedPart]);
+  // ページロード時にデータベースから種目を取得
+  useEffect(() => {
+    const loadExercises = async () => {
+      try {
+        const result = await getExercises();
+        if (result.success && result.data) {
+          // データベースから取得した種目とモックデータをマージ
+          // モックデータは共通マスタとして扱い、データベースにない場合は使用
+          const dbExerciseIds = new Set(result.data.map((e) => e.id));
+          const mockExercisesToAdd = mockInitialExercises.filter(
+            (e) => !dbExerciseIds.has(e.id)
+          );
+          setExercises([...result.data, ...mockExercisesToAdd]);
+        } else {
+          // エラー時はモックデータのみを使用
+          console.error("種目取得エラー:", result.error);
+        }
+      } catch (error) {
+        console.error("種目取得エラー:", error);
+        // エラー時はモックデータのみを使用
+      }
+    };
+
+    loadExercises();
+  }, []);
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
@@ -66,9 +86,22 @@ export function RecordPage() {
   /**
    * 種目を追加する
    */
-  const handleAddExercise = (exercise: Exercise) => {
-    // 既存の種目リストに追加
-    setExercises((prev) => [...prev, exercise]);
+  const handleAddExercise = async (exercise: Exercise) => {
+    // カスタム種目の場合はデータベースに保存
+    if (exercise.tier === "custom") {
+      const result = await saveExercise(exercise);
+      if (result.success && result.data) {
+        // データベースに保存された種目をリストに追加
+        setExercises((prev) => [...prev, result.data!]);
+      } else {
+        console.error("種目保存エラー:", result.error);
+        // エラー時でも一時的にリストに追加（UX向上のため）
+        setExercises((prev) => [...prev, exercise]);
+      }
+    } else {
+      // 既存種目を選択した場合は、そのままリストに追加（tierを"initial"に変更済み）
+      setExercises((prev) => [...prev, exercise]);
+    }
     // 種目が追加されたときにMAX重量を再計算
     setMaxWeights(calculateMaxWeights());
   };
