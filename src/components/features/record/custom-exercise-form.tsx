@@ -20,6 +20,7 @@ import type {
   MuscleSubGroup,
 } from "@/types/workout";
 import { BODY_PART_LABELS } from "@/lib/utils";
+import { exerciseSchema, getValidationErrorDetails } from "@/lib/validations";
 
 /**
  * 部位ごとのサブ分類オプション
@@ -101,25 +102,29 @@ export function CustomExerciseForm({
   const [subGroup, setSubGroup] = useState<MuscleSubGroup | "">("");
   const [exerciseName, setExerciseName] = useState("");
   const [equipment, setEquipment] = useState<EquipmentType>("other");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // サブ分類オプションを取得
   const availableSubGroups = SUB_GROUP_OPTIONS[bodyPart] || [];
+
+  /**
+   * 指定されたフィールドのエラーをクリアする
+   */
+  const clearFieldError = (fieldName: string) => {
+    setErrors((prev) => {
+      if (!prev[fieldName]) return prev;
+      const newErrors = { ...prev };
+      delete newErrors[fieldName];
+      return newErrors;
+    });
+  };
 
   /**
    * フォームを送信する
    */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // バリデーション
-    if (!exerciseName.trim()) {
-      return;
-    }
-
-    // サブ分類が必須の部位で未選択の場合はエラー
-    if (availableSubGroups.length > 0 && !subGroup) {
-      return;
-    }
+    setErrors({}); // エラーをリセット
 
     // カスタム種目を作成
     const customExercise: Exercise = {
@@ -132,12 +137,32 @@ export function CustomExerciseForm({
       isBig3: false,
     };
 
+    // Zodスキーマでバリデーション
+    const result = exerciseSchema.safeParse(customExercise);
+
+    if (!result.success) {
+      // バリデーションエラーがある場合
+      const errorDetails = getValidationErrorDetails(result.error);
+      setErrors(errorDetails);
+      return;
+    }
+
+    // サブ分類が必須の部位で未選択の場合はエラー
+    if (availableSubGroups.length > 0 && !subGroup) {
+      setErrors({
+        muscleSubGroup: "サブ分類を選択してください",
+      });
+      return;
+    }
+
+    // バリデーション成功時は種目を追加
     onAdd(customExercise);
 
     // フォームをリセット
     setExerciseName("");
     setSubGroup("");
     setEquipment("other");
+    setErrors({});
   };
 
   return (
@@ -178,11 +203,15 @@ export function CustomExerciseForm({
               <Label htmlFor="sub-group">サブ分類</Label>
               <Select
                 value={subGroup}
-                onValueChange={(value) =>
-                  setSubGroup(value as MuscleSubGroup)
-                }
+                onValueChange={(value) => {
+                  setSubGroup(value as MuscleSubGroup);
+                  clearFieldError("muscleSubGroup");
+                }}
               >
-                <SelectTrigger id="sub-group">
+                <SelectTrigger
+                  id="sub-group"
+                  aria-invalid={!!errors.muscleSubGroup}
+                >
                   <SelectValue placeholder="サブ分類を選択" />
                 </SelectTrigger>
                 <SelectContent>
@@ -193,6 +222,11 @@ export function CustomExerciseForm({
                   ))}
                 </SelectContent>
               </Select>
+              {errors.muscleSubGroup && (
+                <p className="text-sm text-destructive">
+                  {errors.muscleSubGroup}
+                </p>
+              )}
             </div>
           )}
 
@@ -202,10 +236,17 @@ export function CustomExerciseForm({
             <Input
               id="exercise-name"
               value={exerciseName}
-              onChange={(e) => setExerciseName(e.target.value)}
+              onChange={(e) => {
+                setExerciseName(e.target.value);
+                clearFieldError("name");
+              }}
               placeholder="例: カスタムベンチプレス"
               required
+              aria-invalid={!!errors.name}
             />
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name}</p>
+            )}
           </div>
 
           {/* 機材タイプ選択（オプション） */}
@@ -213,9 +254,7 @@ export function CustomExerciseForm({
             <Label htmlFor="equipment">機材タイプ（オプション）</Label>
             <Select
               value={equipment}
-              onValueChange={(value) =>
-                setEquipment(value as EquipmentType)
-              }
+              onValueChange={(value) => setEquipment(value as EquipmentType)}
             >
               <SelectTrigger id="equipment">
                 <SelectValue />
@@ -246,4 +285,3 @@ export function CustomExerciseForm({
     </Card>
   );
 }
-
