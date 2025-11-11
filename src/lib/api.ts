@@ -17,6 +17,7 @@ import {
   saveCardioRecords as saveCardioRecordsAction,
   getCardioRecords as getCardioRecordsAction,
 } from "./actions/cardio-records";
+import { getBig3MaxWeights as getBig3MaxWeightsAction } from "./actions/big3-progress";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 
 /**
@@ -150,4 +151,19 @@ export async function getCardioRecords({
   data?: CardioRecord[];
 }> {
   return await getCardioRecordsAction({ sessionId, exerciseId });
+}
+
+/**
+ * Big3種目の最大重量を取得する
+ */
+export async function getBig3MaxWeights(): Promise<{
+  success: boolean;
+  error?: string;
+  data?: {
+    benchPress: { exerciseId: string; maxWeight: number };
+    squat: { exerciseId: string; maxWeight: number };
+    deadlift: { exerciseId: string; maxWeight: number };
+  };
+}> {
+  return await getBig3MaxWeightsAction();
 }
