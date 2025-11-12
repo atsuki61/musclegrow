@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { BODY_PART_LABELS } from "@/lib/utils";
+import { BODY_PART_LABELS, calculate1RM } from "@/lib/utils";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 
 interface ExerciseCardProps {
@@ -13,6 +13,8 @@ interface ExerciseCardProps {
   records?: CardioRecord[];
   /** クリック時のコールバック */
   onClick?: () => void;
+  /** 種目ごとの最大重量（過去の記録を含む） */
+  maxWeights?: Record<string, number>;
 }
 
 /**
@@ -24,60 +26,99 @@ export function ExerciseCard({
   sets,
   records,
   onClick,
+  maxWeights = {},
 }: ExerciseCardProps) {
+  // MAX重量を取得（過去の記録を含む全記録の中で最大の重量）
+  const maxWeight = maxWeights[exercise.id] || 0;
+
   return (
     <Card
-      className="cursor-pointer transition-colors hover:bg-muted/50"
+      className="cursor-pointer transition-colors hover:bg-muted/50 py-2 px-1"
       onClick={onClick}
     >
-      <div className="p-3">
+      <div className="p-1.5">
         {/* ヘッダー */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="font-medium text-base">{exercise.name}</span>
-          <span className="text-xs text-muted-foreground">
+        <div className="flex items-center justify-between mb-0.5">
+          <span className="font-semibold text-sm leading-tight">
+            {exercise.name}
+          </span>
+          <span className="text-xs text-muted-foreground shrink-0 ml-2">
             {BODY_PART_LABELS[exercise.bodyPart]}
           </span>
         </div>
 
         {/* セット記録（筋トレ種目） */}
         {sets && sets.length > 0 && (
-          <div className="space-y-1">
-            {sets.map((set) => (
-              <div
-                key={set.id}
-                className="flex items-center gap-2 text-sm text-muted-foreground"
-              >
-                <span>{set.setOrder}セット目:</span>
-                {set.weight !== undefined && set.weight > 0 && (
-                  <span className="font-medium">{set.weight}kg</span>
-                )}
-                <span>× {set.reps}回</span>
-                {set.rpe && (
-                  <span className="text-xs">(RPE: {set.rpe})</span>
-                )}
-              </div>
-            ))}
+          <div className="space-y-0.5">
+            {sets.map((set) => {
+              const weight = set.weight ?? 0;
+              const isMaxWeight = weight > 0 && weight === maxWeight;
+              const oneRM =
+                weight > 0 && set.reps > 0
+                  ? calculate1RM(weight, set.reps)
+                  : null;
+
+              return (
+                <div
+                  key={set.id}
+                  className="flex items-center justify-between text-xs text-muted-foreground leading-tight"
+                >
+                  {/* 左側：セット番号と重量×回数 */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">
+                      {set.setOrder}.
+                    </span>
+                    {weight > 0 ? (
+                      <>
+                        <span>{weight}kg</span>
+                        <span>×</span>
+                        <span>{set.reps}回</span>
+                      </>
+                    ) : (
+                      <span>{set.reps}回</span>
+                    )}
+                    {isMaxWeight && (
+                      <span className="text-primary font-semibold ml-1">
+                        MAX！
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 右側：1RM */}
+                  {oneRM && (
+                    <span className="text-muted-foreground shrink-0 ml-2">
+                      {oneRM}kg RM
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
         {/* 有酸素記録 */}
         {records && records.length > 0 && (
-          <div className="space-y-1">
-            {records.map((record) => (
-              <div key={record.id} className="text-sm text-muted-foreground">
-                <span>{record.duration}分</span>
-                {record.distance && (
-                  <span className="ml-2">{record.distance}km</span>
-                )}
-                {record.calories && (
-                  <span className="ml-2 text-xs">{record.calories}kcal</span>
-                )}
-              </div>
-            ))}
+          <div className="space-y-0.5">
+            {records.map((record) => {
+              const parts: string[] = [`${record.duration}分`];
+              if (record.distance) {
+                parts.push(`${record.distance}km`);
+              }
+              if (record.calories) {
+                parts.push(`${record.calories}kcal`);
+              }
+              return (
+                <div
+                  key={record.id}
+                  className="text-xs text-muted-foreground leading-tight"
+                >
+                  {parts.join(" / ")}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
     </Card>
   );
 }
-

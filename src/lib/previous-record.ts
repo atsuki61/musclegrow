@@ -4,6 +4,7 @@
  */
 
 import type { SetRecord, CardioRecord } from "@/types/workout";
+import { formatDateToYYYYMMDD } from "@/lib/utils";
 
 /**
  * 日付文字列を比較する（YYYY-MM-DD形式）
@@ -12,8 +13,8 @@ import type { SetRecord, CardioRecord } from "@/types/workout";
  * @returns date1がdate2より前の場合true、それ以外はfalse
  */
 const isDateBefore = (date1: Date, date2: Date): boolean => {
-  const date1Str = date1.toISOString().split("T")[0];
-  const date2Str = date2.toISOString().split("T")[0];
+  const date1Str = formatDateToYYYYMMDD(date1); // ローカルタイムゾーンで変換
+  const date2Str = formatDateToYYYYMMDD(date2); // ローカルタイムゾーンで変換
   return date1Str < date2Str;
 };
 
