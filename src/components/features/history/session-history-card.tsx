@@ -29,6 +29,8 @@ interface SessionHistoryCardProps {
   exercises: Exercise[];
   /** 種目クリック時のコールバック */
   onExerciseClick?: (exercise: Exercise, date: Date) => void;
+  /** 種目ごとの最大重量（過去の記録を含む） */
+  maxWeights?: Record<string, number>;
 }
 
 /**
@@ -43,12 +45,13 @@ export function SessionHistoryCard({
   cardioExercises,
   exercises,
   onExerciseClick,
+  maxWeights = {},
 }: SessionHistoryCardProps) {
   const formattedDate = format(date, "yyyy年M月d日(E)", { locale: ja });
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="py-5 gap-0">
+      <CardHeader className="pb-3 px-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">📅 {formattedDate}</CardTitle>
           {durationMinutes && (
@@ -57,14 +60,16 @@ export function SessionHistoryCard({
             </span>
           )}
         </div>
-        {note && <p className="text-sm text-muted-foreground mt-2">{note}</p>}
+        {note && <p className="text-sm text-muted-foreground mt-1.5">{note}</p>}
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-2 pt-0 px-4">
         {/* 筋トレ種目 */}
         {workoutExercises.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold mb-2">💪 筋トレ種目</h3>
-            <div className="space-y-3">
+            <h3 className="text-xs font-semibold mb-1 text-muted-foreground">
+              💪 筋トレ種目
+            </h3>
+            <div className="space-y-1">
               {workoutExercises.map(({ exerciseId, sets }) => {
                 const exercise = getExerciseById(exerciseId, exercises);
                 if (!exercise) return null; // 種目が見つからない場合はスキップ
@@ -75,6 +80,7 @@ export function SessionHistoryCard({
                     exercise={exercise}
                     sets={sets}
                     onClick={() => onExerciseClick?.(exercise, date)}
+                    maxWeights={maxWeights}
                   />
                 );
               })}
@@ -85,9 +91,11 @@ export function SessionHistoryCard({
         {/* 有酸素種目 */}
         {cardioExercises.length > 0 && (
           <div>
-            {workoutExercises.length > 0 && <Separator className="my-4" />}
-            <h3 className="text-sm font-semibold mb-2">🏃 有酸素種目</h3>
-            <div className="space-y-3">
+            {workoutExercises.length > 0 && <Separator className="my-2" />}
+            <h3 className="text-xs font-semibold mb-1 text-muted-foreground">
+              🏃 有酸素種目
+            </h3>
+            <div className="space-y-1">
               {cardioExercises.map(({ exerciseId, records }) => {
                 const exercise = getExerciseById(exerciseId, exercises);
                 if (!exercise) return null; // 種目が見つからない場合はスキップ
@@ -98,6 +106,7 @@ export function SessionHistoryCard({
                     exercise={exercise}
                     records={records}
                     onClick={() => onExerciseClick?.(exercise, date)}
+                    maxWeights={maxWeights}
                   />
                 );
               })}

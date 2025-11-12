@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { format } from "date-fns";
 import type { BodyPart, Exercise } from "@/types/workout";
 
 /**
@@ -154,4 +155,14 @@ export function getLastTrainedText(lastTrainedAt?: Date): string {
     return `${diffDays}日${diffHours}時間前`;
   }
   return `${diffHours}時間前`;
+}
+
+/**
+ * DateオブジェクトをYYYY-MM-DD形式の文字列に変換する
+ * ローカルタイムゾーンで日付を取得するため、toISOString()とは異なる結果になる場合がある
+ * @param date 変換するDateオブジェクト
+ * @returns YYYY-MM-DD形式の日付文字列（例: "2025-01-13"）
+ */
+export function formatDateToYYYYMMDD(date: Date): string {
+  return format(date, "yyyy-MM-dd");
 }
