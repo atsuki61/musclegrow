@@ -251,10 +251,18 @@ export function validateItems<T>(
     const result = schema.safeParse(item);
     if (!result.success) {
       invalidIndices.push(index + 1);
-      console.error(
-        `${itemName}${index + 1}のバリデーションエラー:`,
-        getValidationErrorDetails(result.error)
-      );
+      // エラー詳細を取得
+      const errorDetails = getValidationErrorDetails(result.error);
+      // エラー詳細が空でない場合のみログを出力（開発環境のみ）
+      if (
+        Object.keys(errorDetails).length > 0 &&
+        process.env.NODE_ENV === "development"
+      ) {
+        console.error(
+          `${itemName}${index + 1}のバリデーションエラー:`,
+          errorDetails
+        );
+      }
     }
   });
   return invalidIndices;

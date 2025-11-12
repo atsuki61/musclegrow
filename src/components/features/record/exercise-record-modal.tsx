@@ -136,35 +136,58 @@ export function ExerciseRecordModal({
     if (isCardio) {
       // 有酸素種目の記録をバリデーションして保存
       if (records.length > 0) {
-        const invalidRecords = validateItems(
-          records,
-          cardioRecordSchema,
-          "有酸素記録"
-        );
+        // 有効な記録のみをフィルタリング（durationが0より大きい）
+        const validRecords = records.filter((record) => record.duration > 0);
 
-        if (invalidRecords.length === 0) {
-          saveRecords(records);
-        } else {
-          console.warn(
-            `有酸素記録の保存をスキップしました（エラー: ${invalidRecords.join(
-              ", "
-            )}）`
+        if (validRecords.length > 0) {
+          const invalidRecords = validateItems(
+            validRecords,
+            cardioRecordSchema,
+            "有酸素記録"
           );
+
+          if (invalidRecords.length === 0) {
+            saveRecords(validRecords);
+          } else {
+            console.warn(
+              `有酸素記録の保存をスキップしました（エラー: ${invalidRecords.join(
+                ", "
+              )}）`
+            );
+          }
         }
       }
     } else {
       // 筋トレ種目のセット記録をバリデーションして保存
       if (sets.length > 0) {
-        const invalidSets = validateItems(sets, setRecordSchema, "セット");
+        // 有効なセットのみをフィルタリング（重量、回数、時間のいずれかが0より大きい）
+        const validSets = sets.filter(
+          (set) =>
+            (set.weight !== undefined &&
+              set.weight !== null &&
+              set.weight > 0) ||
+            set.reps > 0 ||
+            (set.duration !== undefined &&
+              set.duration !== null &&
+              set.duration > 0)
+        );
 
-        if (invalidSets.length === 0) {
-          saveSets(sets);
-        } else {
-          console.warn(
-            `セット記録の保存をスキップしました（エラー: ${invalidSets.join(
-              ", "
-            )}）`
+        if (validSets.length > 0) {
+          const invalidSets = validateItems(
+            validSets,
+            setRecordSchema,
+            "セット"
           );
+
+          if (invalidSets.length === 0) {
+            saveSets(validSets);
+          } else {
+            console.warn(
+              `セット記録の保存をスキップしました（エラー: ${invalidSets.join(
+                ", "
+              )}）`
+            );
+          }
         }
       }
     }
