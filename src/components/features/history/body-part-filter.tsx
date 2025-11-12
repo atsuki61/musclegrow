@@ -1,7 +1,7 @@
 "use client";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BODY_PART_LABELS, BODY_PART_COLORS, cn } from "@/lib/utils";
+import { BODY_PART_LABELS, BODY_PART_COLORS, BODY_PART_COLOR_HEX, cn } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
 
 const BODY_PARTS: BodyPart[] = [
@@ -40,24 +40,37 @@ export function BodyPartFilter({
       onValueChange={(value) => handlePartChange(value as BodyPart)}
       className="mb-4"
     >
-      <TabsList className="h-12 w-full justify-start overflow-x-auto">
+      <TabsList className="h-12 w-full justify-start overflow-x-auto bg-transparent p-0 gap-2">
         {BODY_PARTS.map((part) => {
           const isSelected = selectedPart === part;
           const colorClass = BODY_PART_COLORS[part];
+          const colorHex = part !== "all" ? BODY_PART_COLOR_HEX[part] : undefined;
 
           return (
             <TabsTrigger
               key={part}
               value={part}
               className={cn(
-                "whitespace-nowrap transition-all",
+                "whitespace-nowrap transition-all border-0",
                 // 選択時: 濃い色の背景、白文字
-                isSelected && colorClass,
                 isSelected && "text-white",
                 // 未選択時: 薄い色の背景、通常文字
                 !isSelected && `${colorClass}/20`,
-                !isSelected && "hover:bg-opacity-30"
+                !isSelected && "hover:bg-opacity-30",
+                !isSelected && "bg-transparent"
               )}
+              style={
+                isSelected && colorHex
+                  ? {
+                      backgroundColor: colorHex,
+                    }
+                  : isSelected && part === "all"
+                  ? {
+                      backgroundColor: "#f3f4f6", // bg-gray-100
+                      color: "#000000",
+                    }
+                  : undefined
+              }
             >
               {BODY_PART_LABELS[part]}
             </TabsTrigger>

@@ -6,7 +6,7 @@ import { DayButton } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { MultiPartDayButton } from "./multi-part-day-button";
-import { BODY_PART_COLORS, cn } from "@/lib/utils";
+import { BODY_PART_COLOR_HEX, cn } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
 
 interface HistoryCalendarProps {
@@ -55,12 +55,15 @@ export function HistoryCalendar({
   // カスタムDayButtonコンポーネント
   const CustomDayButton = ({
     day,
+    modifiers,
     ...props
   }: React.ComponentProps<typeof DayButton>) => {
     const date = day.date;
     const bodyParts = getFilteredBodyParts(date);
     const isSelected = selectedDate && isSameDay(date, selectedDate);
     const isCurrentMonth = isSameMonth(date, currentMonth);
+    // todayスタイルを無効化（選択された日付のみハイライト）
+    const isToday = modifiers?.today ?? false;
 
     // 現在の月以外の日付は通常表示（react-day-pickerが処理）
     if (!isCurrentMonth) {
@@ -89,6 +92,8 @@ export function HistoryCalendar({
           className={cn(
             "aspect-square w-full min-w-[--cell-size]",
             isSelected && "bg-primary text-primary-foreground",
+            // todayスタイルを無効化
+            isToday && "bg-transparent",
             props.className
           )}
           {...props}
@@ -113,7 +118,7 @@ export function HistoryCalendar({
 
     // 単一部位の場合は色付け
     const bodyPart = bodyParts[0];
-    const colorClass = BODY_PART_COLORS[bodyPart];
+    const colorHex = BODY_PART_COLOR_HEX[bodyPart as Exclude<BodyPart, "all">];
 
     return (
       <Button
@@ -121,12 +126,15 @@ export function HistoryCalendar({
         size="icon"
         onClick={() => onDateSelect(date)}
         className={cn(
-          "aspect-square w-full min-w-[--cell-size]",
-          colorClass,
-          "text-white",
+          "aspect-square w-full min-w-[--cell-size] text-white",
           isSelected && "ring-2 ring-primary ring-offset-2",
+          // todayスタイルを無効化（色付けを優先）
+          isToday && "bg-transparent",
           props.className
         )}
+        style={{
+          backgroundColor: colorHex,
+        }}
         {...props}
       >
         {date.getDate()}
@@ -135,7 +143,7 @@ export function HistoryCalendar({
   };
 
   return (
-    <div className="mb-6">
+    <div className="mb-6 w-full">
       <Calendar
         mode="single"
         selected={selectedDate || undefined}
@@ -146,7 +154,10 @@ export function HistoryCalendar({
         components={{
           DayButton: CustomDayButton,
         }}
-        className="rounded-md border"
+        classNames={{
+          today: "bg-transparent hover:bg-transparent", // todayスタイルを無効化（選択された日付のみハイライト）
+        }}
+        className="rounded-md border w-full [--cell-size:3rem]"
       />
     </div>
   );
