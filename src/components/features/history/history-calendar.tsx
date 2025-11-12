@@ -6,7 +6,7 @@ import { DayButton } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { MultiPartDayButton } from "./multi-part-day-button";
-import { BODY_PART_COLOR_HEX, cn } from "@/lib/utils";
+import { BODY_PART_COLOR_HEX, getLightBackgroundColor, cn } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
 
 interface HistoryCalendarProps {
@@ -115,9 +115,10 @@ export function HistoryCalendar({
       );
     }
 
-    // 単一部位の場合は色付け
+    // 単一部位の場合は色付け（薄い色）
     const bodyPart = bodyParts[0];
     const colorHex = BODY_PART_COLOR_HEX[bodyPart as Exclude<BodyPart, "all">];
+    const lightColorHex = getLightBackgroundColor(colorHex);
 
     return (
       <Button
@@ -125,14 +126,15 @@ export function HistoryCalendar({
         size="icon"
         onClick={() => onDateSelect(date)}
         className={cn(
-          "aspect-square w-full min-w-[--cell-size] text-white",
+          "aspect-square w-full min-w-[--cell-size]",
           isSelected && "ring-2 ring-primary ring-offset-2",
           // todayスタイルを無効化（色付けを優先）
           isToday && "bg-transparent",
           props.className
         )}
         style={{
-          backgroundColor: colorHex,
+          backgroundColor: lightColorHex,
+          color: colorHex, // 文字色は濃い部位色
         }}
         {...props}
       >

@@ -43,6 +43,22 @@ export const BODY_PART_COLOR_HEX: Record<Exclude<BodyPart, "all">, string> = {
   other: "#6b7280",
 };
 
+/**
+ * HEX色をRGBAに変換する関数
+ * @param hex HEX色コード（例: "#ef4444"）
+ * @param opacity 透明度（0.0～1.0、デフォルト: 0.15）
+ * @returns RGBA色コード（例: "rgba(239, 68, 68, 0.15)"）
+ */
+export function getLightBackgroundColor(
+  hex: string,
+  opacity: number = 0.15
+): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
