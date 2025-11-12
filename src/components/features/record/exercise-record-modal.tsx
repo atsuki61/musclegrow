@@ -137,9 +137,7 @@ export function ExerciseRecordModal({
       // 有酸素種目の記録をバリデーションして保存
       if (records.length > 0) {
         // 有効な記録のみをフィルタリング（durationが0より大きい）
-        const validRecords = records.filter(
-          (record) => record.duration > 0
-        );
+        const validRecords = records.filter((record) => record.duration > 0);
 
         if (validRecords.length > 0) {
           const invalidRecords = validateItems(
