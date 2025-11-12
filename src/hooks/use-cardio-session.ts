@@ -9,6 +9,7 @@ import {
   saveCardioRecords as saveCardioRecordsToAPI,
   getCardioRecords as getCardioRecordsFromAPI,
 } from "@/lib/api";
+import { formatDateToYYYYMMDD } from "@/lib/utils";
 
 /**
  * ローカルストレージのキーを生成（有酸素種目用）
@@ -16,7 +17,7 @@ import {
  * ローカルタイムゾーン（日本時間）で日付を取得
  */
 const getStorageKey = (date: Date, exerciseId: string): string => {
-  const dateStr = format(date, "yyyy-MM-dd"); // YYYY-MM-DD形式（ローカルタイムゾーン）
+  const dateStr = formatDateToYYYYMMDD(date); // YYYY-MM-DD形式（ローカルタイムゾーン）
   return `cardio_${dateStr}_${exerciseId}`;
 };
 
@@ -137,7 +138,7 @@ export function useCardioSession({
 
     // まずデータベースから取得を試みる
     try {
-      const dateStr = format(date, "yyyy-MM-dd"); // YYYY-MM-DD形式（ローカルタイムゾーン）
+      const dateStr = formatDateToYYYYMMDD(date); // YYYY-MM-DD形式（ローカルタイムゾーン）
       const sessionResult = await getWorkoutSession(dateStr);
 
       if (sessionResult.success && sessionResult.data) {
@@ -203,7 +204,7 @@ export function useCardioSession({
 
       // 2. データベースにも保存を試みる（非同期、エラー時はログのみ）
       try {
-        const dateStr = format(date, "yyyy-MM-dd"); // YYYY-MM-DD形式（ローカルタイムゾーン）
+        const dateStr = formatDateToYYYYMMDD(date); // YYYY-MM-DD形式（ローカルタイムゾーン）
 
         // セッションを保存または取得
         const sessionResult = await saveWorkoutSession({
@@ -272,7 +273,7 @@ export function useCardioSession({
       // 前回の日付でセッションを取得または作成してから保存
       (async () => {
         try {
-          const previousDateStr = format(previousDateRef.current, "yyyy-MM-dd"); // ローカルタイムゾーン
+          const previousDateStr = formatDateToYYYYMMDD(previousDateRef.current); // YYYY-MM-DD形式（ローカルタイムゾーン）
           const sessionResult = await saveWorkoutSession({
             date: previousDateStr,
           });
@@ -308,7 +309,7 @@ export function useCardioSession({
       setRecords([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, exerciseId, format(date, "yyyy-MM-dd")]);
+  }, [isOpen, exerciseId, formatDateToYYYYMMDD(date)]);
 
   return {
     records,

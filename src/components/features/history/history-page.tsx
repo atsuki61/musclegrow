@@ -10,6 +10,7 @@ import {
 import { getBodyPartsByDateRangeFromStorage } from "@/lib/local-storage-history";
 import { getSessionDetailsFromStorage } from "@/lib/local-storage-session-details";
 import { loadExercisesWithFallback } from "@/lib/local-storage-exercises";
+import { useMaxWeights } from "@/hooks/use-max-weights";
 import { BodyPartFilter } from "./body-part-filter";
 import { HistoryCalendar } from "./history-calendar";
 import { SessionHistoryCard } from "./session-history-card";
@@ -45,6 +46,9 @@ export function HistoryPage() {
     exercise: Exercise;
     date: Date;
   } | null>(null);
+
+  // 最大重量を管理するカスタムフック
+  const { maxWeights, recalculateMaxWeights } = useMaxWeights();
 
   // 種目一覧を取得
   const loadExercises = useCallback(async () => {
@@ -208,15 +212,19 @@ export function HistoryPage() {
   }, []);
 
   // 編集モーダルを閉じる
-  const handleCloseModal = useCallback(() => {
+  const handleCloseModal = useCallback(async () => {
     setEditingExercise(null);
-    // 編集後に履歴を再読み込み
+    // 編集後に履歴を再読み込み（保存完了を待機）
     if (selectedDate) {
+      // データベースへの保存が完了するまで少し待機
+      await new Promise((resolve) => setTimeout(resolve, 300));
       loadSessionDetails(selectedDate);
       // 部位一覧も再読み込み
       loadBodyPartsByDate();
+      // 最大重量も再読み込み（編集により最大重量が更新された可能性があるため）
+      recalculateMaxWeights();
     }
-  }, [selectedDate, loadSessionDetails, loadBodyPartsByDate]);
+  }, [selectedDate, loadSessionDetails, loadBodyPartsByDate, recalculateMaxWeights]);
 
   return (
     <>
@@ -255,6 +263,7 @@ export function HistoryPage() {
                 cardioExercises={sessionDetails.cardioExercises}
                 exercises={exercises}
                 onExerciseClick={handleExerciseClick}
+                maxWeights={maxWeights}
               />
             ) : (
               <div className="text-center py-8 text-muted-foreground">

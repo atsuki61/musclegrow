@@ -126,7 +126,7 @@ export function ExerciseRecordModal({
    * モーダルを閉じる時の処理
    * セット記録または有酸素種目記録を自動保存（バリデーション付き）
    */
-  const handleClose = () => {
+  const handleClose = async () => {
     if (!exercise) {
       setShowPreviousRecord(false);
       onClose();
@@ -147,7 +147,8 @@ export function ExerciseRecordModal({
           );
 
           if (invalidRecords.length === 0) {
-            saveRecords(validRecords);
+            // 保存が完了するまで待機
+            await saveRecords(validRecords);
           } else {
             console.warn(
               `有酸素記録の保存をスキップしました（エラー: ${invalidRecords.join(
@@ -180,7 +181,8 @@ export function ExerciseRecordModal({
           );
 
           if (invalidSets.length === 0) {
-            saveSets(validSets);
+            // 保存が完了するまで待機
+            await saveSets(validSets);
           } else {
             console.warn(
               `セット記録の保存をスキップしました（エラー: ${invalidSets.join(
