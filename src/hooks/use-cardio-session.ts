@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { format } from "date-fns";
 import type { CardioRecord } from "@/types/workout";
 import {
   saveWorkoutSession,
@@ -13,6 +14,7 @@ import { formatDateToYYYYMMDD } from "@/lib/utils";
 /**
  * ローカルストレージのキーを生成（有酸素種目用）
  * 日付と種目IDを組み合わせて一意のキーを作成
+ * ローカルタイムゾーン（日本時間）で日付を取得
  */
 const getStorageKey = (date: Date, exerciseId: string): string => {
   const dateStr = formatDateToYYYYMMDD(date); // YYYY-MM-DD形式（ローカルタイムゾーン）
