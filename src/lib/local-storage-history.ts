@@ -1,6 +1,6 @@
 "use client";
 
-import { isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format } from "date-fns";
 import type {
   BodyPart,
   Exercise,
@@ -98,6 +98,7 @@ function getBodyPartForExercise(
 
 /**
  * 日付が指定範囲内かチェックする
+ * タイムゾーンの問題を回避するため、文字列比較を使用
  * @param dateStr YYYY-MM-DD形式の日付文字列
  * @param startDate 開始日
  * @param endDate 終了日
@@ -108,19 +109,12 @@ function isDateInRange(
   startDate: Date,
   endDate: Date
 ): boolean {
-  const recordDate = new Date(dateStr + "T00:00:00");
-  if (isNaN(recordDate.getTime())) {
-    return false;
-  }
+  // 日付文字列を直接比較（タイムゾーン問題を回避）
+  const startDateStr = format(startDate, "yyyy-MM-dd");
+  const endDateStr = format(endDate, "yyyy-MM-dd");
 
-  const recordDateStart = startOfDay(recordDate);
-  const startDateStart = startOfDay(startDate);
-  const endDateEnd = endOfDay(endDate);
-
-  return isWithinInterval(recordDateStart, {
-    start: startDateStart,
-    end: endDateEnd,
-  });
+  // 文字列比較で範囲チェック
+  return dateStr >= startDateStr && dateStr <= endDateStr;
 }
 
 /**
