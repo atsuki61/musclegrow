@@ -1,10 +1,11 @@
 "use server";
 
 import { db } from "../../../db";
-import { sets, cardioRecords } from "../../../db/schemas/app";
+import { sets, cardioRecords, exercises, workoutSessions } from "../../../db/schemas/app";
 import { getCurrentUserId } from "@/lib/auth-utils";
-import { eq } from "drizzle-orm";
+import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import type { SetRecord, CardioRecord } from "@/types/workout";
+import type { BodyPart } from "@/types/workout";
 
 /**
  * セッションIDでそのセッションの全種目とセット記録を取得する
@@ -113,3 +114,156 @@ export async function getSessionDetails(sessionId: string): Promise<{
   }
 }
 
+/**
+ * 日付範囲で日付ごとの部位一覧を取得する（カレンダー色付け用）
+ * @param startDate 開始日（YYYY-MM-DD形式の文字列）
+ * @param endDate 終了日（YYYY-MM-DD形式の文字列）
+ * @returns 日付文字列をキー、部位配列を値とするオブジェクト
+ */
+export async function getBodyPartsByDateRange({
+  startDate,
+  endDate,
+}: {
+  startDate: string; // YYYY-MM-DD形式
+  endDate: string; // YYYY-MM-DD形式
+}): Promise<{
+  success: boolean;
+  error?: string;
+  data?: Record<string, BodyPart[]>; // 日付文字列をキー、部位配列を値
+}> {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return {
+        success: false,
+        error: "認証が必要です",
+      };
+    }
+
+    // 日付範囲内のセッションを取得
+    const sessions = await db
+      .select({
+        id: workoutSessions.id,
+        date: workoutSessions.date,
+      })
+      .from(workoutSessions)
+      .where(
+        and(
+          eq(workoutSessions.userId, userId),
+          gte(workoutSessions.date, startDate),
+          lte(workoutSessions.date, endDate)
+        )
+      );
+
+    if (sessions.length === 0) {
+      return {
+        success: true,
+        data: {},
+      };
+    }
+
+    const sessionIds = sessions.map((s) => s.id);
+
+    // セッションごとの種目IDを取得（筋トレ種目）
+    const workoutExerciseIds = await db
+      .selectDistinct({
+        sessionId: sets.sessionId,
+        exerciseId: sets.exerciseId,
+      })
+      .from(sets)
+      .where(inArray(sets.sessionId, sessionIds));
+
+    // セッションごとの種目IDを取得（有酸素種目）
+    const cardioExerciseIds = await db
+      .selectDistinct({
+        sessionId: cardioRecords.sessionId,
+        exerciseId: cardioRecords.exerciseId,
+      })
+      .from(cardioRecords)
+      .where(inArray(cardioRecords.sessionId, sessionIds));
+
+    // 全ての種目IDを取得
+    const allExerciseIds = [
+      ...new Set([
+        ...workoutExerciseIds.map((e) => e.exerciseId),
+        ...cardioExerciseIds.map((e) => e.exerciseId),
+      ]),
+    ];
+
+    if (allExerciseIds.length === 0) {
+      return {
+        success: true,
+        data: {},
+      };
+    }
+
+    // 種目IDから部位を取得
+    const exerciseBodyParts = await db
+      .select({
+        id: exercises.id,
+        bodyPart: exercises.bodyPart,
+      })
+      .from(exercises)
+      .where(inArray(exercises.id, allExerciseIds));
+
+    // 種目ID → 部位のマップを作成
+    const exerciseIdToBodyPart = new Map<string, BodyPart>();
+    exerciseBodyParts.forEach((ex) => {
+      exerciseIdToBodyPart.set(ex.id, ex.bodyPart as BodyPart);
+    });
+
+    // 日付ごとに部位を集計
+    const bodyPartsByDate: Record<string, Set<BodyPart>> = {};
+
+    // セッションID → 日付のマップを作成
+    const sessionIdToDate = new Map<string, string>();
+    sessions.forEach((s) => {
+      sessionIdToDate.set(s.id, s.date);
+    });
+
+    // 部位を集計する共通関数
+    const addBodyPartToDate = (
+      sessionId: string,
+      exerciseId: string
+    ): void => {
+      const date = sessionIdToDate.get(sessionId);
+      const bodyPart = exerciseIdToBodyPart.get(exerciseId);
+      if (date && bodyPart) {
+        if (!bodyPartsByDate[date]) {
+          bodyPartsByDate[date] = new Set();
+        }
+        bodyPartsByDate[date].add(bodyPart);
+      }
+    };
+
+    // 筋トレ種目の部位を集計
+    workoutExerciseIds.forEach(({ sessionId, exerciseId }) => {
+      addBodyPartToDate(sessionId, exerciseId);
+    });
+
+    // 有酸素種目の部位を集計
+    cardioExerciseIds.forEach(({ sessionId, exerciseId }) => {
+      addBodyPartToDate(sessionId, exerciseId);
+    });
+
+    // Setを配列に変換
+    const result: Record<string, BodyPart[]> = {};
+    Object.keys(bodyPartsByDate).forEach((date) => {
+      result[date] = Array.from(bodyPartsByDate[date]);
+    });
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    console.error("部位一覧取得エラー:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "部位一覧の取得に失敗しました",
+    };
+  }
+}

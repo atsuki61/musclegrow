@@ -16,6 +16,33 @@ export const BODY_PART_LABELS: Record<BodyPart, string> = {
   other: "その他",
 };
 
+/**
+ * 部位別の色定義（Tailwind CSSクラス）
+ */
+export const BODY_PART_COLORS: Record<BodyPart, string> = {
+  all: "bg-gray-100",
+  chest: "bg-red-500",
+  back: "bg-blue-500",
+  legs: "bg-green-500",
+  shoulders: "bg-yellow-500",
+  arms: "bg-purple-500",
+  core: "bg-orange-500",
+  other: "bg-gray-500",
+};
+
+/**
+ * 部位別の色定義（HEX値）
+ */
+export const BODY_PART_COLOR_HEX: Record<Exclude<BodyPart, "all">, string> = {
+  chest: "#ef4444",
+  back: "#3b82f6",
+  legs: "#22c55e",
+  shoulders: "#eab308",
+  arms: "#a855f7",
+  core: "#f97316",
+  other: "#6b7280",
+};
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
