@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ExerciseCard } from "./exercise-card";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
+import { getExerciseById } from "@/lib/local-storage-exercises";
 
 interface SessionHistoryCardProps {
   /** セッション日付 */
@@ -45,11 +46,6 @@ export function SessionHistoryCard({
 }: SessionHistoryCardProps) {
   const formattedDate = format(date, "yyyy年M月d日(E)", { locale: ja });
 
-  // 種目IDから種目情報を取得
-  const getExerciseById = (exerciseId: string): Exercise | undefined => {
-    return exercises.find((e) => e.id === exerciseId);
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -61,9 +57,7 @@ export function SessionHistoryCard({
             </span>
           )}
         </div>
-        {note && (
-          <p className="text-sm text-muted-foreground mt-2">{note}</p>
-        )}
+        {note && <p className="text-sm text-muted-foreground mt-2">{note}</p>}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* 筋トレ種目 */}
@@ -72,8 +66,8 @@ export function SessionHistoryCard({
             <h3 className="text-sm font-semibold mb-2">💪 筋トレ種目</h3>
             <div className="space-y-3">
               {workoutExercises.map(({ exerciseId, sets }) => {
-                const exercise = getExerciseById(exerciseId);
-                if (!exercise) return null;
+                const exercise = getExerciseById(exerciseId, exercises);
+                if (!exercise) return null; // 種目が見つからない場合はスキップ
 
                 return (
                   <ExerciseCard
@@ -95,8 +89,8 @@ export function SessionHistoryCard({
             <h3 className="text-sm font-semibold mb-2">🏃 有酸素種目</h3>
             <div className="space-y-3">
               {cardioExercises.map(({ exerciseId, records }) => {
-                const exercise = getExerciseById(exerciseId);
-                if (!exercise) return null;
+                const exercise = getExerciseById(exerciseId, exercises);
+                if (!exercise) return null; // 種目が見つからない場合はスキップ
 
                 return (
                   <ExerciseCard
@@ -121,4 +115,3 @@ export function SessionHistoryCard({
     </Card>
   );
 }
-
