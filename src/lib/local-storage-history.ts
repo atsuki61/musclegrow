@@ -1,6 +1,6 @@
 "use client";
 
-import { isAfter, isBefore } from "date-fns";
+import { isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import type {
   BodyPart,
   Exercise,
@@ -106,10 +106,22 @@ export function getBodyPartsByDateRangeFromStorage({
 
       const { dateStr, exerciseId, type } = parsed;
 
-      // 日付範囲内かチェック
+      // 日付範囲内かチェック（日付のみを比較）
       const recordDate = new Date(dateStr + "T00:00:00");
       if (isNaN(recordDate.getTime())) continue;
-      if (isBefore(recordDate, startDate) || isAfter(recordDate, endDate)) {
+
+      // 日付のみを比較するため、時間部分をリセット
+      const recordDateStart = startOfDay(recordDate);
+      const startDateStart = startOfDay(startDate);
+      const endDateEnd = endOfDay(endDate);
+
+      // 日付が範囲内かチェック
+      const isInRange = isWithinInterval(recordDateStart, {
+        start: startDateStart,
+        end: endDateEnd,
+      });
+
+      if (!isInRange) {
         continue;
       }
 

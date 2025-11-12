@@ -216,6 +216,7 @@ export async function getBodyPartsByDateRange({
     const bodyPartsByDate: Record<string, Set<BodyPart>> = {};
 
     // セッションID → 日付のマップを作成
+    // データベースから取得した日付はyyyy-MM-dd形式の文字列
     const sessionIdToDate = new Map<string, string>();
     sessions.forEach((s) => {
       sessionIdToDate.set(s.id, s.date);
@@ -258,12 +259,16 @@ export async function getBodyPartsByDateRange({
     };
   } catch (error) {
     console.error("部位一覧取得エラー:", error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : typeof error === "string"
+          ? error
+          : "部位一覧の取得に失敗しました";
+    
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "部位一覧の取得に失敗しました",
+      error: errorMessage,
     };
   }
 }

@@ -78,11 +78,10 @@ export function HistoryPage() {
         exercises,
       });
 
-      // マージ: 同じ日付の部位を統合
+      // マージ: 同じ日付の部位を統合（重複を排除）
       const merged: Record<string, BodyPart[]> = { ...dbBodyParts };
       Object.keys(storageBodyParts).forEach((date) => {
         if (merged[date]) {
-          // 既存の部位と統合（重複を排除）
           const existingSet = new Set(merged[date]);
           storageBodyParts[date].forEach((part) => existingSet.add(part));
           merged[date] = Array.from(existingSet);
