@@ -62,7 +62,6 @@ export function HistoryCalendar({
     const bodyParts = getFilteredBodyParts(date);
     const isSelected = selectedDate && isSameDay(date, selectedDate);
     const isCurrentMonth = isSameMonth(date, currentMonth);
-    // todayスタイルを無効化（選択された日付のみハイライト）
     const isToday = modifiers?.today ?? false;
 
     // 現在の月以外の日付は通常表示（react-day-pickerが処理）
