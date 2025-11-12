@@ -1,7 +1,12 @@
 "use client";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BODY_PART_LABELS, BODY_PART_COLORS, BODY_PART_COLOR_HEX, cn } from "@/lib/utils";
+import {
+  BODY_PART_LABELS,
+  BODY_PART_COLOR_HEX,
+  getLightBackgroundColor,
+  cn,
+} from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
 
 const BODY_PARTS: BodyPart[] = [
@@ -38,13 +43,13 @@ export function BodyPartFilter({
     <Tabs
       value={selectedPart}
       onValueChange={(value) => handlePartChange(value as BodyPart)}
-      className="mb-4"
+      className="mb-0 gap-0"
     >
-      <TabsList className="h-12 w-full justify-start overflow-x-auto bg-transparent p-0 gap-2">
+      <TabsList className="h-12 w-full justify-start overflow-x-auto bg-transparent p-0 gap-0.5">
         {BODY_PARTS.map((part) => {
           const isSelected = selectedPart === part;
-          const colorClass = BODY_PART_COLORS[part];
-          const colorHex = part !== "all" ? BODY_PART_COLOR_HEX[part] : undefined;
+          const colorHex =
+            part !== "all" ? BODY_PART_COLOR_HEX[part] : undefined;
 
           return (
             <TabsTrigger
@@ -53,11 +58,7 @@ export function BodyPartFilter({
               className={cn(
                 "whitespace-nowrap transition-all border-0",
                 // 選択時: 濃い色の背景、白文字
-                isSelected && "text-white",
-                // 未選択時: 薄い色の背景、通常文字
-                !isSelected && `${colorClass}/20`,
-                !isSelected && "hover:bg-opacity-30",
-                !isSelected && "bg-transparent"
+                isSelected && "text-white"
               )}
               style={
                 isSelected && colorHex
@@ -68,6 +69,16 @@ export function BodyPartFilter({
                   ? {
                       backgroundColor: "#f3f4f6", // bg-gray-100
                       color: "#000000",
+                    }
+                  : !isSelected && colorHex
+                  ? {
+                      backgroundColor: getLightBackgroundColor(colorHex),
+                      color: colorHex, // 文字色も部位色に
+                    }
+                  : !isSelected && part === "all"
+                  ? {
+                      backgroundColor: "#f3f4f6", // bg-gray-100
+                      color: "#6b7280", // gray-500
                     }
                   : undefined
               }
