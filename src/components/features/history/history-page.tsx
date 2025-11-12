@@ -4,10 +4,12 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import {
   getSessionDetails,
-  getExercises,
   getWorkoutSession,
   getBodyPartsByDateRange,
 } from "@/lib/api";
+import { getBodyPartsByDateRangeFromStorage } from "@/lib/local-storage-history";
+import { getSessionDetailsFromStorage } from "@/lib/local-storage-session-details";
+import { loadExercisesWithFallback } from "@/lib/local-storage-exercises";
 import { BodyPartFilter } from "./body-part-filter";
 import { HistoryCalendar } from "./history-calendar";
 import { SessionHistoryCard } from "./session-history-card";
@@ -46,14 +48,8 @@ export function HistoryPage() {
 
   // 種目一覧を取得
   const loadExercises = useCallback(async () => {
-    try {
-      const result = await getExercises();
-      if (result.success && result.data) {
-        setExercises(result.data);
-      }
-    } catch (error) {
-      console.error("種目取得エラー:", error);
-    }
+    const exercises = await loadExercisesWithFallback();
+    setExercises(exercises);
   }, []);
 
   // 現在の月の範囲を計算
@@ -66,37 +62,116 @@ export function HistoryPage() {
     };
   }, [currentMonth]);
 
-  // 日付ごとの部位一覧を取得
+  // 日付ごとの部位一覧を取得（データベース + ローカルストレージ）
   const loadBodyPartsByDate = useCallback(async () => {
     try {
-      const result = await getBodyPartsByDateRange(monthRange);
-      if (result.success && result.data) {
-        setBodyPartsByDate(result.data || {});
-      }
+      // データベースから取得
+      const dbResult = await getBodyPartsByDateRange(monthRange);
+      const dbBodyParts = dbResult.success ? dbResult.data || {} : {};
+
+      // ローカルストレージから取得
+      const startDate = new Date(monthRange.startDate + "T00:00:00");
+      const endDate = new Date(monthRange.endDate + "T23:59:59");
+      const storageBodyParts = getBodyPartsByDateRangeFromStorage({
+        startDate,
+        endDate,
+        exercises,
+      });
+
+      // マージ: 同じ日付の部位を統合
+      const merged: Record<string, BodyPart[]> = { ...dbBodyParts };
+      Object.keys(storageBodyParts).forEach((date) => {
+        if (merged[date]) {
+          // 既存の部位と統合（重複を排除）
+          const existingSet = new Set(merged[date]);
+          storageBodyParts[date].forEach((part) => existingSet.add(part));
+          merged[date] = Array.from(existingSet);
+        } else {
+          merged[date] = storageBodyParts[date];
+        }
+      });
+
+      setBodyPartsByDate(merged);
     } catch (error) {
       console.error("部位一覧取得エラー:", error);
     }
-  }, [monthRange]);
+  }, [monthRange, exercises]);
 
-  // 選択された日付のセッション詳細を取得
+  // 選択された日付のセッション詳細を取得（データベース + ローカルストレージ）
   const loadSessionDetails = useCallback(async (date: Date) => {
     setIsLoading(true);
     try {
       const dateStr = format(date, "yyyy-MM-dd");
+
+      // データベースから取得を試みる
       const sessionResult = await getWorkoutSession(dateStr);
+      let dbDetails: {
+        workoutExercises: Array<{ exerciseId: string; sets: SetRecord[] }>;
+        cardioExercises: Array<{
+          exerciseId: string;
+          records: CardioRecord[];
+        }>;
+      } | null = null;
+      let dbNote: string | null | undefined = null;
+      let dbDurationMinutes: number | null | undefined = null;
 
       if (sessionResult.success && sessionResult.data) {
         const detailsResult = await getSessionDetails(sessionResult.data.id);
         if (detailsResult.success && detailsResult.data) {
-          setSessionDetails({
-            ...detailsResult.data,
-            date,
-            durationMinutes: sessionResult.data.durationMinutes,
-            note: sessionResult.data.note,
-          });
-        } else {
-          setSessionDetails(null);
+          dbDetails = detailsResult.data;
+          dbNote = sessionResult.data.note;
+          dbDurationMinutes = sessionResult.data.durationMinutes;
         }
+      }
+
+      // ローカルストレージから取得
+      const storageDetails = getSessionDetailsFromStorage({ date });
+
+      // データベースとローカルストレージの結果をマージ
+      const workoutExercisesMap = new Map<string, SetRecord[]>();
+      const cardioExercisesMap = new Map<string, CardioRecord[]>();
+
+      // データベースの結果を追加
+      if (dbDetails) {
+        dbDetails.workoutExercises.forEach(({ exerciseId, sets }) => {
+          workoutExercisesMap.set(exerciseId, sets);
+        });
+        dbDetails.cardioExercises.forEach(({ exerciseId, records }) => {
+          cardioExercisesMap.set(exerciseId, records);
+        });
+      }
+
+      // ローカルストレージの結果を追加（データベースにない種目のみ）
+      storageDetails.workoutExercises.forEach(({ exerciseId, sets }) => {
+        if (!workoutExercisesMap.has(exerciseId)) {
+          workoutExercisesMap.set(exerciseId, sets);
+        }
+      });
+      storageDetails.cardioExercises.forEach(({ exerciseId, records }) => {
+        if (!cardioExercisesMap.has(exerciseId)) {
+          cardioExercisesMap.set(exerciseId, records);
+        }
+      });
+
+      const mergedWorkoutExercises = Array.from(
+        workoutExercisesMap.entries()
+      ).map(([exerciseId, sets]) => ({ exerciseId, sets }));
+      const mergedCardioExercises = Array.from(
+        cardioExercisesMap.entries()
+      ).map(([exerciseId, records]) => ({ exerciseId, records }));
+
+      // どちらか一方でもデータがあれば表示
+      if (
+        mergedWorkoutExercises.length > 0 ||
+        mergedCardioExercises.length > 0
+      ) {
+        setSessionDetails({
+          workoutExercises: mergedWorkoutExercises,
+          cardioExercises: mergedCardioExercises,
+          date,
+          durationMinutes: dbDurationMinutes,
+          note: dbNote,
+        });
       } else {
         setSessionDetails(null);
       }
@@ -113,10 +188,11 @@ export function HistoryPage() {
     loadExercises();
   }, [loadExercises]);
 
-  // 月が変更されたときに部位一覧を取得
+  // 種目一覧が読み込まれた後、または月が変更されたときに部位一覧を取得
   useEffect(() => {
+    // exercisesが空でも実行する（ローカルストレージから取得するため）
     loadBodyPartsByDate();
-  }, [loadBodyPartsByDate]);
+  }, [loadBodyPartsByDate, exercises]);
 
   // 日付選択時の処理
   const handleDateSelect = useCallback(
@@ -144,59 +220,61 @@ export function HistoryPage() {
   }, [selectedDate, loadSessionDetails, loadBodyPartsByDate]);
 
   return (
-    <div className="container mx-auto px-4 py-4">
-      <h1 className="text-2xl font-bold mb-4">履歴</h1>
-
-      {/* 部位別フィルター */}
-      <BodyPartFilter
-        selectedPart={selectedBodyPart}
-        onPartChange={setSelectedBodyPart}
-      />
-
-      {/* カレンダー */}
-      <HistoryCalendar
-        currentMonth={currentMonth}
-        onMonthChange={setCurrentMonth}
-        bodyPartsByDate={bodyPartsByDate}
-        selectedDate={selectedDate}
-        onDateSelect={handleDateSelect}
-        filteredBodyPart={selectedBodyPart}
-      />
-
-      {/* 選択日の履歴表示 */}
-      {selectedDate && (
-        <div className="mt-6">
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              読み込み中...
-            </div>
-          ) : sessionDetails ? (
-            <SessionHistoryCard
-              date={sessionDetails.date}
-              durationMinutes={sessionDetails.durationMinutes}
-              note={sessionDetails.note}
-              workoutExercises={sessionDetails.workoutExercises}
-              cardioExercises={sessionDetails.cardioExercises}
-              exercises={exercises}
-              onExerciseClick={handleExerciseClick}
-            />
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              この日の記録はありません
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 編集モーダル */}
-      {editingExercise && (
-        <ExerciseRecordModal
-          exercise={editingExercise.exercise}
-          isOpen={true}
-          onClose={handleCloseModal}
-          date={editingExercise.date}
+    <>
+      {/* 部位別フィルター（headerの真下に配置） */}
+      <div className="sticky top-14 z-40 w-full border-b bg-background px-4 py-0">
+        <BodyPartFilter
+          selectedPart={selectedBodyPart}
+          onPartChange={setSelectedBodyPart}
         />
-      )}
-    </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-4">
+        {/* カレンダー */}
+        <HistoryCalendar
+          currentMonth={currentMonth}
+          onMonthChange={setCurrentMonth}
+          bodyPartsByDate={bodyPartsByDate}
+          selectedDate={selectedDate}
+          onDateSelect={handleDateSelect}
+          filteredBodyPart={selectedBodyPart}
+        />
+
+        {/* 選択日の履歴表示 */}
+        {selectedDate && (
+          <div className="mt-6">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                読み込み中...
+              </div>
+            ) : sessionDetails ? (
+              <SessionHistoryCard
+                date={sessionDetails.date}
+                durationMinutes={sessionDetails.durationMinutes}
+                note={sessionDetails.note}
+                workoutExercises={sessionDetails.workoutExercises}
+                cardioExercises={sessionDetails.cardioExercises}
+                exercises={exercises}
+                onExerciseClick={handleExerciseClick}
+              />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                この日の記録はありません
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 編集モーダル */}
+        {editingExercise && (
+          <ExerciseRecordModal
+            exercise={editingExercise.exercise}
+            isOpen={true}
+            onClose={handleCloseModal}
+            date={editingExercise.date}
+          />
+        )}
+      </div>
+    </>
   );
 }
