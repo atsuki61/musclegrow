@@ -8,7 +8,7 @@ import { ExerciseRecordModal } from "./exercise-record-modal";
 import { AddExerciseModal } from "./add-exercise-modal";
 import { saveExercise } from "@/lib/api";
 import { BODY_PART_LABELS } from "@/lib/utils";
-import { calculateMaxWeights } from "@/lib/max-weight";
+import { useMaxWeights } from "@/hooks/use-max-weights";
 import {
   getLastTrainedDates,
   getLastTrainedDatesByBodyPart,
@@ -46,10 +46,12 @@ export function RecordPage() {
   const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
   const [addExerciseBodyPart, setAddExerciseBodyPart] =
     useState<Exclude<BodyPart, "all">>("chest");
-  const [maxWeights, setMaxWeights] = useState<Record<string, number>>({});
   const [lastTrainedDatesByBodyPart, setLastTrainedDatesByBodyPart] = useState<
     Record<BodyPart, Date | undefined>
   >({} as Record<BodyPart, Date | undefined>);
+
+  // 最大重量を管理するカスタムフック
+  const { maxWeights, recalculateMaxWeights } = useMaxWeights();
 
   useEffect(() => {
     const loadExercises = async () => {
@@ -60,13 +62,13 @@ export function RecordPage() {
   }, []);
 
   const recalculateStats = useCallback(() => {
-    const newMaxWeights = calculateMaxWeights();
-    setMaxWeights(newMaxWeights);
+    // 最大重量はカスタムフックで管理されるため、ここでは再計算のみ呼び出す
+    recalculateMaxWeights();
     const lastTrainedDates = getLastTrainedDates();
     setLastTrainedDatesByBodyPart(
       getLastTrainedDatesByBodyPart(exercises, lastTrainedDates)
     );
-  }, [exercises]);
+  }, [exercises, recalculateMaxWeights]);
 
   useEffect(() => {
     recalculateStats();
