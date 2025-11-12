@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { format } from "date-fns";
 import type { SetRecord } from "@/types/workout";
 import {
   saveWorkoutSession,
@@ -12,9 +13,10 @@ import {
 /**
  * ローカルストレージのキーを生成
  * 日付と種目IDを組み合わせて一意のキーを作成
+ * ローカルタイムゾーン（日本時間）で日付を取得
  */
 const getStorageKey = (date: Date, exerciseId: string): string => {
-  const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD形式
+  const dateStr = format(date, "yyyy-MM-dd"); // YYYY-MM-DD形式（ローカルタイムゾーン）
   return `workout_${dateStr}_${exerciseId}`;
 };
 
@@ -123,7 +125,7 @@ export function useWorkoutSession({
 
     // まずデータベースから取得を試みる
     try {
-      const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD形式
+      const dateStr = format(date, "yyyy-MM-dd"); // YYYY-MM-DD形式（ローカルタイムゾーン）
       const sessionResult = await getWorkoutSession(dateStr);
 
       if (sessionResult.success && sessionResult.data) {
@@ -184,7 +186,7 @@ export function useWorkoutSession({
 
       // 2. データベースにも保存を試みる（非同期、エラー時はログのみ）
       try {
-        const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD形式
+        const dateStr = format(date, "yyyy-MM-dd"); // YYYY-MM-DD形式（ローカルタイムゾーン）
 
         // セッションを保存または取得
         const sessionResult = await saveWorkoutSession({
@@ -253,9 +255,7 @@ export function useWorkoutSession({
       // 前回の日付でセッションを取得または作成してから保存
       (async () => {
         try {
-          const previousDateStr = previousDateRef.current
-            .toISOString()
-            .split("T")[0];
+          const previousDateStr = format(previousDateRef.current, "yyyy-MM-dd"); // ローカルタイムゾーン
           const sessionResult = await saveWorkoutSession({
             date: previousDateStr,
           });
@@ -291,7 +291,7 @@ export function useWorkoutSession({
       setSets([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, exerciseId, date.toISOString()]);
+  }, [isOpen, exerciseId, format(date, "yyyy-MM-dd")]);
 
   return {
     sets,
