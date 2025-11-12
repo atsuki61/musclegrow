@@ -1,8 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { BODY_PART_COLOR_HEX } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { BODY_PART_COLOR_HEX, getLightBackgroundColor, cn } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
 
 interface MultiPartDayButtonProps {
@@ -68,23 +67,26 @@ export function MultiPartDayButton({
           gridTemplateColumns: `repeat(${gridConfig.cols}, 1fr)`,
         }}
       >
-        {bodyParts.slice(0, gridConfig.rows * gridConfig.cols).map((part, index) => {
-          const color = BODY_PART_COLOR_HEX[part as Exclude<BodyPart, "all">];
-          return (
-            <div
-              key={`${part}-${index}`}
-              className="border border-white/20"
-              style={{ backgroundColor: color }}
-            />
-          );
-        })}
+        {bodyParts
+          .slice(0, gridConfig.rows * gridConfig.cols)
+          .map((part, index) => {
+            const colorHex =
+              BODY_PART_COLOR_HEX[part as Exclude<BodyPart, "all">];
+            const lightColor = getLightBackgroundColor(colorHex, 0.7);
+            return (
+              <div
+                key={`${part}-${index}`}
+                className="border border-white/20"
+                style={{ backgroundColor: lightColor }}
+              />
+            );
+          })}
       </div>
-      
-      {/* 日付番号を中央に表示 */}
-      <span className="relative z-10 text-sm font-medium text-white drop-shadow-md">
+
+      {/* 日付番号を中央に表示（濃い色で視認性を確保） */}
+      <span className="relative z-10 text-sm font-medium text-foreground drop-shadow-md">
         {dayNumber}
       </span>
     </Button>
   );
 }
-
