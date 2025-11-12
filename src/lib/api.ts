@@ -19,10 +19,6 @@ import {
 } from "./actions/cardio-records";
 import { getBig3MaxWeights as getBig3MaxWeightsAction } from "./actions/big3-progress";
 import { getWorkoutSessionsByDateRange as getWorkoutSessionsByDateRangeAction } from "./actions/workout-sessions";
-<<<<<<< HEAD
-import { getSessionDetails as getSessionDetailsAction } from "./actions/history";
-import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
-=======
 import {
   getSessionDetails as getSessionDetailsAction,
   getBodyPartsByDateRange as getBodyPartsByDateRangeAction,
@@ -33,7 +29,6 @@ import type {
   CardioRecord,
   BodyPart,
 } from "@/types/workout";
->>>>>>> c4142eb (feat(history): 履歴ページ機能の実装)
 
 /**
  * 種目を保存する（カスタム種目）
@@ -224,8 +219,6 @@ export async function getSessionDetails(sessionId: string): Promise<{
 }> {
   return await getSessionDetailsAction(sessionId);
 }
-<<<<<<< HEAD
-=======
 
 /**
  * 日付範囲で日付ごとの部位一覧を取得する（カレンダー色付け用）
@@ -243,4 +236,3 @@ export async function getBodyPartsByDateRange({
 }> {
   return await getBodyPartsByDateRangeAction({ startDate, endDate });
 }
->>>>>>> c4142eb (feat(history): 履歴ページ機能の実装)
