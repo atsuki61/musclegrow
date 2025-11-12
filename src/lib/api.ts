@@ -18,7 +18,17 @@ import {
   getCardioRecords as getCardioRecordsAction,
 } from "./actions/cardio-records";
 import { getBig3MaxWeights as getBig3MaxWeightsAction } from "./actions/big3-progress";
-import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
+import { getWorkoutSessionsByDateRange as getWorkoutSessionsByDateRangeAction } from "./actions/workout-sessions";
+import {
+  getSessionDetails as getSessionDetailsAction,
+  getBodyPartsByDateRange as getBodyPartsByDateRangeAction,
+} from "./actions/history";
+import type {
+  Exercise,
+  SetRecord,
+  CardioRecord,
+  BodyPart,
+} from "@/types/workout";
 
 /**
  * 種目を保存する（カスタム種目）
@@ -166,4 +176,63 @@ export async function getBig3MaxWeights(): Promise<{
   };
 }> {
   return await getBig3MaxWeightsAction();
+}
+
+/**
+ * 日付範囲でワークアウトセッション一覧を取得する
+ */
+export async function getWorkoutSessionsByDateRange({
+  startDate,
+  endDate,
+}: {
+  startDate: string; // YYYY-MM-DD形式
+  endDate: string; // YYYY-MM-DD形式
+}): Promise<{
+  success: boolean;
+  error?: string;
+  data?: Array<{
+    id: string;
+    date: string;
+    note?: string | null;
+    durationMinutes?: number | null;
+  }>;
+}> {
+  return await getWorkoutSessionsByDateRangeAction({ startDate, endDate });
+}
+
+/**
+ * セッションIDでそのセッションの全種目とセット記録を取得する
+ */
+export async function getSessionDetails(sessionId: string): Promise<{
+  success: boolean;
+  error?: string;
+  data?: {
+    workoutExercises: Array<{
+      exerciseId: string;
+      sets: SetRecord[];
+    }>;
+    cardioExercises: Array<{
+      exerciseId: string;
+      records: CardioRecord[];
+    }>;
+  };
+}> {
+  return await getSessionDetailsAction(sessionId);
+}
+
+/**
+ * 日付範囲で日付ごとの部位一覧を取得する（カレンダー色付け用）
+ */
+export async function getBodyPartsByDateRange({
+  startDate,
+  endDate,
+}: {
+  startDate: string; // YYYY-MM-DD形式
+  endDate: string; // YYYY-MM-DD形式
+}): Promise<{
+  success: boolean;
+  error?: string;
+  data?: Record<string, BodyPart[]>; // 日付文字列をキー、部位配列を値
+}> {
+  return await getBodyPartsByDateRangeAction({ startDate, endDate });
 }

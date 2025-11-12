@@ -3,7 +3,7 @@
 import { db } from "../../../db";
 import { workoutSessions } from "../../../db/schemas/app";
 import { getCurrentUserId } from "@/lib/auth-utils";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 
 /**
  * ワークアウトセッションを保存または更新する
@@ -153,6 +153,75 @@ export async function getWorkoutSession(
         error instanceof Error
           ? error.message
           : "ワークアウトセッションの取得に失敗しました",
+    };
+  }
+}
+
+/**
+ * 日付範囲でワークアウトセッション一覧を取得する
+ * @param startDate 開始日（YYYY-MM-DD形式の文字列）
+ * @param endDate 終了日（YYYY-MM-DD形式の文字列）
+ * @returns セッション一覧
+ */
+export async function getWorkoutSessionsByDateRange({
+  startDate,
+  endDate,
+}: {
+  startDate: string; // YYYY-MM-DD形式
+  endDate: string; // YYYY-MM-DD形式
+}): Promise<{
+  success: boolean;
+  error?: string;
+  data?: Array<{
+    id: string;
+    date: string;
+    note?: string | null;
+    durationMinutes?: number | null;
+  }>;
+}> {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return {
+        success: false,
+        error: "認証が必要です",
+      };
+    }
+
+    const sessions = await db
+      .select({
+        id: workoutSessions.id,
+        date: workoutSessions.date,
+        note: workoutSessions.note,
+        durationMinutes: workoutSessions.durationMinutes,
+      })
+      .from(workoutSessions)
+      .where(
+        and(
+          eq(workoutSessions.userId, userId),
+          gte(workoutSessions.date, startDate),
+          lte(workoutSessions.date, endDate)
+        )
+      )
+      .orderBy(desc(workoutSessions.date));
+
+    return {
+      success: true,
+      data: sessions.map((session) => ({
+        id: session.id,
+        date: session.date,
+        note: session.note ?? undefined,
+        durationMinutes: session.durationMinutes ?? undefined,
+      })),
+    };
+  } catch (error) {
+    console.error("ワークアウトセッション一覧取得エラー:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "ワークアウトセッション一覧の取得に失敗しました",
     };
   }
 }
