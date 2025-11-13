@@ -166,3 +166,12 @@ export function getLastTrainedText(lastTrainedAt?: Date): string {
 export function formatDateToYYYYMMDD(date: Date): string {
   return format(date, "yyyy-MM-dd");
 }
+
+/**
+ * 認証ページかどうかを判定する
+ * @param pathname 現在のパス
+ * @returns 認証ページの場合true、それ以外はfalse
+ */
+export function isAuthPage(pathname: string): boolean {
+  return pathname === "/login" || pathname === "/signup";
+}
