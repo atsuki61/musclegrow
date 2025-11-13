@@ -41,6 +41,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# mcp
+/.cursor/mcp.json
+
+# docx
 /docx
 /.cursor/plans
 /.specstory
+X

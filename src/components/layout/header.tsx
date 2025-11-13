@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { isAuthPage } from "@/lib/utils";
 
 /**
  * ページパスに応じたタイトルを返す関数
@@ -25,6 +26,11 @@ export function Header() {
 
   // 記録ページではグローバルなHeaderを非表示（記録ページが独自のHeaderを持つため）
   if (pathname === "/record") {
+    return null;
+  }
+
+  // 認証ページではHeaderを非表示
+  if (isAuthPage(pathname)) {
     return null;
   }
 

@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { Home, History, Plus, LineChart, User } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { isAuthPage } from "@/lib/utils";
 
 export function FooterNav() {
   const pathname = usePathname();
+
+  // 認証ページではFooterNavを非表示
+  if (isAuthPage(pathname)) {
+    return null;
+  }
 
   const navItems = [
     { href: "/", icon: Home, label: "ホーム" },
