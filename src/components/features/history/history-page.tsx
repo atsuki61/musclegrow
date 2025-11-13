@@ -224,7 +224,12 @@ export function HistoryPage() {
       // 最大重量も再読み込み（編集により最大重量が更新された可能性があるため）
       recalculateMaxWeights();
     }
-  }, [selectedDate, loadSessionDetails, loadBodyPartsByDate, recalculateMaxWeights]);
+  }, [
+    selectedDate,
+    loadSessionDetails,
+    loadBodyPartsByDate,
+    recalculateMaxWeights,
+  ]);
 
   return (
     <>
