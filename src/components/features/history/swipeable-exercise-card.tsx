@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { motion, PanInfo, useMotionValue, useTransform } from "framer-motion";
-import { Trash2, ArrowLeft } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { ExerciseCard } from "./exercise-card";
 import {
   DeleteConfirmDialog,
@@ -41,12 +41,12 @@ export function SwipeableExerciseCard({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // スワイプの進行度に応じて削除ボタンの透明度を変化させる
-  const deleteButtonOpacity = useTransform(x, [0, SWIPE_THRESHOLD], [0, 1]);
-  const deleteButtonBg = useTransform(
-    x,
-    [SWIPE_THRESHOLD, DELETE_THRESHOLD],
-    ["hsl(var(--destructive))", "hsl(var(--destructive) / 0.8)"]
-  );
+  // わずか10pxのスワイプで完全に表示されるように設定
+  const deleteButtonOpacity = useTransform(x, [0, -10], [0, 1]);
+
+  // スワイプ量に応じて背景の赤枠の幅を拡張（最小80px、最大200px）
+  // スワイプが進むと背景が左に伸びていく
+  const deleteButtonWidth = useTransform(x, [0, -200], [80, 200]);
 
   const handleDragEnd = (
     _event: MouseEvent | TouchEvent | PointerEvent,
@@ -101,21 +101,28 @@ export function SwipeableExerciseCard({
   return (
     <>
       <div ref={containerRef} className="relative overflow-hidden">
-        {/* 背景の削除ボタン */}
+        {/* 背景の削除ボタン - スワイプ量に応じて幅が伸びる */}
         <motion.div
-          className="absolute inset-y-0 right-0 flex items-center justify-end px-4 rounded-lg"
+          className="absolute inset-y-0 right-0 flex items-center justify-end pr-4 bg-destructive rounded-lg"
           style={{
-            backgroundColor: deleteButtonBg,
             opacity: deleteButtonOpacity,
+            width: deleteButtonWidth,
           }}
         >
-          <div className="flex items-center gap-3 text-white">
-            <div className="flex items-center gap-1.5">
-              <ArrowLeft className="h-4 w-4 animate-pulse" />
-              <span className="text-sm font-medium">スワイプで削除</span>
-            </div>
-            <Trash2 className="h-6 w-6" />
-          </div>
+          <motion.div
+            animate={{
+              scale: [1, 1.15, 1],
+              rotate: [0, -5, 5, -5, 0],
+            }}
+            transition={{
+              duration: 0.6,
+              repeat: Infinity,
+              repeatDelay: 0.8,
+              ease: "easeInOut",
+            }}
+          >
+            <Trash2 className="h-7 w-7 text-white shrink-0" />
+          </motion.div>
         </motion.div>
 
         {/* スワイプ可能なカード */}
@@ -134,6 +141,7 @@ export function SwipeableExerciseCard({
             records={records}
             onClick={onClick}
             maxWeights={maxWeights}
+            showSwipeHint={true}
           />
         </motion.div>
       </div>

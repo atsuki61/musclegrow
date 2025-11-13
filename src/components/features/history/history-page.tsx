@@ -312,22 +312,18 @@ export function HistoryPage() {
               <div className="text-center py-8 text-muted-foreground">
                 読み込み中...
               </div>
-            ) : sessionDetails ? (
+            ) : (
               <SessionHistoryCard
-                date={sessionDetails.date}
-                durationMinutes={sessionDetails.durationMinutes}
-                note={sessionDetails.note}
-                workoutExercises={sessionDetails.workoutExercises}
-                cardioExercises={sessionDetails.cardioExercises}
+                date={sessionDetails?.date || selectedDate}
+                durationMinutes={sessionDetails?.durationMinutes}
+                note={sessionDetails?.note}
+                workoutExercises={sessionDetails?.workoutExercises || []}
+                cardioExercises={sessionDetails?.cardioExercises || []}
                 exercises={exercises}
                 onExerciseClick={handleExerciseClick}
                 onExerciseDelete={handleExerciseDelete}
                 maxWeights={maxWeights}
               />
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                この日の記録はありません
-              </div>
             )}
           </div>
         )}

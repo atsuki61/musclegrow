@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import { ChevronsLeft } from "lucide-react";
 import { BODY_PART_LABELS, calculate1RM } from "@/lib/utils";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 
@@ -15,6 +16,8 @@ interface ExerciseCardProps {
   onClick?: () => void;
   /** 種目ごとの最大重量（過去の記録を含む） */
   maxWeights?: Record<string, number>;
+  /** スワイプヒントを表示するかどうか（履歴画面用） */
+  showSwipeHint?: boolean;
 }
 
 /**
@@ -27,6 +30,7 @@ export function ExerciseCard({
   records,
   onClick,
   maxWeights = {},
+  showSwipeHint = false,
 }: ExerciseCardProps) {
   // MAX重量を取得（過去の記録を含む全記録の中で最大の重量）
   const maxWeight = maxWeights[exercise.id] || 0;
@@ -42,9 +46,15 @@ export function ExerciseCard({
           <span className="font-semibold text-sm leading-tight">
             {exercise.name}
           </span>
-          <span className="text-xs text-muted-foreground shrink-0 ml-2">
-            {BODY_PART_LABELS[exercise.bodyPart]}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground shrink-0">
+              {BODY_PART_LABELS[exercise.bodyPart]}
+            </span>
+            {/* スワイプヒント（履歴画面でのみ表示） */}
+            {showSwipeHint && (
+              <ChevronsLeft className="h-3.5 w-3.5 text-muted-foreground/30 animate-pulse" />
+            )}
+          </div>
         </div>
 
         {/* セット記録（筋トレ種目） */}
@@ -70,7 +80,12 @@ export function ExerciseCard({
                     </span>
                     {weight > 0 ? (
                       <>
-                        <span>{weight}kg</span>
+                        <div className="flex items-center">
+                          <span className="tabular-nums w-14 text-right">
+                            {weight.toFixed(1)}
+                          </span>
+                          <span className="ml-1">kg</span>
+                        </div>
                         <span>×</span>
                         <span>{set.reps}回</span>
                       </>
@@ -86,9 +101,13 @@ export function ExerciseCard({
 
                   {/* 右側：1RM */}
                   {oneRM && (
-                    <span className="text-muted-foreground shrink-0 ml-2">
-                      {oneRM}kg RM
-                    </span>
+                    <div className="text-muted-foreground shrink-0 ml-2 flex items-center">
+                      <span>1RM:</span>
+                      <span className="tabular-nums w-14 text-right">
+                        {oneRM.toFixed(1)}
+                      </span>
+                      <span className="ml-1">kg</span>
+                    </div>
                   )}
                 </div>
               );

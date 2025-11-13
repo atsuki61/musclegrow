@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
+import { parse } from "date-fns";
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
@@ -36,7 +38,27 @@ function getBodyPartsToShow(
 }
 
 export function RecordPage() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const searchParams = useSearchParams();
+  
+  // クエリパラメータから日付を取得（例: /record?date=2024-11-13）
+  const getInitialDate = (): Date => {
+    const dateParam = searchParams.get("date");
+    if (dateParam) {
+      try {
+        // yyyy-MM-dd 形式の日付をパース
+        const parsedDate = parse(dateParam, "yyyy-MM-dd", new Date());
+        // 有効な日付かチェック
+        if (!isNaN(parsedDate.getTime())) {
+          return parsedDate;
+        }
+      } catch {
+        // パースエラー時は今日の日付を使用
+      }
+    }
+    return new Date();
+  };
+
+  const [selectedDate, setSelectedDate] = useState<Date>(getInitialDate());
   const [selectedPart, setSelectedPart] = useState<BodyPart>("all");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
