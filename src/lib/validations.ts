@@ -213,6 +213,32 @@ export const workoutSessionSchema = z.object({
 });
 
 /**
+ * プロフィール更新のバリデーションスキーマ
+ */
+export const updateProfileSchema = z.object({
+  height: z
+    .number()
+    .min(100, "身長は100cm以上で入力してください")
+    .max(250, "身長は250cm以下で入力してください")
+    .optional(),
+  weight: z
+    .number()
+    .min(30, "体重は30kg以上で入力してください")
+    .max(300, "体重は300kg以下で入力してください")
+    .optional(),
+  bodyFat: z
+    .number()
+    .min(0, "体脂肪率は0%以上で入力してください")
+    .max(100, "体脂肪率は100%以下で入力してください")
+    .optional(),
+  muscleMass: z
+    .number()
+    .min(0, "筋肉量は0kg以上で入力してください")
+    .max(150, "筋肉量は150kg以下で入力してください")
+    .optional(),
+});
+
+/**
  * バリデーションエラーメッセージを取得するヘルパー関数
  */
 export function getValidationErrorMessage(error: z.ZodError): string {
