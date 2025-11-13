@@ -294,14 +294,16 @@ export function HistoryPage() {
 
       <div className="container mx-auto px-4 py-4">
         {/* カレンダー */}
-        <HistoryCalendar
-          currentMonth={currentMonth}
-          onMonthChange={setCurrentMonth}
-          bodyPartsByDate={bodyPartsByDate}
-          selectedDate={selectedDate}
-          onDateSelect={handleDateSelect}
-          filteredBodyPart={selectedBodyPart}
-        />
+        <div className="mb-6">
+          <HistoryCalendar
+            currentMonth={currentMonth}
+            onMonthChange={setCurrentMonth}
+            bodyPartsByDate={bodyPartsByDate}
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            filteredBodyPart={selectedBodyPart}
+          />
+        </div>
 
         {/* 選択日の履歴表示 */}
         {selectedDate && (
