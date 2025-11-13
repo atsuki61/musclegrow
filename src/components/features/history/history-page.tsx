@@ -294,14 +294,16 @@ export function HistoryPage() {
 
       <div className="container mx-auto px-4 py-4">
         {/* カレンダー */}
-        <HistoryCalendar
-          currentMonth={currentMonth}
-          onMonthChange={setCurrentMonth}
-          bodyPartsByDate={bodyPartsByDate}
-          selectedDate={selectedDate}
-          onDateSelect={handleDateSelect}
-          filteredBodyPart={selectedBodyPart}
-        />
+        <div className="mb-6">
+          <HistoryCalendar
+            currentMonth={currentMonth}
+            onMonthChange={setCurrentMonth}
+            bodyPartsByDate={bodyPartsByDate}
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            filteredBodyPart={selectedBodyPart}
+          />
+        </div>
 
         {/* 選択日の履歴表示 */}
         {selectedDate && (
@@ -310,22 +312,18 @@ export function HistoryPage() {
               <div className="text-center py-8 text-muted-foreground">
                 読み込み中...
               </div>
-            ) : sessionDetails ? (
+            ) : (
               <SessionHistoryCard
-                date={sessionDetails.date}
-                durationMinutes={sessionDetails.durationMinutes}
-                note={sessionDetails.note}
-                workoutExercises={sessionDetails.workoutExercises}
-                cardioExercises={sessionDetails.cardioExercises}
+                date={sessionDetails?.date || selectedDate}
+                durationMinutes={sessionDetails?.durationMinutes}
+                note={sessionDetails?.note}
+                workoutExercises={sessionDetails?.workoutExercises || []}
+                cardioExercises={sessionDetails?.cardioExercises || []}
                 exercises={exercises}
                 onExerciseClick={handleExerciseClick}
                 onExerciseDelete={handleExerciseDelete}
                 maxWeights={maxWeights}
               />
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                この日の記録はありません
-              </div>
             )}
           </div>
         )}
