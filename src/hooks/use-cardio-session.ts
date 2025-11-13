@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { format } from "date-fns";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { CardioRecord } from "@/types/workout";
 import {
   saveWorkoutSession,
@@ -123,6 +122,36 @@ export function useCardioSession({
   // 前回の日付と種目IDを追跡（日付変更時の自動保存用）
   const previousDateRef = useRef<Date>(date);
   const previousExerciseIdRef = useRef<string | null>(exerciseId);
+
+  // 日付文字列をメモ化（useEffectの依存配列で使用）
+  const dateStr = useMemo(() => formatDateToYYYYMMDD(date), [date]);
+
+  /**
+   * 記録を更新し、ローカルストレージにも即座に保存する
+   * この関数を使うことで、削除時にも確実にローカルストレージが更新される
+   */
+  const updateRecords = useCallback(
+    (
+      newRecords:
+        | CardioRecord[]
+        | ((prev: CardioRecord[]) => CardioRecord[])
+    ) => {
+      setRecords((prevRecords) => {
+        const updatedRecords =
+          typeof newRecords === "function"
+            ? newRecords(prevRecords)
+            : newRecords;
+
+        // ローカルストレージに即座に保存
+        if (exerciseId) {
+          saveCardioRecordsToStorage(date, exerciseId, updatedRecords);
+        }
+
+        return updatedRecords;
+      });
+    },
+    [date, exerciseId]
+  );
 
   /**
    * 有酸素種目の記録を読み込む
@@ -309,11 +338,11 @@ export function useCardioSession({
       setRecords([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, exerciseId, formatDateToYYYYMMDD(date)]);
+  }, [isOpen, exerciseId, dateStr]);
 
   return {
     records,
-    setRecords,
+    setRecords: updateRecords, // updateRecordsを返すことで、自動的にローカルストレージに保存される
     isLoading,
     saveRecords,
     removeRecords,

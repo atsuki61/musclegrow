@@ -23,6 +23,10 @@ import {
   getSessionDetails as getSessionDetailsAction,
   getBodyPartsByDateRange as getBodyPartsByDateRangeAction,
 } from "./actions/history";
+import {
+  deleteExerciseSets as deleteExerciseSetsAction,
+  deleteCardioRecords as deleteCardioRecordsAction,
+} from "./actions/delete-exercise";
 import type {
   Exercise,
   SetRecord,
@@ -235,4 +239,36 @@ export async function getBodyPartsByDateRange({
   data?: Record<string, BodyPart[]>; // 日付文字列をキー、部位配列を値
 }> {
   return await getBodyPartsByDateRangeAction({ startDate, endDate });
+}
+
+/**
+ * 指定セッション・種目のセット記録を削除する
+ */
+export async function deleteExerciseSets({
+  sessionId,
+  exerciseId,
+}: {
+  sessionId: string;
+  exerciseId: string;
+}): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  return await deleteExerciseSetsAction({ sessionId, exerciseId });
+}
+
+/**
+ * 指定セッション・種目の有酸素記録を削除する
+ */
+export async function deleteCardioRecords({
+  sessionId,
+  exerciseId,
+}: {
+  sessionId: string;
+  exerciseId: string;
+}): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  return await deleteCardioRecordsAction({ sessionId, exerciseId });
 }
