@@ -6,6 +6,8 @@ import {
   getSessionDetails,
   getWorkoutSession,
   getBodyPartsByDateRange,
+  deleteExerciseSets,
+  deleteCardioRecords,
 } from "@/lib/api";
 import { getBodyPartsByDateRangeFromStorage } from "@/lib/local-storage-history";
 import { getSessionDetailsFromStorage } from "@/lib/local-storage-session-details";
@@ -211,6 +213,55 @@ export function HistoryPage() {
     setEditingExercise({ exercise, date });
   }, []);
 
+  // 種目削除時の処理
+  const handleExerciseDelete = useCallback(
+    async (exerciseId: string, date: Date) => {
+      const dateStr = format(date, "yyyy-MM-dd");
+
+      // ローカルストレージから削除
+      const workoutStorageKey = `workout_${dateStr}_${exerciseId}`;
+      const cardioStorageKey = `cardio_${dateStr}_${exerciseId}`;
+      localStorage.removeItem(workoutStorageKey);
+      localStorage.removeItem(cardioStorageKey);
+
+      // データベースからも削除を試みる
+      try {
+        const sessionResult = await getWorkoutSession(dateStr);
+        if (sessionResult.success && sessionResult.data) {
+          // セット記録と有酸素記録の両方を削除（どちらか一方が存在する可能性があるため）
+          await Promise.all([
+            deleteExerciseSets({
+              sessionId: sessionResult.data.id,
+              exerciseId,
+            }),
+            deleteCardioRecords({
+              sessionId: sessionResult.data.id,
+              exerciseId,
+            }),
+          ]);
+        }
+      } catch (error) {
+        // データベース削除エラーはログのみ（ローカルストレージは削除済み）
+        if (process.env.NODE_ENV === "development") {
+          console.warn("データベースからの削除に失敗（ローカルストレージは削除済み）:", error);
+        }
+      }
+
+      // 履歴を再読み込み
+      if (selectedDate) {
+        await loadSessionDetails(selectedDate);
+        await loadBodyPartsByDate();
+        await recalculateMaxWeights();
+      }
+    },
+    [
+      selectedDate,
+      loadSessionDetails,
+      loadBodyPartsByDate,
+      recalculateMaxWeights,
+    ]
+  );
+
   // 編集モーダルを閉じる
   const handleCloseModal = useCallback(async () => {
     setEditingExercise(null);
@@ -268,6 +319,7 @@ export function HistoryPage() {
                 cardioExercises={sessionDetails.cardioExercises}
                 exercises={exercises}
                 onExerciseClick={handleExerciseClick}
+                onExerciseDelete={handleExerciseDelete}
                 maxWeights={maxWeights}
               />
             ) : (
