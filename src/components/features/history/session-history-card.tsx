@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ExerciseCard } from "./exercise-card";
+import { SwipeableExerciseCard } from "./swipeable-exercise-card";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { getExerciseById } from "@/lib/local-storage-exercises";
 
@@ -29,6 +29,8 @@ interface SessionHistoryCardProps {
   exercises: Exercise[];
   /** 種目クリック時のコールバック */
   onExerciseClick?: (exercise: Exercise, date: Date) => void;
+  /** 種目削除時のコールバック */
+  onExerciseDelete?: (exerciseId: string, date: Date) => void;
   /** 種目ごとの最大重量（過去の記録を含む） */
   maxWeights?: Record<string, number>;
 }
@@ -45,6 +47,7 @@ export function SessionHistoryCard({
   cardioExercises,
   exercises,
   onExerciseClick,
+  onExerciseDelete,
   maxWeights = {},
 }: SessionHistoryCardProps) {
   const formattedDate = format(date, "yyyy年M月d日(E)", { locale: ja });
@@ -75,11 +78,12 @@ export function SessionHistoryCard({
                 if (!exercise) return null; // 種目が見つからない場合はスキップ
 
                 return (
-                  <ExerciseCard
+                  <SwipeableExerciseCard
                     key={exerciseId}
                     exercise={exercise}
                     sets={sets}
                     onClick={() => onExerciseClick?.(exercise, date)}
+                    onDelete={() => onExerciseDelete?.(exerciseId, date)}
                     maxWeights={maxWeights}
                   />
                 );
@@ -101,11 +105,12 @@ export function SessionHistoryCard({
                 if (!exercise) return null; // 種目が見つからない場合はスキップ
 
                 return (
-                  <ExerciseCard
+                  <SwipeableExerciseCard
                     key={exerciseId}
                     exercise={exercise}
                     records={records}
                     onClick={() => onExerciseClick?.(exercise, date)}
+                    onDelete={() => onExerciseDelete?.(exerciseId, date)}
                     maxWeights={maxWeights}
                   />
                 );

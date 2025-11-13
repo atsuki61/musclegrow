@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { format } from "date-fns";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { SetRecord } from "@/types/workout";
 import {
   saveWorkoutSession,
@@ -111,6 +110,30 @@ export function useWorkoutSession({
   // 前回の日付と種目IDを追跡（日付変更時の自動保存用）
   const previousDateRef = useRef<Date>(date);
   const previousExerciseIdRef = useRef<string | null>(exerciseId);
+
+  // 日付文字列をメモ化（useEffectの依存配列で使用）
+  const dateStr = useMemo(() => formatDateToYYYYMMDD(date), [date]);
+
+  /**
+   * セットを更新し、ローカルストレージにも即座に保存する
+   * この関数を使うことで、削除時にも確実にローカルストレージが更新される
+   */
+  const updateSets = useCallback(
+    (newSets: SetRecord[] | ((prev: SetRecord[]) => SetRecord[])) => {
+      setSets((prevSets) => {
+        const updatedSets =
+          typeof newSets === "function" ? newSets(prevSets) : newSets;
+
+        // ローカルストレージに即座に保存
+        if (exerciseId) {
+          saveSetsToStorage(date, exerciseId, updatedSets);
+        }
+
+        return updatedSets;
+      });
+    },
+    [date, exerciseId]
+  );
 
   /**
    * セット記録を読み込む
@@ -292,11 +315,11 @@ export function useWorkoutSession({
       setSets([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, exerciseId, formatDateToYYYYMMDD(date)]);
+  }, [isOpen, exerciseId, dateStr]);
 
   return {
     sets,
-    setSets,
+    setSets: updateSets, // updateSetsを返すことで、自動的にローカルストレージに保存される
     isLoading,
     saveSets,
     removeSets,
