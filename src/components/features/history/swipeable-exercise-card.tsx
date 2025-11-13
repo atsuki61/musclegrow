@@ -2,8 +2,12 @@
 
 import { useState, useRef } from "react";
 import { motion, PanInfo, useMotionValue, useTransform } from "framer-motion";
-import { Trash2 } from "lucide-react";
+import { Trash2, ArrowLeft } from "lucide-react";
 import { ExerciseCard } from "./exercise-card";
+import {
+  DeleteConfirmDialog,
+  shouldSkipDeleteConfirm,
+} from "./delete-confirm-dialog";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 
 interface SwipeableExerciseCardProps {
@@ -15,8 +19,9 @@ interface SwipeableExerciseCardProps {
   maxWeights?: Record<string, number>;
 }
 
-const SWIPE_THRESHOLD = -80; // スワイプで削除ボタンを表示する閾値（px）
-const DELETE_THRESHOLD = -150; // スワイプで自動削除する閾値（px）
+// スワイプ閾値を緩和（より軽いスワイプで反応）
+const SWIPE_THRESHOLD = -50; // 削除ボタンを表示する閾値（-80 → -50）
+const DELETE_THRESHOLD = -100; // 自動削除する閾値（-150 → -100）
 
 /**
  * スワイプ可能な種目カードコンポーネント
@@ -31,6 +36,7 @@ export function SwipeableExerciseCard({
   maxWeights,
 }: SwipeableExerciseCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const x = useMotionValue(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -62,61 +68,83 @@ export function SwipeableExerciseCard({
 
   const handleDelete = async () => {
     if (isDeleting) return;
+
+    // 確認をスキップする設定になっている場合は、即座に削除
+    if (shouldSkipDeleteConfirm()) {
+      executeDelete();
+    } else {
+      // 確認ダイアログを表示
+      setShowConfirmDialog(true);
+    }
+  };
+
+  const executeDelete = async () => {
     setIsDeleting(true);
+    setShowConfirmDialog(false);
 
-    // 確認ダイアログ
-    const confirmed = window.confirm(
-      `${exercise.name}の記録を削除しますか？\nこの操作は取り消せません。`
-    );
-
-    if (confirmed && onDelete) {
+    if (onDelete) {
       // 削除アニメーション
       await new Promise((resolve) => {
         x.set(-1000); // 画面外に移動
         setTimeout(resolve, 300);
       });
       onDelete();
-    } else {
-      // キャンセル時は元に戻す
-      setIsDeleting(false);
-      x.set(0);
     }
   };
 
-  return (
-    <div ref={containerRef} className="relative overflow-hidden">
-      {/* 背景の削除ボタン */}
-      <motion.div
-        className="absolute inset-y-0 right-0 flex items-center justify-end px-4 rounded-lg"
-        style={{
-          backgroundColor: deleteButtonBg,
-          opacity: deleteButtonOpacity,
-        }}
-      >
-        <div className="flex items-center gap-2 text-white">
-          <Trash2 className="h-5 w-5" />
-          <span className="font-semibold">削除</span>
-        </div>
-      </motion.div>
+  const handleCancelDelete = () => {
+    setShowConfirmDialog(false);
+    setIsDeleting(false);
+    x.set(0); // 元の位置に戻す
+  };
 
-      {/* スワイプ可能なカード */}
-      <motion.div
-        drag="x"
-        dragConstraints={{ left: -200, right: 0 }}
-        dragElastic={0.1}
-        onDragEnd={handleDragEnd}
-        style={{ x }}
-        className="relative z-10"
-        whileTap={{ cursor: "grabbing" }}
-      >
-        <ExerciseCard
-          exercise={exercise}
-          sets={sets}
-          records={records}
-          onClick={onClick}
-          maxWeights={maxWeights}
-        />
-      </motion.div>
-    </div>
+  return (
+    <>
+      <div ref={containerRef} className="relative overflow-hidden">
+        {/* 背景の削除ボタン */}
+        <motion.div
+          className="absolute inset-y-0 right-0 flex items-center justify-end px-4 rounded-lg"
+          style={{
+            backgroundColor: deleteButtonBg,
+            opacity: deleteButtonOpacity,
+          }}
+        >
+          <div className="flex items-center gap-3 text-white">
+            <div className="flex items-center gap-1.5">
+              <ArrowLeft className="h-4 w-4 animate-pulse" />
+              <span className="text-sm font-medium">スワイプで削除</span>
+            </div>
+            <Trash2 className="h-6 w-6" />
+          </div>
+        </motion.div>
+
+        {/* スワイプ可能なカード */}
+        <motion.div
+          drag="x"
+          dragConstraints={{ left: -200, right: 0 }}
+          dragElastic={0.1}
+          onDragEnd={handleDragEnd}
+          style={{ x }}
+          className="relative z-10"
+          whileTap={{ cursor: "grabbing" }}
+        >
+          <ExerciseCard
+            exercise={exercise}
+            sets={sets}
+            records={records}
+            onClick={onClick}
+            maxWeights={maxWeights}
+          />
+        </motion.div>
+      </div>
+
+      {/* 削除確認ダイアログ */}
+      <DeleteConfirmDialog
+        isOpen={showConfirmDialog}
+        exerciseName={exercise.name}
+        onConfirm={executeDelete}
+        onCancel={handleCancelDelete}
+      />
+    </>
   );
 }

@@ -162,7 +162,7 @@ export function HistoryCalendar({
   };
 
   return (
-    <div className="mb-6 w-full">
+    <div className="w-full">
       <Calendar
         mode="single"
         selected={selectedDate || undefined}
