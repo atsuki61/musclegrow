@@ -100,7 +100,7 @@ export function HistoryCalendar({
           onClick={() => onDateSelect(date)}
           className={cn(
             "aspect-square w-full min-w-[--cell-size]",
-            isSelected && "bg-primary text-primary-foreground",
+            isSelected && "ring-2 ring-primary",
             // todayスタイルを無効化
             isToday && "bg-transparent",
             props.className
@@ -136,7 +136,7 @@ export function HistoryCalendar({
           onClick={() => onDateSelect(date)}
           className={cn(
             "aspect-square w-full min-w-[--cell-size]",
-            isSelected && "bg-primary text-primary-foreground",
+            isSelected && "ring-2 ring-primary",
             // todayスタイルを無効化
             isToday && "bg-transparent",
             props.className

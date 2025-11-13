@@ -2,8 +2,11 @@
 
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Plus } from "lucide-react";
 import { SwipeableExerciseCard } from "./swipeable-exercise-card";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { getExerciseById } from "@/lib/local-storage-exercises";
@@ -50,18 +53,39 @@ export function SessionHistoryCard({
   onExerciseDelete,
   maxWeights = {},
 }: SessionHistoryCardProps) {
+  const router = useRouter();
   const formattedDate = format(date, "yyyy年M月d日(E)", { locale: ja });
+  const hasRecords = workoutExercises.length > 0 || cardioExercises.length > 0;
+
+  const handleAddTraining = () => {
+    // 該当日付の記録ページへ遷移
+    const dateStr = format(date, "yyyy-MM-dd");
+    router.push(`/record?date=${dateStr}`);
+  };
 
   return (
     <Card className="py-5 gap-0">
       <CardHeader className="pb-3 px-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">📅 {formattedDate}</CardTitle>
-          {durationMinutes && (
-            <span className="text-sm text-muted-foreground">
-              ⏱️ {durationMinutes}分
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {durationMinutes && (
+              <span className="text-sm text-muted-foreground">
+                ⏱️ {durationMinutes}分
+              </span>
+            )}
+            {hasRecords && (
+              <Button
+                onClick={handleAddTraining}
+                variant="outline"
+                size="sm"
+                className="h-8 px-3 gap-1.5 text-xs font-medium border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+              >
+                <Plus className="h-4 w-4" />
+                追加
+              </Button>
+            )}
+          </div>
         </div>
         {note && <p className="text-sm text-muted-foreground mt-1.5">{note}</p>}
       </CardHeader>
@@ -120,10 +144,16 @@ export function SessionHistoryCard({
         )}
 
         {/* 記録がない場合 */}
-        {workoutExercises.length === 0 && cardioExercises.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            記録がありません
-          </p>
+        {!hasRecords && (
+          <div className="flex flex-col items-center gap-3 py-6">
+            <p className="text-sm text-muted-foreground">
+              この日の記録はまだありません
+            </p>
+            <Button onClick={handleAddTraining} size="lg" className="gap-2">
+              <Plus className="h-5 w-5" />
+              トレーニングを追加
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>
