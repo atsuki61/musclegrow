@@ -14,6 +14,13 @@ export const auth = betterAuth({
     schema,
   }),
   secret: process.env.BETTER_AUTH_SECRET!,
+  // Google OAuth プロバイダーを追加
+  socialProviders: {
+    google: {
+      clientId: process.env.BETTER_AUTH_GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET!,
+    },
+  },
   advanced: {
     database: {
       generateId: () => nanoid(10),
