@@ -2,6 +2,7 @@
 
 import { db } from "../../../db";
 import { sets } from "../../../db/schemas/app";
+import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
 import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, and } from "drizzle-orm";
 import type { SetRecord } from "@/types/workout";
@@ -27,22 +28,23 @@ export async function saveSets({
   data?: { count: number };
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
+    // 種目IDのバリデーションと認証チェック
+    const validationResult = await validateExerciseIdAndAuth(exerciseId);
+    if (!validationResult.success) {
       return {
         success: false,
-        error: "認証が必要です",
+        error: validationResult.error,
       };
     }
 
     // 有効なセットのみをフィルタリング（重量または回数または時間が0より大きい）
     const validSets = setsToSave.filter(
       (set) =>
-        (set.weight !== undefined &&
-          set.weight !== null &&
-          set.weight > 0) ||
+        (set.weight !== undefined && set.weight !== null && set.weight > 0) ||
         set.reps > 0 ||
-        (set.duration !== undefined && set.duration !== null && set.duration > 0)
+        (set.duration !== undefined &&
+          set.duration !== null &&
+          set.duration > 0)
     );
 
     // 有効なセットがない場合は、既存のセット記録を削除して終了
@@ -50,10 +52,7 @@ export async function saveSets({
       await db
         .delete(sets)
         .where(
-          and(
-            eq(sets.sessionId, sessionId),
-            eq(sets.exerciseId, exerciseId)
-          )
+          and(eq(sets.sessionId, sessionId), eq(sets.exerciseId, exerciseId))
         );
       return {
         success: true,
@@ -67,10 +66,7 @@ export async function saveSets({
       await tx
         .delete(sets)
         .where(
-          and(
-            eq(sets.sessionId, sessionId),
-            eq(sets.exerciseId, exerciseId)
-          )
+          and(eq(sets.sessionId, sessionId), eq(sets.exerciseId, exerciseId))
         );
 
       // 新しいセット記録を保存
@@ -80,9 +76,13 @@ export async function saveSets({
         sessionId,
         exerciseId,
         setOrder: set.setOrder,
-        weight: (set.weight !== undefined && set.weight !== null ? set.weight : 0).toString(),
+        weight: (set.weight !== undefined && set.weight !== null
+          ? set.weight
+          : 0
+        ).toString(),
         reps: set.reps,
-        rpe: set.rpe !== undefined && set.rpe !== null ? set.rpe.toString() : null,
+        rpe:
+          set.rpe !== undefined && set.rpe !== null ? set.rpe.toString() : null,
         isWarmup: set.isWarmup ?? false,
         restSeconds: set.restSeconds ?? null,
         notes: set.notes ?? null,
@@ -126,6 +126,14 @@ export async function getSets({
   data?: SetRecord[];
 }> {
   try {
+    // exerciseIdがモックID（mock-で始まる）の場合は空の配列を返す
+    if (exerciseId.startsWith("mock-")) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+
     const userId = await getCurrentUserId();
     if (!userId) {
       return {
@@ -138,10 +146,7 @@ export async function getSets({
       .select()
       .from(sets)
       .where(
-        and(
-          eq(sets.sessionId, sessionId),
-          eq(sets.exerciseId, exerciseId)
-        )
+        and(eq(sets.sessionId, sessionId), eq(sets.exerciseId, exerciseId))
       )
       .orderBy(sets.setOrder);
 
@@ -174,4 +179,3 @@ export async function getSets({
     };
   }
 }
-

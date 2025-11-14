@@ -8,6 +8,37 @@ import type { SetRecord, CardioRecord } from "@/types/workout";
 import type { BodyPart } from "@/types/workout";
 
 /**
+ * テーブルが存在しない場合のエラーハンドリングを行う共通関数
+ * @param queryFn 実行するクエリ関数
+ * @param defaultValue エラー時のデフォルト値
+ * @param tableName テーブル名（ログ用）
+ * @returns クエリ結果またはデフォルト値
+ */
+async function handleTableNotExistsError<T>(
+  queryFn: () => Promise<T>,
+  defaultValue: T,
+  tableName: string
+): Promise<T> {
+  try {
+    return await queryFn();
+  } catch (error) {
+    // テーブルが存在しない場合はデフォルト値を返す
+    if (
+      error instanceof Error &&
+      error.message.includes("does not exist")
+    ) {
+      // 開発環境でのみログに出力
+      if (process.env.NODE_ENV === "development") {
+        console.warn(`${tableName}テーブルが存在しません`);
+      }
+      return defaultValue;
+    }
+    // その他のエラーは再スロー
+    throw error;
+  }
+}
+
+/**
  * セッションIDでそのセッションの全種目とセット記録を取得する
  * @param sessionId ワークアウトセッションID
  * @returns 種目ごとのセット記録と有酸素記録
@@ -42,12 +73,17 @@ export async function getSessionDetails(sessionId: string): Promise<{
       .where(eq(sets.sessionId, sessionId))
       .orderBy(sets.exerciseId, sets.setOrder);
 
-    // 有酸素記録を取得
-    const cardioData = await db
-      .select()
-      .from(cardioRecords)
-      .where(eq(cardioRecords.sessionId, sessionId))
-      .orderBy(cardioRecords.exerciseId, cardioRecords.createdAt);
+    // 有酸素記録を取得（テーブルが存在しない場合は空配列を返す）
+    const cardioData = await handleTableNotExistsError(
+      () =>
+        db
+          .select()
+          .from(cardioRecords)
+          .where(eq(cardioRecords.sessionId, sessionId))
+          .orderBy(cardioRecords.exerciseId, cardioRecords.createdAt),
+      [],
+      "cardio_records"
+    );
 
     // 種目ごとにグループ化
     const workoutExercisesMap = new Map<string, SetRecord[]>();
@@ -174,13 +210,19 @@ export async function getBodyPartsByDateRange({
       .where(inArray(sets.sessionId, sessionIds));
 
     // セッションごとの種目IDを取得（有酸素種目）
-    const cardioExerciseIds = await db
-      .selectDistinct({
-        sessionId: cardioRecords.sessionId,
-        exerciseId: cardioRecords.exerciseId,
-      })
-      .from(cardioRecords)
-      .where(inArray(cardioRecords.sessionId, sessionIds));
+    // テーブルが存在しない場合は空配列を返す
+    const cardioExerciseIds = await handleTableNotExistsError(
+      () =>
+        db
+          .selectDistinct({
+            sessionId: cardioRecords.sessionId,
+            exerciseId: cardioRecords.exerciseId,
+          })
+          .from(cardioRecords)
+          .where(inArray(cardioRecords.sessionId, sessionIds)),
+      [],
+      "cardio_records"
+    );
 
     // 全ての種目IDを取得
     const allExerciseIds = [
