@@ -96,30 +96,64 @@ function getBig3ExerciseIds(
 }
 
 /**
- * Big3データを生成する
+ * プロフィールからBIG3目標値を取得する
  */
-function createBig3Data(weights: {
+async function getBig3Targets(): Promise<{
   benchPress: number;
   squat: number;
   deadlift: number;
-}) {
+}> {
+  try {
+    const response = await fetch("/api/profile");
+    const data = await response.json();
+    if (data.success && data.data) {
+      return {
+        benchPress:
+          data.data.big3TargetBenchPress ?? DEFAULT_TARGETS.benchPress,
+        squat: data.data.big3TargetSquat ?? DEFAULT_TARGETS.squat,
+        deadlift: data.data.big3TargetDeadlift ?? DEFAULT_TARGETS.deadlift,
+      };
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("目標値取得エラー:", error);
+    }
+  }
+  return DEFAULT_TARGETS;
+}
+
+/**
+ * Big3データを生成する
+ */
+function createBig3Data(
+  weights: {
+    benchPress: number;
+    squat: number;
+    deadlift: number;
+  },
+  targets: {
+    benchPress: number;
+    squat: number;
+    deadlift: number;
+  }
+) {
   return {
     benchPress: {
       name: "ベンチプレス",
       current: weights.benchPress,
-      target: DEFAULT_TARGETS.benchPress,
+      target: targets.benchPress,
       color: "bg-red-500",
     },
     squat: {
       name: "スクワット",
       current: weights.squat,
-      target: DEFAULT_TARGETS.squat,
+      target: targets.squat,
       color: "bg-green-500",
     },
     deadlift: {
       name: "デッドリフト",
       current: weights.deadlift,
-      target: DEFAULT_TARGETS.deadlift,
+      target: targets.deadlift,
       color: "bg-blue-500",
     },
   };
@@ -235,7 +269,9 @@ export function HomePage() {
         deadlift: Math.max(dbWeights.deadlift, localWeights.deadlift),
       };
 
-      const newData = createBig3Data(finalWeights);
+      // プロフィールから目標値を取得
+      const targets = await getBig3Targets();
+      const newData = createBig3Data(finalWeights, targets);
 
       // デバッグ情報（開発環境のみ）
       if (process.env.NODE_ENV === "development") {
@@ -320,7 +356,9 @@ export function HomePage() {
         });
       }
 
-      const newData = createBig3Data(localWeights);
+      // プロフィールから目標値を取得
+      const targets = await getBig3Targets();
+      const newData = createBig3Data(localWeights, targets);
       setBig3Data(newData);
     }
   }, []);

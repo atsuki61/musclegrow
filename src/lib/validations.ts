@@ -236,6 +236,21 @@ export const updateProfileSchema = z.object({
     .min(0, "筋肉量は0kg以上で入力してください")
     .max(150, "筋肉量は150kg以下で入力してください")
     .optional(),
+  big3TargetBenchPress: z
+    .number()
+    .min(0, "ベンチプレスの目標重量は0kg以上で入力してください")
+    .max(1000, "ベンチプレスの目標重量は1000kg以下で入力してください")
+    .optional(),
+  big3TargetSquat: z
+    .number()
+    .min(0, "スクワットの目標重量は0kg以上で入力してください")
+    .max(1000, "スクワットの目標重量は1000kg以下で入力してください")
+    .optional(),
+  big3TargetDeadlift: z
+    .number()
+    .min(0, "デッドリフトの目標重量は0kg以上で入力してください")
+    .max(1000, "デッドリフトの目標重量は1000kg以下で入力してください")
+    .optional(),
 });
 
 /**

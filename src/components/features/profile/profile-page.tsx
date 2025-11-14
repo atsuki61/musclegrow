@@ -23,6 +23,9 @@ interface ProfileResponse {
   weight: number | null;
   bodyFat: number | null;
   muscleMass: number | null;
+  big3TargetBenchPress: number | null;
+  big3TargetSquat: number | null;
+  big3TargetDeadlift: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +43,9 @@ export function ProfilePage() {
   const [weight, setWeight] = useState<string>("");
   const [bodyFat, setBodyFat] = useState<string>("");
   const [muscleMass, setMuscleMass] = useState<string>("");
+  const [big3TargetBenchPress, setBig3TargetBenchPress] = useState<string>("");
+  const [big3TargetSquat, setBig3TargetSquat] = useState<string>("");
+  const [big3TargetDeadlift, setBig3TargetDeadlift] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +72,11 @@ export function ProfilePage() {
         setWeight(data.data.weight?.toString() ?? "");
         setBodyFat(data.data.bodyFat?.toString() ?? "");
         setMuscleMass(data.data.muscleMass?.toString() ?? "");
+        setBig3TargetBenchPress(
+          data.data.big3TargetBenchPress?.toString() ?? ""
+        );
+        setBig3TargetSquat(data.data.big3TargetSquat?.toString() ?? "");
+        setBig3TargetDeadlift(data.data.big3TargetDeadlift?.toString() ?? "");
       } else {
         setError(data.error.message);
       }
@@ -91,6 +102,15 @@ export function ProfilePage() {
         weight: weight ? parseFloat(weight) : undefined,
         bodyFat: bodyFat ? parseFloat(bodyFat) : undefined,
         muscleMass: muscleMass ? parseFloat(muscleMass) : undefined,
+        big3TargetBenchPress: big3TargetBenchPress
+          ? parseFloat(big3TargetBenchPress)
+          : undefined,
+        big3TargetSquat: big3TargetSquat
+          ? parseFloat(big3TargetSquat)
+          : undefined,
+        big3TargetDeadlift: big3TargetDeadlift
+          ? parseFloat(big3TargetDeadlift)
+          : undefined,
       };
 
       const response = await fetch("/api/profile", {
@@ -349,6 +369,44 @@ export function ProfilePage() {
           </div>
         </Card>
       )}
+
+      {/* BIG3目標値設定 */}
+      <Card className="p-4 mb-4">
+        <h3 className="text-base font-semibold mb-3">BIG3 目標重量</h3>
+
+        <div className="space-y-3">
+          {renderNumberInput(
+            "big3TargetBenchPress",
+            "ベンチプレス",
+            big3TargetBenchPress,
+            setBig3TargetBenchPress,
+            "100",
+            "0",
+            "1000",
+            "kg"
+          )}
+          {renderNumberInput(
+            "big3TargetSquat",
+            "スクワット",
+            big3TargetSquat,
+            setBig3TargetSquat,
+            "120",
+            "0",
+            "1000",
+            "kg"
+          )}
+          {renderNumberInput(
+            "big3TargetDeadlift",
+            "デッドリフト",
+            big3TargetDeadlift,
+            setBig3TargetDeadlift,
+            "140",
+            "0",
+            "1000",
+            "kg"
+          )}
+        </div>
+      </Card>
 
       {/* 保存ボタン */}
       <Button

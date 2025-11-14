@@ -50,6 +50,9 @@ function transformProfileToResponse(profile: {
   weight: string | null;
   bodyFat: string | null;
   muscleMass: string | null;
+  big3TargetBenchPress: string | null;
+  big3TargetSquat: string | null;
+  big3TargetDeadlift: string | null;
   createdAt: Date;
   updatedAt: Date;
 }) {
@@ -60,6 +63,15 @@ function transformProfileToResponse(profile: {
     weight: profile.weight ? parseFloat(profile.weight) : null,
     bodyFat: profile.bodyFat ? parseFloat(profile.bodyFat) : null,
     muscleMass: profile.muscleMass ? parseFloat(profile.muscleMass) : null,
+    big3TargetBenchPress: profile.big3TargetBenchPress
+      ? parseFloat(profile.big3TargetBenchPress)
+      : null,
+    big3TargetSquat: profile.big3TargetSquat
+      ? parseFloat(profile.big3TargetSquat)
+      : null,
+    big3TargetDeadlift: profile.big3TargetDeadlift
+      ? parseFloat(profile.big3TargetDeadlift)
+      : null,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
   };
@@ -161,6 +173,9 @@ export async function PUT(request: NextRequest) {
       weight?: string;
       bodyFat?: string;
       muscleMass?: string;
+      big3TargetBenchPress?: string;
+      big3TargetSquat?: string;
+      big3TargetDeadlift?: string;
     } = {};
 
     if (updateData.height !== undefined) {
@@ -174,6 +189,17 @@ export async function PUT(request: NextRequest) {
     }
     if (updateData.muscleMass !== undefined) {
       dbUpdateData.muscleMass = updateData.muscleMass.toString();
+    }
+    if (updateData.big3TargetBenchPress !== undefined) {
+      dbUpdateData.big3TargetBenchPress =
+        updateData.big3TargetBenchPress.toString();
+    }
+    if (updateData.big3TargetSquat !== undefined) {
+      dbUpdateData.big3TargetSquat = updateData.big3TargetSquat.toString();
+    }
+    if (updateData.big3TargetDeadlift !== undefined) {
+      dbUpdateData.big3TargetDeadlift =
+        updateData.big3TargetDeadlift.toString();
     }
 
     // 更新データが空の場合はエラーを返す
