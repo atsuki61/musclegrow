@@ -16,6 +16,9 @@ export type Profile = {
   weight?: number; // kg
   bodyFat?: number; // %
   muscleMass?: number; // kg
+  big3TargetBenchPress?: number; // kg
+  big3TargetSquat?: number; // kg
+  big3TargetDeadlift?: number; // kg
   createdAt: Date;
   updatedAt: Date;
 };
