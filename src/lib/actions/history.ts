@@ -21,7 +21,7 @@ async function handleTableNotExistsError<T>(
 ): Promise<T> {
   try {
     return await queryFn();
-  } catch (error) {
+  } catch (error: unknown) {
     // テーブルが存在しない場合はデフォルト値を返す
     if (
       error instanceof Error &&
@@ -138,7 +138,7 @@ export async function getSessionDetails(sessionId: string): Promise<{
         ),
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("セッション詳細取得エラー:", error);
     return {
       success: false,
@@ -299,7 +299,7 @@ export async function getBodyPartsByDateRange({
       success: true,
       data: result,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("部位一覧取得エラー:", error);
     const errorMessage =
       error instanceof Error

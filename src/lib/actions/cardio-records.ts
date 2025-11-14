@@ -105,7 +105,7 @@ export async function saveCardioRecords({
       success: true,
       data: { count: validRecords.length },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("有酸素記録保存エラー:", error);
     return {
       success: false,
@@ -180,7 +180,7 @@ export async function getCardioRecords({
       success: true,
       data: records,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("有酸素記録取得エラー:", error);
     return {
       success: false,

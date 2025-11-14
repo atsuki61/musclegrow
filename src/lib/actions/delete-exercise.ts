@@ -37,7 +37,7 @@ export async function deleteExerciseSets({
     );
 
     return { success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("セット記録削除エラー:", error);
     return {
       success: false,
@@ -76,7 +76,7 @@ export async function deleteCardioRecords({
     );
 
     return { success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("有酸素記録削除エラー:", error);
     return {
       success: false,
