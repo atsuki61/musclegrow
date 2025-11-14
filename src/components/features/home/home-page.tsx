@@ -228,7 +228,6 @@ export function HomePage() {
             deadlift: big3Exercises.deadlift?.id,
           },
         });
-      }
 
       // データベースとローカルストレージの最大重量をマージ（データベース優先）
       const dbWeights = dbResult.data
@@ -273,7 +272,7 @@ export function HomePage() {
       logger.debug("生成されたBig3データ:", newData);
 
       setBig3Data(newData);
-    } catch (error) {
+    } catch (error: unknown) {
       // エラー時はローカルストレージのみを使用
       logger.warn("Big3データ取得エラー:", error);
 
