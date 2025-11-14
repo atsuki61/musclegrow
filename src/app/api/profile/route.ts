@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "../../../../db";
-import { profiles } from "../../../../db/schemas/app";
+import { profiles, profileHistory } from "../../../../db/schemas/app";
 import { eq } from "drizzle-orm";
 import { updateProfileSchema } from "@/lib/validations";
 import { getValidationErrorMessage } from "@/lib/validations";
+import { calculateBMI } from "@/lib/utils/bmi";
 
 /**
  * 認証チェックを行い、ユーザーIDを取得する
@@ -214,6 +215,31 @@ export async function PUT(request: NextRequest) {
           ...dbUpdateData,
         })
         .returning();
+    }
+
+    // プロフィール履歴を保存（更新時のみ）
+    if (existingProfile) {
+      const height = updatedProfile.height
+        ? parseFloat(updatedProfile.height)
+        : null;
+      const weight = updatedProfile.weight
+        ? parseFloat(updatedProfile.weight)
+        : null;
+
+      // BMIを計算（身長と体重が両方存在する場合のみ）
+      const bmi =
+        height && weight && height > 0 && weight > 0
+          ? calculateBMI(height, weight)
+          : null;
+
+      await db.insert(profileHistory).values({
+        userId,
+        height: updatedProfile.height,
+        weight: updatedProfile.weight,
+        bodyFat: updatedProfile.bodyFat,
+        muscleMass: updatedProfile.muscleMass,
+        bmi: bmi ? bmi.toString() : null,
+      });
     }
 
     return NextResponse.json({
