@@ -7,6 +7,10 @@ import { eq } from "drizzle-orm";
 import { updateProfileSchema } from "@/lib/validations";
 import { getValidationErrorMessage } from "@/lib/validations";
 import { calculateBMI } from "@/lib/utils/bmi";
+import type { InferSelectModel } from "drizzle-orm";
+
+// データベーススキーマから型を導出
+type ProfileRow = InferSelectModel<typeof profiles>;
 
 /**
  * 認証チェックを行い、ユーザーIDを取得する
@@ -56,19 +60,7 @@ function parseNullableFloat(value: string | null | undefined): number | null {
  * @param profile データベースから取得したプロフィールデータ
  * @returns APIレスポンス用のプロフィールデータ
  */
-function transformProfileToResponse(profile: {
-  id: string;
-  userId: string;
-  height: string | null;
-  weight: string | null;
-  bodyFat: string | null;
-  muscleMass: string | null;
-  big3TargetBenchPress?: string | null;
-  big3TargetSquat?: string | null;
-  big3TargetDeadlift?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}) {
+function transformProfileToResponse(profile: ProfileRow) {
   return {
     id: profile.id,
     userId: profile.userId,
