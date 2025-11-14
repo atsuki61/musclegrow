@@ -136,7 +136,7 @@ export function HistoryCalendar({
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full flex justify-center">
       <Calendar
         mode="single"
         selected={selectedDate || undefined}
@@ -149,11 +149,11 @@ export function HistoryCalendar({
         }}
         classNames={{
           today: "", // todayスタイルを無効化（色付けを優先）
-          root: "h-auto w-full", // ルート要素の高さと幅を自動に
-          months: "h-auto justify-center", // 月表示の高さを自動に、中央揃え
+          root: "h-auto", // ルート要素の高さを自動に（w-fitはデフォルトで維持）
+          months: "h-auto", // 月表示の高さを自動に
           month: "h-auto", // 月コンテナの高さを自動に
         }}
-        className="rounded-md border w-full [--cell-size:3rem] h-auto"
+        className="rounded-md border [--cell-size:3rem] h-auto"
       />
     </div>
   );
