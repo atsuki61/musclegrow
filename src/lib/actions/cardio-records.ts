@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "../../../db";
-import { cardioRecords } from "../../../db/schemas/app";
+import { cardioRecords, workoutSessions } from "../../../db/schemas/app";
 import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
 import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, and } from "drizzle-orm";
@@ -34,6 +34,29 @@ export async function saveCardioRecords({
       return {
         success: false,
         error: validationResult.error,
+      };
+    }
+
+    const userId = validationResult.userId;
+
+    // セッションがそのユーザーのものか確認
+    const [session] = await db
+      .select({ userId: workoutSessions.userId })
+      .from(workoutSessions)
+      .where(eq(workoutSessions.id, sessionId))
+      .limit(1);
+
+    if (!session) {
+      return {
+        success: false,
+        error: "セッションが見つかりません",
+      };
+    }
+
+    if (session.userId !== userId) {
+      return {
+        success: false,
+        error: "このセッションにアクセスする権限がありません",
       };
     }
 
@@ -148,6 +171,27 @@ export async function getCardioRecords({
       return {
         success: true,
         data: [],
+      };
+    }
+
+    // セッションがそのユーザーのものか確認
+    const [session] = await db
+      .select({ userId: workoutSessions.userId })
+      .from(workoutSessions)
+      .where(eq(workoutSessions.id, sessionId))
+      .limit(1);
+
+    if (!session) {
+      return {
+        success: false,
+        error: "セッションが見つかりません",
+      };
+    }
+
+    if (session.userId !== userId) {
+      return {
+        success: false,
+        error: "このセッションにアクセスする権限がありません",
       };
     }
 
