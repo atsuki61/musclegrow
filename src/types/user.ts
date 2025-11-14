@@ -31,4 +31,3 @@ export type Goal = {
   createdAt: Date;
   updatedAt: Date;
 };
-

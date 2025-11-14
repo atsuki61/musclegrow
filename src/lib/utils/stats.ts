@@ -84,11 +84,14 @@ export function identifyBig3Exercises(
  * 数値に変換（null/undefined対応）
  */
 export function toNumber(
-  value: string | number | null | undefined
+  value: string | number | null | undefined | unknown
 ): number | null {
   if (value === null || value === undefined) return null;
   if (typeof value === "number") return value;
-  const parsed = parseFloat(value);
-  return isNaN(parsed) ? null : parsed;
+  if (typeof value === "string") {
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? null : parsed;
+  }
+  return null;
 }
 
