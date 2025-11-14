@@ -150,7 +150,7 @@ export function HistoryCalendar({
         classNames={{
           today: "", // todayスタイルを無効化（色付けを優先）
           root: "h-auto w-full", // ルート要素の高さと幅を自動に
-          months: "h-auto", // 月表示の高さを自動に
+          months: "h-auto justify-center", // 月表示の高さを自動に、中央揃え
           month: "h-auto", // 月コンテナの高さを自動に
         }}
         className="rounded-md border w-full [--cell-size:3rem] h-auto"
