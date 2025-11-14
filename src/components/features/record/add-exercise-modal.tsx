@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -132,6 +133,9 @@ export function AddExerciseModal({
       <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="text-xl font-bold">種目を追加</DialogTitle>
+          <DialogDescription className="sr-only">
+            既存の種目から選択するか、カスタム種目を追加できます
+          </DialogDescription>
         </DialogHeader>
 
         <Tabs
