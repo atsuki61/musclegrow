@@ -96,7 +96,7 @@ export async function saveSets({
       success: true,
       data: { count: validSets.length },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("セット記録保存エラー:", error);
     return {
       success: false,
@@ -168,7 +168,7 @@ export async function getSets({
       success: true,
       data: setsRecords,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("セット記録取得エラー:", error);
     return {
       success: false,

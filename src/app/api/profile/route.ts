@@ -125,7 +125,7 @@ export async function GET() {
       success: true,
       data: transformProfileToResponse(profile),
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("プロフィール取得エラー:", error);
     return NextResponse.json(
       {
@@ -275,7 +275,7 @@ export async function PUT(request: NextRequest) {
       success: true,
       data: transformProfileToResponse(updatedProfile),
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("プロフィール更新エラー:", error);
     return NextResponse.json(
       {
