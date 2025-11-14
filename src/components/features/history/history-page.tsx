@@ -1,28 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { format, startOfMonth, endOfMonth } from "date-fns";
-import {
-  getSessionDetails,
-  getWorkoutSession,
-  getBodyPartsByDateRange,
-  deleteExerciseSets,
-  deleteCardioRecords,
-} from "@/lib/api";
-import { getBodyPartsByDateRangeFromStorage } from "@/lib/local-storage-history";
-import { getSessionDetailsFromStorage } from "@/lib/local-storage-session-details";
+import { useState, useEffect, useCallback } from "react";
+import { format } from "date-fns";
+import { deleteExerciseSets, deleteCardioRecords } from "@/lib/api";
+import { getWorkoutSession } from "@/lib/api";
 import { loadExercisesWithFallback } from "@/lib/local-storage-exercises";
 import { useMaxWeights } from "@/hooks/use-max-weights";
 import { BodyPartFilter } from "./body-part-filter";
 import { HistoryCalendar } from "./history-calendar";
 import { SessionHistoryCard } from "./session-history-card";
 import { ExerciseRecordModal } from "../record/exercise-record-modal";
-import type {
-  Exercise,
-  SetRecord,
-  CardioRecord,
-  BodyPart,
-} from "@/types/workout";
+import { useHistoryData } from "./hooks/use-history-data";
+import type { Exercise, BodyPart } from "@/types/workout";
 
 /**
  * 履歴ページコンポーネント
@@ -30,20 +19,9 @@ import type {
  */
 export function HistoryPage() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedBodyPart, setSelectedBodyPart] = useState<BodyPart>("all");
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [bodyPartsByDate, setBodyPartsByDate] = useState<
-    Record<string, BodyPart[]>
-  >({});
-  const [sessionDetails, setSessionDetails] = useState<{
-    workoutExercises: Array<{ exerciseId: string; sets: SetRecord[] }>;
-    cardioExercises: Array<{ exerciseId: string; records: CardioRecord[] }>;
-    date: Date;
-    durationMinutes?: number | null;
-    note?: string | null;
-  } | null>(null);
   const [editingExercise, setEditingExercise] = useState<{
     exercise: Exercise;
     date: Date;
@@ -52,140 +30,19 @@ export function HistoryPage() {
   // 最大重量を管理するカスタムフック
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
 
+  // 履歴データを管理するカスタムフック
+  const {
+    bodyPartsByDate,
+    sessionDetails,
+    isLoading,
+    loadBodyPartsByDate,
+    loadSessionDetails,
+  } = useHistoryData(exercises);
+
   // 種目一覧を取得
   const loadExercises = useCallback(async () => {
     const exercises = await loadExercisesWithFallback();
     setExercises(exercises);
-  }, []);
-
-  // 現在の月の範囲を計算
-  const monthRange = useMemo(() => {
-    const start = startOfMonth(currentMonth);
-    const end = endOfMonth(currentMonth);
-    return {
-      startDate: format(start, "yyyy-MM-dd"),
-      endDate: format(end, "yyyy-MM-dd"),
-    };
-  }, [currentMonth]);
-
-  // 日付ごとの部位一覧を取得（データベース + ローカルストレージ）
-  const loadBodyPartsByDate = useCallback(async () => {
-    try {
-      // データベースから取得
-      const dbResult = await getBodyPartsByDateRange(monthRange);
-      const dbBodyParts = dbResult.success ? dbResult.data || {} : {};
-
-      // ローカルストレージから取得
-      const startDate = new Date(monthRange.startDate + "T00:00:00");
-      const endDate = new Date(monthRange.endDate + "T23:59:59");
-      const storageBodyParts = getBodyPartsByDateRangeFromStorage({
-        startDate,
-        endDate,
-        exercises,
-      });
-
-      // マージ: 同じ日付の部位を統合（重複を排除）
-      const merged: Record<string, BodyPart[]> = { ...dbBodyParts };
-      Object.keys(storageBodyParts).forEach((date) => {
-        if (merged[date]) {
-          const existingSet = new Set(merged[date]);
-          storageBodyParts[date].forEach((part) => existingSet.add(part));
-          merged[date] = Array.from(existingSet);
-        } else {
-          merged[date] = storageBodyParts[date];
-        }
-      });
-
-      setBodyPartsByDate(merged);
-    } catch (error) {
-      console.error("部位一覧取得エラー:", error);
-    }
-  }, [monthRange, exercises]);
-
-  // 選択された日付のセッション詳細を取得（データベース + ローカルストレージ）
-  const loadSessionDetails = useCallback(async (date: Date) => {
-    setIsLoading(true);
-    try {
-      const dateStr = format(date, "yyyy-MM-dd");
-
-      // データベースから取得を試みる
-      const sessionResult = await getWorkoutSession(dateStr);
-      let dbDetails: {
-        workoutExercises: Array<{ exerciseId: string; sets: SetRecord[] }>;
-        cardioExercises: Array<{
-          exerciseId: string;
-          records: CardioRecord[];
-        }>;
-      } | null = null;
-      let dbNote: string | null | undefined = null;
-      let dbDurationMinutes: number | null | undefined = null;
-
-      if (sessionResult.success && sessionResult.data) {
-        const detailsResult = await getSessionDetails(sessionResult.data.id);
-        if (detailsResult.success && detailsResult.data) {
-          dbDetails = detailsResult.data;
-          dbNote = sessionResult.data.note;
-          dbDurationMinutes = sessionResult.data.durationMinutes;
-        }
-      }
-
-      // ローカルストレージから取得
-      const storageDetails = getSessionDetailsFromStorage({ date });
-
-      // データベースとローカルストレージの結果をマージ
-      const workoutExercisesMap = new Map<string, SetRecord[]>();
-      const cardioExercisesMap = new Map<string, CardioRecord[]>();
-
-      // データベースの結果を追加
-      if (dbDetails) {
-        dbDetails.workoutExercises.forEach(({ exerciseId, sets }) => {
-          workoutExercisesMap.set(exerciseId, sets);
-        });
-        dbDetails.cardioExercises.forEach(({ exerciseId, records }) => {
-          cardioExercisesMap.set(exerciseId, records);
-        });
-      }
-
-      // ローカルストレージの結果を追加（データベースにない種目のみ）
-      storageDetails.workoutExercises.forEach(({ exerciseId, sets }) => {
-        if (!workoutExercisesMap.has(exerciseId)) {
-          workoutExercisesMap.set(exerciseId, sets);
-        }
-      });
-      storageDetails.cardioExercises.forEach(({ exerciseId, records }) => {
-        if (!cardioExercisesMap.has(exerciseId)) {
-          cardioExercisesMap.set(exerciseId, records);
-        }
-      });
-
-      const mergedWorkoutExercises = Array.from(
-        workoutExercisesMap.entries()
-      ).map(([exerciseId, sets]) => ({ exerciseId, sets }));
-      const mergedCardioExercises = Array.from(
-        cardioExercisesMap.entries()
-      ).map(([exerciseId, records]) => ({ exerciseId, records }));
-
-      // どちらか一方でもデータがあれば表示
-      if (
-        mergedWorkoutExercises.length > 0 ||
-        mergedCardioExercises.length > 0
-      ) {
-        setSessionDetails({
-          workoutExercises: mergedWorkoutExercises,
-          cardioExercises: mergedCardioExercises,
-          date,
-          durationMinutes: dbDurationMinutes,
-          note: dbNote,
-        });
-      } else {
-        setSessionDetails(null);
-      }
-    } catch (error) {
-      console.error("セッション詳細取得エラー:", error);
-      setSessionDetails(null);
-    } finally {
-      setIsLoading(false);
-    }
   }, []);
 
   // 初回マウント時に種目一覧を取得
@@ -196,8 +53,8 @@ export function HistoryPage() {
   // 種目一覧が読み込まれた後、または月が変更されたときに部位一覧を取得
   useEffect(() => {
     // exercisesが空でも実行する（ローカルストレージから取得するため）
-    loadBodyPartsByDate();
-  }, [loadBodyPartsByDate, exercises]);
+    loadBodyPartsByDate(currentMonth);
+  }, [loadBodyPartsByDate, currentMonth, exercises]);
 
   // 日付選択時の処理
   const handleDateSelect = useCallback(
@@ -243,19 +100,23 @@ export function HistoryPage() {
       } catch (error) {
         // データベース削除エラーはログのみ（ローカルストレージは削除済み）
         if (process.env.NODE_ENV === "development") {
-          console.warn("データベースからの削除に失敗（ローカルストレージは削除済み）:", error);
+          console.warn(
+            "データベースからの削除に失敗（ローカルストレージは削除済み）:",
+            error
+          );
         }
       }
 
       // 履歴を再読み込み
       if (selectedDate) {
         await loadSessionDetails(selectedDate);
-        await loadBodyPartsByDate();
+        await loadBodyPartsByDate(currentMonth);
         await recalculateMaxWeights();
       }
     },
     [
       selectedDate,
+      currentMonth,
       loadSessionDetails,
       loadBodyPartsByDate,
       recalculateMaxWeights,
@@ -271,12 +132,13 @@ export function HistoryPage() {
       await new Promise((resolve) => setTimeout(resolve, 300));
       loadSessionDetails(selectedDate);
       // 部位一覧も再読み込み
-      loadBodyPartsByDate();
+      loadBodyPartsByDate(currentMonth);
       // 最大重量も再読み込み（編集により最大重量が更新された可能性があるため）
       recalculateMaxWeights();
     }
   }, [
     selectedDate,
+    currentMonth,
     loadSessionDetails,
     loadBodyPartsByDate,
     recalculateMaxWeights,

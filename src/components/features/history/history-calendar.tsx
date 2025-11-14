@@ -65,16 +65,31 @@ export function HistoryCalendar({
     const isCurrentMonth = isSameMonth(date, currentMonth);
     const isToday = modifiers?.today ?? false;
 
+    // 通常の日付ボタンをレンダリング（共通処理）
+    const renderPlainDayButton = (onClick?: () => void) => (
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onClick}
+        className={cn(
+          "h-(--cell-size) w-full min-w-0",
+          isSelected && "ring-2 ring-primary",
+          isToday && "bg-transparent",
+          props.className
+        )}
+        {...props}
+      >
+        {date.getDate()}
+      </Button>
+    );
+
     // 現在の月以外の日付は通常表示（react-day-pickerが処理）
     if (!isCurrentMonth) {
       return (
         <Button
           variant="ghost"
           size="icon"
-          className={cn(
-            "aspect-square w-full min-w-[--cell-size]",
-            props.className
-          )}
+          className={cn("h-(--cell-size) w-full min-w-0", props.className)}
           {...props}
         >
           {date.getDate()}
@@ -84,23 +99,7 @@ export function HistoryCalendar({
 
     // 部位がない日付は通常表示
     if (bodyParts.length === 0) {
-      return (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onDateSelect(date)}
-          className={cn(
-            "aspect-square w-full min-w-[--cell-size]",
-            isSelected && "ring-2 ring-primary",
-            // todayスタイルを無効化
-            isToday && "bg-transparent",
-            props.className
-          )}
-          {...props}
-        >
-          {date.getDate()}
-        </Button>
-      );
+      return renderPlainDayButton(() => onDateSelect(date));
     }
 
     // 複数部位の場合は分割表示
@@ -120,23 +119,7 @@ export function HistoryCalendar({
     const bodyPart = bodyParts[0];
     // "all"の場合は色付けしない（通常表示）
     if (bodyPart === "all") {
-      return (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onDateSelect(date)}
-          className={cn(
-            "aspect-square w-full min-w-[--cell-size]",
-            isSelected && "ring-2 ring-primary",
-            // todayスタイルを無効化
-            isToday && "bg-transparent",
-            props.className
-          )}
-          {...props}
-        >
-          {date.getDate()}
-        </Button>
-      );
+      return renderPlainDayButton(() => onDateSelect(date));
     }
 
     // 1種目の場合もMultiPartDayButtonを使用（同じ色を2分割表示）
