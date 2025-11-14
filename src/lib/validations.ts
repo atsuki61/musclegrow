@@ -95,51 +95,67 @@ export const exerciseSchema = z.object({
 
 /**
  * セット記録（SetRecord）のバリデーションスキーマ
+ * 時間ベース種目（プランクなど）の場合、durationがある場合はrepsを0以上に許可
  */
-export const setRecordSchema = z.object({
-  id: z.string().min(1, "IDは必須です"),
-  setOrder: z
-    .number()
-    .int("セット順は整数で入力してください")
-    .min(1, "セット順は1以上で入力してください"),
-  weight: z
-    .number()
-    .nonnegative("重量は0以上で入力してください")
-    .max(1000, "重量は1000kg以下で入力してください")
-    .optional(),
-  reps: z
-    .number()
-    .int("回数は整数で入力してください")
-    .min(1, "回数は1回以上で入力してください")
-    .max(1000, "回数は1000回以下で入力してください"),
-  duration: z
-    .number()
-    .int("時間は整数で入力してください")
-    .positive("時間は1秒以上で入力してください")
-    .max(86400, "時間は86400秒（24時間）以下で入力してください")
-    .nullable()
-    .optional(),
-  rpe: z
-    .number()
-    .min(1, "RPEは1以上で入力してください")
-    .max(10, "RPEは10以下で入力してください")
-    .nullable()
-    .optional(),
-  isWarmup: z.boolean().optional(),
-  restSeconds: z
-    .number()
-    .int("休憩時間は整数で入力してください")
-    .nonnegative("休憩時間は0以上で入力してください")
-    .max(3600, "休憩時間は3600秒（1時間）以下で入力してください")
-    .nullable()
-    .optional(),
-  notes: z
-    .string()
-    .max(500, "メモは500文字以内で入力してください")
-    .nullable()
-    .optional(),
-  failure: z.boolean().optional(),
-});
+export const setRecordSchema = z
+  .object({
+    id: z.string().min(1, "IDは必須です"),
+    setOrder: z
+      .number()
+      .int("セット順は整数で入力してください")
+      .min(1, "セット順は1以上で入力してください"),
+    weight: z
+      .number()
+      .nonnegative("重量は0以上で入力してください")
+      .max(1000, "重量は1000kg以下で入力してください")
+      .optional(),
+    reps: z
+      .number("回数は数値で入力してください")
+      .int("回数は整数で入力してください")
+      .min(0, "回数は0以上で入力してください")
+      .max(1000, "回数は1000回以下で入力してください"),
+    duration: z
+      .number()
+      .int("時間は整数で入力してください")
+      .positive("時間は1秒以上で入力してください")
+      .max(86400, "時間は86400秒（24時間）以下で入力してください")
+      .nullable()
+      .optional(),
+    rpe: z
+      .number()
+      .min(1, "RPEは1以上で入力してください")
+      .max(10, "RPEは10以下で入力してください")
+      .nullable()
+      .optional(),
+    isWarmup: z.boolean().optional(),
+    restSeconds: z
+      .number()
+      .int("休憩時間は整数で入力してください")
+      .nonnegative("休憩時間は0以上で入力してください")
+      .max(3600, "休憩時間は3600秒（1時間）以下で入力してください")
+      .nullable()
+      .optional(),
+    notes: z
+      .string()
+      .max(500, "メモは500文字以内で入力してください")
+      .nullable()
+      .optional(),
+    failure: z.boolean().optional(),
+  })
+  .refine(
+    (data) => {
+      // durationがある場合（時間ベース種目）は、repsが0でもOK
+      if (data.duration !== undefined && data.duration !== null && data.duration > 0) {
+        return true;
+      }
+      // durationがない場合（通常の筋トレ種目）は、repsが1以上必要
+      return data.reps >= 1;
+    },
+    {
+      message: "回数は1回以上で入力してください（時間ベース種目を除く）",
+      path: ["reps"],
+    }
+  );
 
 /**
  * 有酸素種目の記録（CardioRecord）のバリデーションスキーマ
@@ -302,6 +318,10 @@ export function validateItems<T>(
         console.error(
           `${itemName}${index + 1}のバリデーションエラー:`,
           errorDetails
+        );
+        console.error(
+          `${itemName}${index + 1}のデータ:`,
+          JSON.stringify(item, null, 2)
         );
       }
     }
