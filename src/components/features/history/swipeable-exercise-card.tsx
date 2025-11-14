@@ -19,9 +19,13 @@ interface SwipeableExerciseCardProps {
   maxWeights?: Record<string, number>;
 }
 
-// スワイプ閾値を緩和（より軽いスワイプで反応）
-const SWIPE_THRESHOLD = -50; // 削除ボタンを表示する閾値（-80 → -50）
-const DELETE_THRESHOLD = -100; // 自動削除する閾値（-150 → -100）
+// スワイプ閾値の定数定義
+const SWIPE_THRESHOLD = -50; // 削除ボタンを表示する閾値（px）
+const DELETE_THRESHOLD = -100; // 自動削除する閾値（px）
+const DELETE_BUTTON_MIN_WIDTH = 80; // 削除ボタンの最小幅（px）
+const DELETE_BUTTON_MAX_WIDTH = 200; // 削除ボタンの最大幅（px）
+const DELETE_ANIMATION_DISTANCE = -1000; // 削除アニメーションの移動距離（px）
+const DELETE_ANIMATION_DURATION = 300; // 削除アニメーションの時間（ms）
 
 /**
  * スワイプ可能な種目カードコンポーネント
@@ -41,12 +45,14 @@ export function SwipeableExerciseCard({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // スワイプの進行度に応じて削除ボタンの透明度を変化させる
-  // わずか10pxのスワイプで完全に表示されるように設定
   const deleteButtonOpacity = useTransform(x, [0, -10], [0, 1]);
 
-  // スワイプ量に応じて背景の赤枠の幅を拡張（最小80px、最大200px）
-  // スワイプが進むと背景が左に伸びていく
-  const deleteButtonWidth = useTransform(x, [0, -200], [80, 200]);
+  // スワイプ量に応じて背景の赤枠の幅を拡張
+  const deleteButtonWidth = useTransform(
+    x,
+    [0, -DELETE_BUTTON_MAX_WIDTH],
+    [DELETE_BUTTON_MIN_WIDTH, DELETE_BUTTON_MAX_WIDTH]
+  );
 
   const handleDragEnd = (
     _event: MouseEvent | TouchEvent | PointerEvent,
@@ -85,8 +91,8 @@ export function SwipeableExerciseCard({
     if (onDelete) {
       // 削除アニメーション
       await new Promise((resolve) => {
-        x.set(-1000); // 画面外に移動
-        setTimeout(resolve, 300);
+        x.set(DELETE_ANIMATION_DISTANCE);
+        setTimeout(resolve, DELETE_ANIMATION_DURATION);
       });
       onDelete();
     }
@@ -128,7 +134,7 @@ export function SwipeableExerciseCard({
         {/* スワイプ可能なカード */}
         <motion.div
           drag="x"
-          dragConstraints={{ left: -200, right: 0 }}
+          dragConstraints={{ left: -DELETE_BUTTON_MAX_WIDTH, right: 0 }}
           dragElastic={0.1}
           onDragEnd={handleDragEnd}
           style={{ x }}

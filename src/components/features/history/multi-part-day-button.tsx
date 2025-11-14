@@ -53,20 +53,16 @@ export function MultiPartDayButton({
   // onClickをpropsから除外（明示的なonClickを優先するため）
   const { onClick: propsOnClick, ...restProps } = props;
 
-  // onClickハンドラーを統合（props.onClickとonClickの両方に対応）
+  // onClickハンドラーを統合（明示的なonClickを優先、なければprops.onClick）
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    // 明示的なonClickを優先
     if (onClick) {
-      if (typeof onClick === "function") {
-        if (onClick.length === 0) {
-          (onClick as () => void)();
-        } else {
-          (onClick as React.MouseEventHandler<HTMLButtonElement>)(e);
-        }
+      // 引数の有無で判定
+      if (onClick.length === 0) {
+        (onClick as () => void)();
+      } else {
+        (onClick as React.MouseEventHandler<HTMLButtonElement>)(e);
       }
-    }
-    // props.onClickも実行（react-day-picker用、onClickがない場合のみ）
-    else if (propsOnClick && typeof propsOnClick === "function") {
+    } else if (propsOnClick && typeof propsOnClick === "function") {
       propsOnClick(e);
     }
   };
@@ -77,7 +73,7 @@ export function MultiPartDayButton({
       size="icon"
       onClick={handleClick}
       className={cn(
-        "relative aspect-square w-full min-w-[--cell-size] p-0 overflow-hidden",
+        "relative h-(--cell-size) w-full min-w-0 p-0 overflow-hidden",
         isSelected && "ring-2 ring-primary",
         className
       )}
