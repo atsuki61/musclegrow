@@ -24,4 +24,3 @@ export function DateRangeSelector({
 }) {
   return <HorizontalNav items={PRESETS} value={value} onChange={onChange} />;
 }
-

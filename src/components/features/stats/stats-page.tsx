@@ -184,7 +184,11 @@ export function StatsPage() {
           {profileLoading ? (
             <ChartLoading />
           ) : (
-            <ProfileChart data={profileHistory} chartType={profileChartType} />
+            <ProfileChart
+              data={profileHistory}
+              chartType={profileChartType}
+              dataCount={profileHistory.length}
+            />
           )}
         </TabsContent>
 

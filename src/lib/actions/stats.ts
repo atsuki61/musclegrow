@@ -43,6 +43,16 @@ export async function getProfileHistory({
       };
     }
 
+    // TODO: ダミーデータ - 後で削除
+    const startDate = getStartDate(preset);
+    const dummyData = generateDummyWeightData(userId, startDate);
+    return {
+      success: true,
+      data: dummyData,
+    };
+
+    // 実際のデータ取得コード（一時的にコメントアウト）
+    /*
     const startDate = getStartDate(preset);
 
     const history = await db
@@ -71,6 +81,7 @@ export async function getProfileHistory({
       success: true,
       data: historyData,
     };
+    */
   } catch (error) {
     console.error("プロフィール履歴取得エラー:", error);
     return {
@@ -81,6 +92,66 @@ export async function getProfileHistory({
           : "プロフィール履歴の取得に失敗しました",
     };
   }
+}
+
+/**
+ * ダミー体重データを生成（1〜12月、月3件、60〜80kg）
+ * TODO: 後で削除
+ */
+function generateDummyWeightData(
+  userId: string,
+  startDate: Date
+): ProfileHistoryData[] {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const data: ProfileHistoryData[] = [];
+
+  // 体重を60〜80kgの間で行ったり来たりさせる
+  let weight = 65; // 初期値
+  let direction = 1; // 1: 増加, -1: 減少
+
+  for (let month = 1; month <= 12; month++) {
+    // 月に3つのデータポイントを作成
+    for (let day = 1; day <= 3; day++) {
+      const date = new Date(currentYear, month - 1, day * 10); // 10日、20日、30日ごろ
+
+      // 開始日以降のデータのみを含める
+      if (date < startDate) {
+        continue;
+      }
+
+      // 体重を変動させる（±2kg程度）
+      const variation = (Math.random() - 0.5) * 4; // -2〜+2kg
+      weight += variation * direction;
+
+      // 60〜80kgの範囲に収める
+      if (weight > 80) {
+        weight = 80;
+        direction = -1; // 減少に転換
+      } else if (weight < 60) {
+        weight = 60;
+        direction = 1; // 増加に転換
+      }
+
+      // 月の終わりに方向を変えることもある
+      if (day === 3 && Math.random() > 0.7) {
+        direction *= -1;
+      }
+
+      data.push({
+        id: `dummy-${month}-${day}`,
+        userId,
+        height: 170, // 固定値
+        weight: Math.round(weight * 10) / 10, // 小数点第1位まで
+        bodyFat: null,
+        muscleMass: null,
+        bmi: null,
+        recordedAt: date.toISOString(),
+      });
+    }
+  }
+
+  return data;
 }
 
 /**

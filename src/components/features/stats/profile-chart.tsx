@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef } from "react";
 import {
   LineChart,
   Line,
@@ -7,167 +8,156 @@ import {
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
+  Customized,
 } from "recharts";
 import type { ProfileHistoryData, ProfileChartType } from "@/types/stats";
-import { format, subDays, addDays } from "date-fns";
-import { TrendingUp, Weight, Activity, Heart } from "lucide-react";
-import { toNumber } from "@/lib/utils/stats";
+import { format } from "date-fns";
+import {
+  CHART_LABELS,
+  CHART_UNITS,
+  CHART_ICONS,
+  COLORS,
+} from "./profile-chart.constants";
+import {
+  transformChartData,
+  calculateXAxisDomain,
+  calculateYAxisDomain,
+  findClosestDataPointIndex,
+} from "./profile-chart.utils";
+import { useDataPointCoordinates } from "./profile-chart.hooks";
 
 interface ProfileChartProps {
   data: ProfileHistoryData[];
   chartType: ProfileChartType;
+  dataCount?: number; // データ件数（オプション）
 }
 
-const CHART_LABELS: Record<ProfileChartType, string> = {
-  weight: "体重の推移",
-  bodyFat: "体脂肪率の推移",
-  muscleMass: "筋肉量の推移",
-  bmi: "BMIの推移",
-};
-
-const CHART_UNITS: Record<ProfileChartType, string> = {
-  weight: "kg",
-  bodyFat: "%",
-  muscleMass: "kg",
-  bmi: "",
-};
-
-const CHART_ICONS: Record<ProfileChartType, typeof Weight> = {
-  weight: Weight,
-  bodyFat: Activity,
-  muscleMass: Heart,
-  bmi: TrendingUp,
-};
-
-// オレンジを基調としたカラーパレット
-const COLORS = {
-  primary: "#FF6B35", // メインオレンジ
-  primaryLight: "#FF8C61", // 明るいオレンジ
-  primaryPale: "#FFE5DC", // 薄いオレンジ
-  text: "#1F2937", // ダークグレー
-  textMuted: "#6B7280", // ミディアムグレー
-  textLight: "#9CA3AF", // ライトグレー
-  grid: "#E5E7EB", // グリッド
-  white: "#FFFFFF",
-  shadow: "rgba(255, 107, 53, 0.15)", // オレンジの影
-};
-
-// ラベルサイズと位置の定数
-const LABEL_CONFIG = {
-  // サイズ
-  minWidth: 40, // 最小幅（px-2相当）
-  height: 18, // 高さ（py-[3px]相当）
-  horizontalPadding: 16, // 左右padding相当
-  charWidth: 7, // 1文字あたりの概算幅（px）
-  // 位置
-  distanceFromDot: 12, // dotからの距離（px）
-  visualCorrectionDown: 1, // 視覚補正（下にずらすpx）
-  textVisualCorrection: 1, // テキスト位置の視覚補正（下にずらすpx）
-  // スタイル
-  fontSize: 12, // text-xs相当
-  fontWeight: "600",
-  borderRadius: 0.5, // rounded-full（高さの半分）
-  shadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
-};
-
 /**
- * データポイント上のラベル（pill型・視覚補正版）
+ * 垂直線コンポーネント（Customized用）
+ * RechartsのCustomizedコンポーネントから呼び出される
  */
-const DataLabel = (props: {
-  x?: string | number | null;
-  y?: string | number | null;
-  value?: string | number | null;
-  index?: number;
-  chartType: ProfileChartType;
-}) => {
-  const { x, y, value, chartType } = props;
+function VerticalReferenceLineComponent(props: {
+  width?: number;
+  height?: number;
+  margin?: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+  selectedIndex?: number | null;
+  dataPointCoordinates?: Array<{ cx: number; cy: number; value: number }>;
+}) {
+  // propsの検証
+  if (!props.width || !props.height || !props.margin) {
+    return null;
+  }
 
-  // 数値に変換
-  const xPos = toNumber(x);
-  const yPos = toNumber(y);
-  const numValue = toNumber(value);
+  // 選択状態の検証
+  if (
+    props.selectedIndex === null ||
+    props.selectedIndex === undefined ||
+    !props.dataPointCoordinates ||
+    props.selectedIndex >= props.dataPointCoordinates.length
+  ) {
+    return null;
+  }
 
-  // 型ガード：必要な値がすべて揃っているか確認
-  if (xPos === null || yPos === null || numValue === null) return null;
+  const selectedPoint = props.dataPointCoordinates[props.selectedIndex];
+  if (!selectedPoint || selectedPoint.cx === undefined) {
+    return null;
+  }
 
-  // すべてのデータポイントに吹き出しを表示
-  const labelText = `${numValue.toFixed(1)}${CHART_UNITS[chartType]}`;
-
-  // ラベルサイズを計算
-  const textWidth = labelText.length * LABEL_CONFIG.charWidth;
-  const labelWidth = Math.max(
-    textWidth + LABEL_CONFIG.horizontalPadding,
-    LABEL_CONFIG.minWidth
-  );
-  const labelHeight = LABEL_CONFIG.height;
-
-  // ラベル位置を計算（dotから指定距離上、視覚補正で下にずらす）
-  const labelTop =
-    yPos - LABEL_CONFIG.distanceFromDot - LABEL_CONFIG.visualCorrectionDown;
-  const labelCenterY = labelTop + labelHeight / 2;
-
-  // テキスト位置を計算（視覚的に中央に見えるように微調整）
-  const textY = labelCenterY + LABEL_CONFIG.textVisualCorrection;
+  // グラフの上端からX軸まで垂直線を描画
+  const startY = props.margin.top;
+  const endY = props.height - props.margin.bottom;
 
   return (
-    <g>
-      {/* pill型ラベル背景（白背景 + オレンジボーダー） */}
-      <rect
-        x={xPos - labelWidth / 2}
-        y={labelTop}
-        width={labelWidth}
-        height={labelHeight}
-        fill={COLORS.white}
-        stroke={COLORS.primary}
-        strokeWidth={1}
-        rx={labelHeight * LABEL_CONFIG.borderRadius}
-        style={{ filter: `drop-shadow(${LABEL_CONFIG.shadow})` }}
-      />
-      {/* ラベルテキスト（オレンジ文字・視覚補正済み） */}
-      <text
-        x={xPos}
-        y={textY}
-        fill={COLORS.primary}
-        fontSize={LABEL_CONFIG.fontSize}
-        fontWeight={LABEL_CONFIG.fontWeight}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        style={{
-          lineHeight: 1, // leading-none相当
-          letterSpacing: "0.01em",
-        }}
-      >
-        {labelText}
-      </text>
-    </g>
+    <line
+      x1={selectedPoint.cx}
+      y1={startY}
+      x2={selectedPoint.cx}
+      y2={endY}
+      stroke={COLORS.referenceLine}
+      strokeWidth={1}
+      strokeDasharray="5 5"
+      opacity={0.6}
+      style={{ pointerEvents: "none" }}
+    />
   );
-};
+}
+
+/**
+ * 選択ラベルコンポーネント（InBody風 - 控えめで上品なデザイン）
+ */
+function SelectionLabel({
+  x,
+  date,
+  value,
+  unit,
+  containerWidth,
+}: {
+  x: number;
+  date: string;
+  value: number;
+  unit: string;
+  containerWidth: number;
+}) {
+  // ラベルの幅を推定（日付 + 値 + パディング + ギャップ）
+  // text-[10px] + text-[10px] + px-2 (8px*2) + gap-1 (4px) = 約80-90px
+  const labelWidth = 90;
+  const padding = 24; // カードの左右パディング（p-6 = 24px）
+
+  // ラベルの位置をclamp（カード内に制限）
+  const minX = padding + labelWidth / 2;
+  const maxX =
+    containerWidth > 0 ? containerWidth - padding - labelWidth / 2 : x; // containerWidthが0の場合は元の位置を使用
+
+  const clampedX = Math.min(Math.max(x, minX), maxX);
+
+  return (
+    <div
+      className="absolute pointer-events-none z-10"
+      style={{
+        top: "8px", // グラフの上端に配置
+        left: `${clampedX}px`,
+        transform: "translateX(-50%)",
+      }}
+    >
+      {/* InBody風：小さく控えめで上品なラベル */}
+      <div className="flex items-center gap-1 whitespace-nowrap bg-orange-50 px-2 py-[2px] rounded-md shadow-xs border border-gray-100/50">
+        <span className="text-[10px] font-medium text-gray-500">
+          {format(new Date(date), "yy.MM.dd")}
+        </span>
+        <span className="text-[10px] font-semibold text-orange-500">
+          {value.toFixed(1)}
+          {unit}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 /**
  * プロフィールグラフコンポーネント（モダン版）
  */
-export function ProfileChart({ data, chartType }: ProfileChartProps) {
+export function ProfileChart({
+  data,
+  chartType,
+  dataCount,
+}: ProfileChartProps) {
+  // 選択されたデータポイントのインデックス
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  // グラフコンテナのref（ラベル位置制限用）
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // グラフ用データを準備
-  const chartData = data
-    .map((item) => {
-      const value =
-        chartType === "weight"
-          ? item.weight
-          : chartType === "bodyFat"
-          ? item.bodyFat
-          : chartType === "muscleMass"
-          ? item.muscleMass
-          : item.bmi;
+  const chartData = transformChartData(data, chartType);
 
-      if (value === null) return null;
-
-      return {
-        date: format(new Date(item.recordedAt), "M/d"),
-        fullDate: item.recordedAt,
-        value,
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null);
+  // データポイントの座標を収集
+  const [dataPointCoordinates, collectCoordinate] = useDataPointCoordinates(
+    chartData.length
+  );
 
   if (chartData.length === 0) {
     return (
@@ -197,24 +187,15 @@ export function ProfileChart({ data, chartType }: ProfileChartProps) {
   // 最新データを取得
   const latestData = chartData[chartData.length - 1];
 
-  // タイムライン感を出すため、データが1点の場合はダミー日付を追加
-  let xAxisDomain: string[] | undefined;
-  if (chartData.length === 1) {
-    const baseDate = new Date(chartData[0].fullDate);
-    xAxisDomain = [
-      format(subDays(baseDate, 2), "M/d"),
-      format(subDays(baseDate, 1), "M/d"),
-      format(baseDate, "M/d"),
-      format(addDays(baseDate, 1), "M/d"),
-      format(addDays(baseDate, 2), "M/d"),
-    ];
-  }
+  // 選択されたデータポイント（選択がない場合は最新）
+  const selectedData =
+    selectedIndex !== null && selectedIndex < chartData.length
+      ? chartData[selectedIndex]
+      : latestData;
 
-  // Y軸の範囲を計算（データの最小値-5 〜 最大値+5）
-  const values = chartData.map((d) => d.value);
-  const minValue = Math.min(...values);
-  const maxValue = Math.max(...values);
-  const yAxisDomain = [Math.max(0, minValue - 5), maxValue + 5];
+  // グラフ設定を計算
+  const xAxisDomain = calculateXAxisDomain(chartData);
+  const yAxisDomain = calculateYAxisDomain(chartData);
 
   // アイコンコンポーネント
   const Icon = CHART_ICONS[chartType];
@@ -232,105 +213,191 @@ export function ProfileChart({ data, chartType }: ProfileChartProps) {
             {CHART_LABELS[chartType]}
           </h3>
         </div>
+        {dataCount !== undefined && (
+          <span
+            className="text-xs font-medium"
+            style={{ color: COLORS.textMuted }}
+          >
+            {dataCount}件
+          </span>
+        )}
       </div>
 
-      {/* グラフ */}
-      <ResponsiveContainer width="100%" height={280}>
-        <LineChart
-          data={chartData}
-          margin={{ top: 8, right: 20, left: 0, bottom: 10 }}
-          style={{ cursor: "default" }}
-        >
-          <defs>
-            <filter
-              id="shadowOrange"
-              x="-50%"
-              y="-50%"
-              width="200%"
-              height="200%"
-            >
-              <feDropShadow
-                dx="0"
-                dy="2"
-                stdDeviation="4"
-                floodColor={COLORS.primary}
-                floodOpacity="0.25"
+      {/* グラフ（相対位置でラップ） */}
+      <div
+        ref={containerRef}
+        className="relative w-full"
+        style={{ minHeight: "280px" }}
+      >
+        <ResponsiveContainer width="100%" height={280}>
+          <LineChart
+            data={chartData}
+            margin={{ top: 8, right: 20, left: 0, bottom: 10 }}
+            onMouseMove={(data) => {
+              if (data?.activeCoordinate && dataPointCoordinates.length > 0) {
+                const closestIndex = findClosestDataPointIndex(
+                  data.activeCoordinate.x,
+                  dataPointCoordinates
+                );
+                if (closestIndex !== null) {
+                  setSelectedIndex(closestIndex);
+                }
+              }
+            }}
+            onMouseLeave={() => {
+              setSelectedIndex(null);
+            }}
+            onClick={(data) => {
+              if (data?.activeCoordinate && dataPointCoordinates.length > 0) {
+                const closestIndex = findClosestDataPointIndex(
+                  data.activeCoordinate.x,
+                  dataPointCoordinates
+                );
+                setSelectedIndex(closestIndex);
+              }
+            }}
+          >
+            <defs>
+              <filter
+                id="shadowOrange"
+                x="-50%"
+                y="-50%"
+                width="200%"
+                height="200%"
+              >
+                <feDropShadow
+                  dx="0"
+                  dy="2"
+                  stdDeviation="4"
+                  floodColor={COLORS.primary}
+                  floodOpacity="0.25"
+                />
+              </filter>
+            </defs>
+
+            {/* グリッド（超薄く） */}
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke={COLORS.grid}
+              opacity={0.1}
+              vertical={false}
+            />
+
+            {/* X軸 */}
+            <XAxis
+              dataKey="date"
+              stroke={COLORS.grid}
+              tick={{ fill: COLORS.textLight, fontSize: 10 }}
+              tickLine={false}
+              axisLine={{ stroke: COLORS.grid, strokeWidth: 1 }}
+              domain={xAxisDomain}
+              ticks={xAxisDomain}
+            />
+
+            {/* Y軸（最小限・薄く） */}
+            <YAxis
+              stroke={COLORS.grid}
+              tick={{ fill: COLORS.textLight, fontSize: 11, opacity: 0.6 }}
+              tickLine={false}
+              axisLine={false}
+              domain={yAxisDomain}
+              tickCount={3}
+              width={35}
+            />
+
+            {/* 折れ線（データが2点以上の場合のみ） */}
+            {chartData.length > 1 && (
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={COLORS.primary}
+                strokeWidth={3}
+                dot={false}
+                activeDot={false}
               />
-            </filter>
-          </defs>
+            )}
 
-          {/* グリッド（超薄く） */}
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke={COLORS.grid}
-            opacity={0.1}
-            vertical={false}
-          />
-
-          {/* X軸 */}
-          <XAxis
-            dataKey="date"
-            stroke={COLORS.grid}
-            tick={{ fill: COLORS.textLight, fontSize: 10 }}
-            tickLine={false}
-            axisLine={{ stroke: COLORS.grid, strokeWidth: 1 }}
-            domain={xAxisDomain}
-            ticks={xAxisDomain}
-          />
-
-          {/* Y軸（最小限・薄く） */}
-          <YAxis
-            stroke={COLORS.grid}
-            tick={{ fill: COLORS.textLight, fontSize: 11, opacity: 0.6 }}
-            tickLine={false}
-            axisLine={false}
-            domain={yAxisDomain}
-            tickCount={3}
-            width={35}
-          />
-
-          {/* 折れ線（データが2点以上の場合のみ） */}
-          {chartData.length > 1 && (
+            {/* データポイント（クリック可能、座標を取得するためlabelを使用） */}
             <Line
               type="monotone"
               dataKey="value"
-              stroke={COLORS.primary}
-              strokeWidth={3}
-              dot={false}
-              activeDot={false}
+              stroke="transparent"
+              strokeWidth={0}
+              dot={(props) => {
+                const isSelected = selectedIndex === props.index;
+                return (
+                  <circle
+                    cx={props.cx}
+                    cy={props.cy}
+                    r={isSelected ? 7 : 5}
+                    fill={isSelected ? COLORS.primary : COLORS.white}
+                    stroke={COLORS.primary}
+                    strokeWidth={isSelected ? 3 : 2}
+                    filter={isSelected ? "url(#shadowOrange)" : undefined}
+                    style={{ cursor: "pointer" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (props.index !== undefined) {
+                        setSelectedIndex(props.index);
+                      }
+                    }}
+                  />
+                );
+              }}
+              activeDot={{
+                r: 6,
+                fill: COLORS.primary,
+                stroke: COLORS.white,
+                strokeWidth: 2,
+              }}
+              label={(props) => {
+                collectCoordinate(props);
+                return null;
+              }}
+            />
+
+            {/* 選択されたデータポイントからX軸への垂直線（InBody風） */}
+            {selectedIndex !== null &&
+              selectedIndex < dataPointCoordinates.length &&
+              dataPointCoordinates[selectedIndex] && (
+                <Customized
+                  component={(props: {
+                    width?: number;
+                    height?: number;
+                    margin?: {
+                      top: number;
+                      right: number;
+                      bottom: number;
+                      left: number;
+                    };
+                  }) => (
+                    <VerticalReferenceLineComponent
+                      width={props.width}
+                      height={props.height}
+                      margin={props.margin}
+                      selectedIndex={selectedIndex}
+                      dataPointCoordinates={dataPointCoordinates}
+                    />
+                  )}
+                />
+              )}
+          </LineChart>
+        </ResponsiveContainer>
+
+        {/* 選択データ表示（グラフ上部、選択点のX座標に連動） - InBody風 */}
+        {selectedIndex !== null &&
+          selectedIndex < dataPointCoordinates.length &&
+          dataPointCoordinates[selectedIndex] &&
+          selectedData && (
+            <SelectionLabel
+              x={dataPointCoordinates[selectedIndex].cx}
+              date={selectedData.fullDate}
+              value={selectedData.value}
+              unit={CHART_UNITS[chartType]}
+              containerWidth={containerRef.current?.offsetWidth || 0}
             />
           )}
-
-          {/* データポイント */}
-          <Line
-            type="monotone"
-            dataKey="value"
-            stroke="transparent"
-            strokeWidth={0}
-            dot={{
-              r: 5,
-              fill: COLORS.white,
-              stroke: COLORS.primary,
-              strokeWidth: 2,
-              filter: "url(#shadowOrange)",
-            }}
-            activeDot={{
-              r: 6,
-              fill: COLORS.primary,
-              stroke: COLORS.white,
-              strokeWidth: 2,
-            }}
-            label={(props) => (
-              <DataLabel
-                x={props.x as string | number | null | undefined}
-                y={props.y as string | number | null | undefined}
-                value={props.value as string | number | null | undefined}
-                chartType={chartType}
-              />
-            )}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      </div>
 
       {/* フッター（最新データサマリー） */}
       <div
