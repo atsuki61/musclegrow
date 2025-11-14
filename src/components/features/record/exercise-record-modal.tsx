@@ -168,7 +168,7 @@ export function ExerciseRecordModal({
             (set.weight !== undefined &&
               set.weight !== null &&
               set.weight > 0) ||
-            set.reps > 0 ||
+            (set.reps !== undefined && set.reps !== null && set.reps > 0) ||
             (set.duration !== undefined &&
               set.duration !== null &&
               set.duration > 0)
