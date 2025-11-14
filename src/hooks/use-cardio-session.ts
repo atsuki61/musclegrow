@@ -273,12 +273,18 @@ export function useCardioSession({
 
   // recordsの最新値を保持するref（日付変更時の保存用）
   const recordsRef = useRef<CardioRecord[]>(records);
+  
+  /**
+   * 外部リソース（メモリ内のref）との同期
+   * recordsの最新値をrefに保持し、日付変更時の保存で使用
+   */
   useEffect(() => {
     recordsRef.current = records;
   }, [records]);
 
   /**
-   * 日付または種目が変更された時に、前回のデータを保存
+   * 外部リソース（ローカルストレージ、データベース）との同期
+   * 日付または種目が変更された時に、前回のデータを自動保存
    */
   useEffect(() => {
     // 日付または種目が変更された場合
@@ -328,6 +334,7 @@ export function useCardioSession({
   }, [date, exerciseId, isOpen]);
 
   /**
+   * 外部リソース（ローカルストレージ、データベース）との同期
    * モーダルが開いた時、または日付・種目が変更された時にデータを読み込む
    */
   useEffect(() => {

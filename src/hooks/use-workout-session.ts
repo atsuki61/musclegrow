@@ -250,12 +250,18 @@ export function useWorkoutSession({
 
   // setsの最新値を保持するref（日付変更時の保存用）
   const setsRef = useRef<SetRecord[]>(sets);
+  
+  /**
+   * 外部リソース（メモリ内のref）との同期
+   * setsの最新値をrefに保持し、日付変更時の保存で使用
+   */
   useEffect(() => {
     setsRef.current = sets;
   }, [sets]);
 
   /**
-   * 日付または種目が変更された時に、前回のデータを保存
+   * 外部リソース（ローカルストレージ、データベース）との同期
+   * 日付または種目が変更された時に、前回のデータを自動保存
    */
   useEffect(() => {
     // 日付または種目が変更された場合
@@ -305,6 +311,7 @@ export function useWorkoutSession({
   }, [date, exerciseId, isOpen]);
 
   /**
+   * 外部リソース（ローカルストレージ、データベース）との同期
    * モーダルが開いた時、または日付・種目が変更された時にデータを読み込む
    */
   useEffect(() => {
