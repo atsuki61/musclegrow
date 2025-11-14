@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -87,6 +88,9 @@ export function Header() {
           <SheetContent side="right" className="w-[280px]">
             <SheetHeader>
               <SheetTitle>メニュー</SheetTitle>
+              <SheetDescription className="sr-only">
+                アプリのメニューと設定にアクセスします
+              </SheetDescription>
             </SheetHeader>
             <div className="mt-6 space-y-1">
               {/* 設定（見た目のみ） */}
