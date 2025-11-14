@@ -82,7 +82,7 @@ export async function getProfileHistory({
       data: historyData,
     };
     */
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("プロフィール履歴取得エラー:", error);
     return {
       success: false,
@@ -240,7 +240,7 @@ export async function getBig3ProgressData({
       success: true,
       data: result,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Big3推移データ取得エラー:", error);
     return {
       success: false,
@@ -303,7 +303,7 @@ export async function getExerciseProgressData({
       success: true,
       data: progressData,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("種目推移データ取得エラー:", error);
     return {
       success: false,
