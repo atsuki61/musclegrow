@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -238,42 +239,47 @@ export function ExerciseRecordModal({
         {exercise && (
           <>
             {/* ヘッダー */}
-            <DialogHeader className="flex-row items-center gap-4 px-6 pb-4 pt-6 border-b sticky top-0 bg-background z-10">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleClose}
-                className="h-8 w-8"
-                aria-label="戻る"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <DialogTitle className="flex-1 text-xl font-bold">
-                {exercise.name}
-              </DialogTitle>
-              {/* グラフ・設定ボタン（後で実装） */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  // TODO: グラフ表示機能（後で実装）
-                }}
-                className="h-8 w-8"
-                aria-label="グラフ表示"
-              >
-                <BarChart3 className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  // TODO: 設定機能（後で実装）
-                }}
-                className="h-8 w-8"
-                aria-label="設定"
-              >
-                <Settings className="h-5 w-5" />
-              </Button>
+            <DialogHeader className="px-6 pb-4 pt-6 border-b sticky top-0 bg-background z-10">
+              <div className="flex-row items-center gap-4 flex">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleClose}
+                  className="h-8 w-8"
+                  aria-label="戻る"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <DialogTitle className="flex-1 text-xl font-bold">
+                  {exercise.name}
+                </DialogTitle>
+                {/* グラフ・設定ボタン（後で実装） */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    // TODO: グラフ表示機能（後で実装）
+                  }}
+                  className="h-8 w-8"
+                  aria-label="グラフ表示"
+                >
+                  <BarChart3 className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    // TODO: 設定機能（後で実装）
+                  }}
+                  className="h-8 w-8"
+                  aria-label="設定"
+                >
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </div>
+              <DialogDescription className="sr-only">
+                {isCardio ? "有酸素種目の記録を入力します" : "筋トレ種目のセット記録を入力します"}
+              </DialogDescription>
             </DialogHeader>
 
             {/* コンテンツエリア */}
