@@ -8,6 +8,7 @@ import { getBig3MaxWeights } from "@/lib/api";
 import { calculateMaxWeights } from "@/lib/max-weight";
 import { getExercises } from "@/lib/api";
 import { mockInitialExercises } from "@/lib/mock-exercises";
+import { logger } from "@/lib/logger";
 import type { Exercise } from "@/types/workout";
 
 // Big3種目の目標重量（デフォルト値、将来的にはプロフィール設定で管理）
@@ -114,10 +115,8 @@ async function getBig3Targets(): Promise<{
         deadlift: data.data.big3TargetDeadlift ?? DEFAULT_TARGETS.deadlift,
       };
     }
-  } catch (error) {
-    if (process.env.NODE_ENV === "development") {
-      console.error("目標値取得エラー:", error);
-    }
+  } catch (error: unknown) {
+    logger.warn("目標値取得エラー:", error);
   }
   return DEFAULT_TARGETS;
 }
@@ -218,8 +217,7 @@ export function HomePage() {
       );
 
       // デバッグ情報（開発環境のみ）
-      if (process.env.NODE_ENV === "development") {
-        console.log("Big3データ取得結果:", {
+      logger.debug("Big3データ取得結果:", {
           dbResult: dbResult.success ? "成功" : "失敗",
           dbWeights: dbResult.data,
           localMaxWeights,
@@ -254,13 +252,11 @@ export function HomePage() {
       };
 
       // デバッグ情報（開発環境のみ）
-      if (process.env.NODE_ENV === "development") {
-        console.log("ローカルストレージから取得した最大重量:", {
-          exerciseIds,
-          localWeights,
-          localMaxWeightsKeys: Object.keys(localMaxWeights),
-        });
-      }
+      logger.debug("ローカルストレージから取得した最大重量:", {
+        exerciseIds,
+        localWeights,
+        localMaxWeightsKeys: Object.keys(localMaxWeights),
+      });
 
       // データベースとローカルストレージの最大値を比較（大きい方を採用）
       const finalWeights = {
@@ -274,16 +270,12 @@ export function HomePage() {
       const newData = createBig3Data(finalWeights, targets);
 
       // デバッグ情報（開発環境のみ）
-      if (process.env.NODE_ENV === "development") {
-        console.log("生成されたBig3データ:", newData);
-      }
+      logger.debug("生成されたBig3データ:", newData);
 
       setBig3Data(newData);
     } catch (error) {
       // エラー時はローカルストレージのみを使用
-      if (process.env.NODE_ENV === "development") {
-        console.warn("Big3データ取得エラー:", error);
-      }
+      logger.warn("Big3データ取得エラー:", error);
 
       const localMaxWeights = calculateMaxWeights();
 
@@ -314,15 +306,13 @@ export function HomePage() {
         };
 
         // デバッグ情報（開発環境のみ）
-        if (process.env.NODE_ENV === "development") {
-          console.log("モックデータから取得した種目ID:", {
-            mockBig3Exercises,
-            exerciseIds,
-            mockInitialExercises: mockInitialExercises
-              .filter((ex) => ex.isBig3)
-              .map((ex) => ({ name: ex.name, id: ex.id })),
-          });
-        }
+        logger.debug("モックデータから取得した種目ID:", {
+          mockBig3Exercises,
+          exerciseIds,
+          mockInitialExercises: mockInitialExercises
+            .filter((ex) => ex.isBig3)
+            .map((ex) => ({ name: ex.name, id: ex.id })),
+        });
       }
 
       // ローカルストレージから最大重量を取得
@@ -346,15 +336,13 @@ export function HomePage() {
       };
 
       // デバッグ情報（開発環境のみ）
-      if (process.env.NODE_ENV === "development") {
-        console.log("エラー時のローカルストレージデータ:", {
-          exerciseIds,
-          localMaxWeights,
-          localWeights,
-          allLocalWeights,
-          maxLocalWeight,
-        });
-      }
+      logger.debug("エラー時のローカルストレージデータ:", {
+        exerciseIds,
+        localMaxWeights,
+        localWeights,
+        allLocalWeights,
+        maxLocalWeight,
+      });
 
       // プロフィールから目標値を取得
       const targets = await getBig3Targets();
