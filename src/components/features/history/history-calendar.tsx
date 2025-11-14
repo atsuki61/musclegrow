@@ -152,7 +152,7 @@ export function HistoryCalendar({
           root: "h-auto", // ルート要素の高さを自動に
           months: "h-auto", // 月表示の高さを自動に
         }}
-        className="rounded-md border w-full [--cell-size:3rem] h-auto overflow-hidden"
+        className="rounded-md border w-full [--cell-size:3rem] h-auto"
       />
     </div>
   );
