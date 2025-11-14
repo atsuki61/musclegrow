@@ -1,6 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, Settings } from "lucide-react";
+import Link from "next/link";
 
 type Big3Exercise = {
   name: string;
@@ -29,9 +31,17 @@ export function Big3Progress({
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-muted-foreground" />
-          <h3 className="text-lg font-semibold">Big3 進捗</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-lg font-semibold">Big3 進捗</h3>
+          </div>
+          <Link href="/goals">
+            <Button variant="ghost" size="sm" className="h-8 px-2">
+              <Settings className="h-4 w-4 mr-1" />
+              <span className="text-xs">目標編集</span>
+            </Button>
+          </Link>
         </div>
         <div className="space-y-3">
           {exercises.map((exercise, index) => {
