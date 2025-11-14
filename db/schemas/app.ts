@@ -30,6 +30,22 @@ export const profiles = pgTable("profiles", {
     .$onUpdate(() => new Date()),
 });
 
+// ①-2 profile_history テーブル - プロフィール履歴（グラフ用）
+export const profileHistory = pgTable("profile_history", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid(10)),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  height: numeric("height", { precision: 5, scale: 2 }), // 身長（cm）
+  weight: numeric("weight", { precision: 5, scale: 2 }), // 体重（kg）
+  bodyFat: numeric("body_fat", { precision: 4, scale: 1 }), // 体脂肪率（%）
+  muscleMass: numeric("muscle_mass", { precision: 5, scale: 2 }), // 筋肉量（kg）
+  bmi: numeric("bmi", { precision: 4, scale: 1 }), // BMI（計算値）
+  recordedAt: timestamp("recorded_at").defaultNow().notNull(), // 記録日時
+});
+
 // ② exercises テーブル - 種目マスタ（共通マスタ + ユーザー独自種目）
 export const exercises = pgTable("exercises", {
   id: text("id")
