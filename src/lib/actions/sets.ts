@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "../../../db";
-import { sets } from "../../../db/schemas/app";
+import { sets, workoutSessions } from "../../../db/schemas/app";
 import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
 import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, and } from "drizzle-orm";
@@ -34,6 +34,29 @@ export async function saveSets({
       return {
         success: false,
         error: validationResult.error,
+      };
+    }
+
+    const userId = validationResult.userId;
+
+    // セッションがそのユーザーのものか確認
+    const [session] = await db
+      .select({ userId: workoutSessions.userId })
+      .from(workoutSessions)
+      .where(eq(workoutSessions.id, sessionId))
+      .limit(1);
+
+    if (!session) {
+      return {
+        success: false,
+        error: "セッションが見つかりません",
+      };
+    }
+
+    if (session.userId !== userId) {
+      return {
+        success: false,
+        error: "このセッションにアクセスする権限がありません",
       };
     }
 
@@ -139,6 +162,27 @@ export async function getSets({
       return {
         success: false,
         error: "認証が必要です",
+      };
+    }
+
+    // セッションがそのユーザーのものか確認
+    const [session] = await db
+      .select({ userId: workoutSessions.userId })
+      .from(workoutSessions)
+      .where(eq(workoutSessions.id, sessionId))
+      .limit(1);
+
+    if (!session) {
+      return {
+        success: false,
+        error: "セッションが見つかりません",
+      };
+    }
+
+    if (session.userId !== userId) {
+      return {
+        success: false,
+        error: "このセッションにアクセスする権限がありません",
       };
     }
 
