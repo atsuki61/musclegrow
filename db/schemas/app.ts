@@ -23,6 +23,9 @@ export const profiles = pgTable("profiles", {
   weight: numeric("weight", { precision: 5, scale: 2 }), // 体重（kg）例: 70.50
   bodyFat: numeric("body_fat", { precision: 4, scale: 1 }), // 体脂肪率（%）例: 15.5
   muscleMass: numeric("muscle_mass", { precision: 5, scale: 2 }), // 筋肉量（kg）例: 35.20
+  big3TargetBenchPress: numeric("big3_target_bench_press", { precision: 6, scale: 1 }), // ベンチプレスの目標重量（kg）例: 100.0
+  big3TargetSquat: numeric("big3_target_squat", { precision: 6, scale: 1 }), // スクワットの目標重量（kg）例: 120.0
+  big3TargetDeadlift: numeric("big3_target_deadlift", { precision: 6, scale: 1 }), // デッドリフトの目標重量（kg）例: 140.0
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
