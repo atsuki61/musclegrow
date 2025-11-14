@@ -66,6 +66,27 @@ export async function getSessionDetails(sessionId: string): Promise<{
       };
     }
 
+    // セッションがそのユーザーのものか確認
+    const [session] = await db
+      .select({ userId: workoutSessions.userId })
+      .from(workoutSessions)
+      .where(eq(workoutSessions.id, sessionId))
+      .limit(1);
+
+    if (!session) {
+      return {
+        success: false,
+        error: "セッションが見つかりません",
+      };
+    }
+
+    if (session.userId !== userId) {
+      return {
+        success: false,
+        error: "このセッションにアクセスする権限がありません",
+      };
+    }
+
     // セット記録を取得
     const setsData = await db
       .select()
