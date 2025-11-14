@@ -2,6 +2,7 @@
 
 import { db } from "../../../db";
 import { cardioRecords } from "../../../db/schemas/app";
+import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
 import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, and } from "drizzle-orm";
 import type { CardioRecord } from "@/types/workout";
@@ -27,11 +28,12 @@ export async function saveCardioRecords({
   data?: { count: number };
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
+    // 種目IDのバリデーションと認証チェック
+    const validationResult = await validateExerciseIdAndAuth(exerciseId);
+    if (!validationResult.success) {
       return {
         success: false,
-        error: "認証が必要です",
+        error: validationResult.error,
       };
     }
 
@@ -138,6 +140,14 @@ export async function getCardioRecords({
       return {
         success: false,
         error: "認証が必要です",
+      };
+    }
+
+    // exerciseIdがモックID（mock-で始まる）の場合は空の配列を返す
+    if (exerciseId.startsWith("mock-")) {
+      return {
+        success: true,
+        data: [],
       };
     }
 

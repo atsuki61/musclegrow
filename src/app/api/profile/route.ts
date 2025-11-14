@@ -38,6 +38,19 @@ function createUnauthorizedResponse() {
 }
 
 /**
+ * 文字列またはnullの値を数値に変換する
+ *
+ * @param value 変換対象の値
+ * @returns 数値（nullの場合はnull）
+ */
+function parseNullableFloat(value: string | null | undefined): number | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  return parseFloat(value);
+}
+
+/**
  * データベースのプロフィールデータをAPIレスポンス形式に変換する
  *
  * @param profile データベースから取得したプロフィールデータ
@@ -50,28 +63,22 @@ function transformProfileToResponse(profile: {
   weight: string | null;
   bodyFat: string | null;
   muscleMass: string | null;
-  big3TargetBenchPress: string | null;
-  big3TargetSquat: string | null;
-  big3TargetDeadlift: string | null;
+  big3TargetBenchPress?: string | null;
+  big3TargetSquat?: string | null;
+  big3TargetDeadlift?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }) {
   return {
     id: profile.id,
     userId: profile.userId,
-    height: profile.height ? parseFloat(profile.height) : null,
-    weight: profile.weight ? parseFloat(profile.weight) : null,
-    bodyFat: profile.bodyFat ? parseFloat(profile.bodyFat) : null,
-    muscleMass: profile.muscleMass ? parseFloat(profile.muscleMass) : null,
-    big3TargetBenchPress: profile.big3TargetBenchPress
-      ? parseFloat(profile.big3TargetBenchPress)
-      : null,
-    big3TargetSquat: profile.big3TargetSquat
-      ? parseFloat(profile.big3TargetSquat)
-      : null,
-    big3TargetDeadlift: profile.big3TargetDeadlift
-      ? parseFloat(profile.big3TargetDeadlift)
-      : null,
+    height: parseNullableFloat(profile.height),
+    weight: parseNullableFloat(profile.weight),
+    bodyFat: parseNullableFloat(profile.bodyFat),
+    muscleMass: parseNullableFloat(profile.muscleMass),
+    big3TargetBenchPress: parseNullableFloat(profile.big3TargetBenchPress),
+    big3TargetSquat: parseNullableFloat(profile.big3TargetSquat),
+    big3TargetDeadlift: parseNullableFloat(profile.big3TargetDeadlift),
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
   };
@@ -178,28 +185,24 @@ export async function PUT(request: NextRequest) {
       big3TargetDeadlift?: string;
     } = {};
 
-    if (updateData.height !== undefined) {
-      dbUpdateData.height = updateData.height.toString();
-    }
-    if (updateData.weight !== undefined) {
-      dbUpdateData.weight = updateData.weight.toString();
-    }
-    if (updateData.bodyFat !== undefined) {
-      dbUpdateData.bodyFat = updateData.bodyFat.toString();
-    }
-    if (updateData.muscleMass !== undefined) {
-      dbUpdateData.muscleMass = updateData.muscleMass.toString();
-    }
-    if (updateData.big3TargetBenchPress !== undefined) {
-      dbUpdateData.big3TargetBenchPress =
-        updateData.big3TargetBenchPress.toString();
-    }
-    if (updateData.big3TargetSquat !== undefined) {
-      dbUpdateData.big3TargetSquat = updateData.big3TargetSquat.toString();
-    }
-    if (updateData.big3TargetDeadlift !== undefined) {
-      dbUpdateData.big3TargetDeadlift =
-        updateData.big3TargetDeadlift.toString();
+    // 更新フィールドをマッピング
+    const fieldMappings: Array<
+      [keyof typeof updateData, keyof typeof dbUpdateData]
+    > = [
+      ["height", "height"],
+      ["weight", "weight"],
+      ["bodyFat", "bodyFat"],
+      ["muscleMass", "muscleMass"],
+      ["big3TargetBenchPress", "big3TargetBenchPress"],
+      ["big3TargetSquat", "big3TargetSquat"],
+      ["big3TargetDeadlift", "big3TargetDeadlift"],
+    ];
+
+    for (const [sourceKey, targetKey] of fieldMappings) {
+      const value = updateData[sourceKey];
+      if (value !== undefined) {
+        dbUpdateData[targetKey] = value.toString();
+      }
     }
 
     // 更新データが空の場合はエラーを返す

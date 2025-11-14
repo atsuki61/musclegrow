@@ -3,8 +3,60 @@
 import { db } from "../../../db";
 import { exercises } from "../../../db/schemas/app";
 import { getCurrentUserId } from "@/lib/auth-utils";
-import { eq, or, isNull } from "drizzle-orm";
+import { eq, and, or, isNull } from "drizzle-orm";
 import type { Exercise } from "@/types/workout";
+
+/**
+ * 種目IDのバリデーションと認証チェックを行う共通関数
+ * @param exerciseId 種目ID
+ * @returns バリデーション結果（成功時はuserId、失敗時はエラー情報）
+ */
+export async function validateExerciseIdAndAuth(
+  exerciseId: string
+): Promise<
+  | { success: true; userId: string }
+  | { success: false; error: string }
+> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return {
+      success: false,
+      error: "認証が必要です",
+    };
+  }
+
+  // exerciseIdがモックID（mock-で始まる）の場合はエラーを返す
+  if (exerciseId.startsWith("mock-")) {
+    return {
+      success: false,
+      error: "モックデータは保存できません",
+    };
+  }
+
+  // exerciseIdがデータベースに存在するか確認
+  const [exercise] = await db
+    .select()
+    .from(exercises)
+    .where(
+      and(
+        eq(exercises.id, exerciseId),
+        or(isNull(exercises.userId), eq(exercises.userId, userId))
+      )
+    )
+    .limit(1);
+
+  if (!exercise) {
+    return {
+      success: false,
+      error: `種目ID "${exerciseId}" が見つかりません`,
+    };
+  }
+
+  return {
+    success: true,
+    userId,
+  };
+}
 
 /**
  * 種目を保存する（カスタム種目）
