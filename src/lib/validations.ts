@@ -108,7 +108,7 @@ export const setRecordSchema = z.object({
     .max(1000, "重量は1000kg以下で入力してください")
     .optional(),
   reps: z
-    .number()
+    .number("回数は数値で入力してください")
     .int("回数は整数で入力してください")
     .min(1, "回数は1回以上で入力してください")
     .max(1000, "回数は1000回以下で入力してください"),
@@ -302,6 +302,10 @@ export function validateItems<T>(
         console.error(
           `${itemName}${index + 1}のバリデーションエラー:`,
           errorDetails
+        );
+        console.error(
+          `${itemName}${index + 1}のデータ:`,
+          JSON.stringify(item, null, 2)
         );
       }
     }
