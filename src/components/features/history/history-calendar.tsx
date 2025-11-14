@@ -40,15 +40,6 @@ export function HistoryCalendar({
   const getBodyPartsForDate = (date: Date): BodyPart[] => {
     const dateStr = format(date, "yyyy-MM-dd");
     const bodyParts = bodyPartsByDate[dateStr] || [];
-    // デバッグログを追加（2025-11-10の場合のみ）
-    if (dateStr === "2025-11-10") {
-      console.log("[HistoryCalendar] getBodyPartsForDate for 2025-11-10:", {
-        dateStr,
-        bodyParts,
-        bodyPartsLength: bodyParts.length,
-        bodyPartsByDate,
-      });
-    }
     return bodyParts;
   };
 
