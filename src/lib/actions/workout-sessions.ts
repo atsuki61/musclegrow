@@ -85,7 +85,7 @@ export async function saveWorkoutSession({
         },
       };
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("ワークアウトセッション保存エラー:", error);
     return {
       success: false,
@@ -145,7 +145,7 @@ export async function getWorkoutSession(
         durationMinutes: session.durationMinutes ?? undefined,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("ワークアウトセッション取得エラー:", error);
     return {
       success: false,
@@ -214,7 +214,7 @@ export async function getWorkoutSessionsByDateRange({
         durationMinutes: session.durationMinutes ?? undefined,
       })),
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("ワークアウトセッション一覧取得エラー:", error);
     return {
       success: false,

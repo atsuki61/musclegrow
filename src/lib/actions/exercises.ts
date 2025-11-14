@@ -111,7 +111,7 @@ export async function saveExercise(exercise: Exercise): Promise<{
         createdAt: savedExercise.createdAt,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("種目保存エラー:", error);
     return {
       success: false,
@@ -168,7 +168,7 @@ export async function getExercises(): Promise<{
       success: true,
       data: exercisesData,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     // 開発環境でのみエラーをログに出力
     if (process.env.NODE_ENV === "development") {
       console.error("種目取得エラー:", error);

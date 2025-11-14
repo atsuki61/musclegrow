@@ -169,7 +169,7 @@ export async function getBig3MaxWeights(): Promise<Big3MaxWeightsResult> {
         },
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     // 開発環境でのみエラーをログに出力
     if (process.env.NODE_ENV === "development") {
       console.error("Big3最大重量取得エラー:", error);
