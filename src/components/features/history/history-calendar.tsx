@@ -157,6 +157,7 @@ export function HistoryCalendar({
         onMonthChange={handleMonthChange}
         disabled={isDateDisabled}
         locale={ja}
+        fixedWeeks={true}
         components={{
           DayButton: CustomDayButton,
         }}
