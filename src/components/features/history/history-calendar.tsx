@@ -6,7 +6,7 @@ import { DayButton } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { MultiPartDayButton } from "./multi-part-day-button";
-import { cn } from "@/lib/utils";
+import { cn, isFutureDate } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
 
 interface HistoryCalendarProps {
@@ -36,6 +36,18 @@ export function HistoryCalendar({
   onDateSelect,
   filteredBodyPart = "all",
 }: HistoryCalendarProps) {
+  // 未来の日付を無効化する関数
+  const isDateDisabled = (date: Date) => isFutureDate(date);
+
+  // 月変更時の処理（未来の月への移動を制限）
+  const handleMonthChange = (date: Date) => {
+    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+    if (isFutureDate(monthStart)) {
+      return; // 未来の月には移動できない
+    }
+    onMonthChange(date);
+  };
+
   // 日付の部位を取得
   const getBodyPartsForDate = (date: Date): BodyPart[] => {
     const dateStr = format(date, "yyyy-MM-dd");
@@ -142,7 +154,8 @@ export function HistoryCalendar({
         selected={selectedDate || undefined}
         onSelect={(date) => date && onDateSelect(date)}
         month={currentMonth}
-        onMonthChange={onMonthChange}
+        onMonthChange={handleMonthChange}
+        disabled={isDateDisabled}
         locale={ja}
         components={{
           DayButton: CustomDayButton,
@@ -150,7 +163,8 @@ export function HistoryCalendar({
         classNames={{
           today: "", // todayスタイルを無効化（色付けを優先）
           root: "h-auto", // ルート要素の高さを自動に（w-fitはデフォルトで維持）
-          months: "h-auto", // 月表示の高さを自動に
+          months: "h-auto relative", // 月表示の高さを自動に
+          month_caption: "flex-1 text-center", // 月表示を中央に配置（w-fullとpx-(--cell-size)を上書き）
         }}
         className="rounded-md border w-full [--cell-size:3rem] h-auto" // カレンダーのサイズを調整
       />
