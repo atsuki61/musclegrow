@@ -162,11 +162,8 @@ export function HistoryCalendar({
         }}
         classNames={{
           today: "", // todayスタイルを無効化（色付けを優先）
-          root: "h-auto w-full !p-4", // ルート要素の高さと幅を自動に、paddingを調整
-          months: "h-auto relative", // 月表示の高さを自動に
-          month_caption: "flex-1 text-center", // 月表示を中央に配置（w-fullとpx-(--cell-size)を上書き）
         }}
-        className="rounded-md border w-full [--cell-size:3rem] h-auto" // カードのサイズを調整
+        className="rounded-md border w-full [--cell-size:3rem] h-auto !p-4" // カードのサイズを調整、paddingを上書き
       />
     </div>
   );
