@@ -162,11 +162,11 @@ export function HistoryCalendar({
         }}
         classNames={{
           today: "", // todayスタイルを無効化（色付けを優先）
-          root: "h-auto", // ルート要素の高さを自動に（w-fitはデフォルトで維持）
+          root: "h-auto w-full", // ルート要素の高さと幅を自動に（カード側を動かす）
           months: "h-auto relative", // 月表示の高さを自動に
           month_caption: "flex-1 text-center", // 月表示を中央に配置（w-fullとpx-(--cell-size)を上書き）
         }}
-        className="rounded-md border w-full [--cell-size:3rem] h-auto" // カレンダーのサイズを調整
+        className="rounded-md border w-full [--cell-size:2rem] h-auto" // カードのサイズを調整
       />
     </div>
   );
