@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { format } from "date-fns";
+import { format, isAfter, startOfDay } from "date-fns";
 import type { BodyPart, Exercise } from "@/types/workout";
 
 /**
@@ -174,4 +174,18 @@ export function formatDateToYYYYMMDD(date: Date): string {
  */
 export function isAuthPage(pathname: string): boolean {
   return pathname === "/login" || pathname === "/signup";
+}
+
+/**
+ * 未来の日付かどうかを判定する
+ * 今日より未来の日付は無効（記録登録不可）
+ * @param date 判定する日付
+ * @param referenceDate 基準となる日付（デフォルト: 今日）
+ * @returns 未来の日付の場合true、それ以外はfalse
+ */
+export function isFutureDate(
+  date: Date,
+  referenceDate: Date = new Date()
+): boolean {
+  return isAfter(startOfDay(date), startOfDay(referenceDate));
 }
