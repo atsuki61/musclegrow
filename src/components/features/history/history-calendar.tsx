@@ -162,9 +162,8 @@ export function HistoryCalendar({
         }}
         classNames={{
           today: "", // todayスタイルを無効化（色付けを優先）
-          root: "pb-[calc(var(--cell-size)*2+1rem)]", // NavとMonth Captionの高さ分 + 元のpb-4分を確保
         }}
-        className="rounded-md border w-full [--cell-size:3rem] h-auto" // カードのサイズを調整
+        className="rounded-md border w-full [--cell-size:3rem] min-h-[calc(var(--cell-size)*10)]" // カードのサイズを調整（最小高さを設定）
       />
     </div>
   );
