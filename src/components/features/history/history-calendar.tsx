@@ -148,7 +148,7 @@ export function HistoryCalendar({
   };
 
   return (
-    <div className="w-full flex justify-center">
+    <div className="w-full flex justify-center h-auto">
       <Calendar
         mode="single"
         selected={selectedDate || undefined}
@@ -162,8 +162,9 @@ export function HistoryCalendar({
         }}
         classNames={{
           today: "", // todayスタイルを無効化（色付けを優先）
+          root: "pb-4", // ルート要素の下部paddingを追加
         }}
-        className="rounded-md border w-full [--cell-size:3rem] h-auto" // カードのサイズを調整、paddingを上書き
+        className="rounded-md border w-full [--cell-size:3rem] h-auto" // カードのサイズを調整
       />
     </div>
   );
