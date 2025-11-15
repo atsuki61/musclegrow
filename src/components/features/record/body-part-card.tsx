@@ -21,6 +21,29 @@ interface BodyPartCardProps {
 }
 
 /**
+ * tier="initial"の種目のみをフィルタリング
+ */
+function filterInitialExercises(exercises: Exercise[]): Exercise[] {
+  return exercises.filter((exercise) => exercise.tier === "initial");
+}
+
+/**
+ * サブ分類ごとに種目をグループ化
+ */
+function groupExercisesBySubGroup(
+  exercises: Exercise[]
+): Record<string, Exercise[]> {
+  return exercises.reduce((acc, exercise) => {
+    const subGroup = exercise.muscleSubGroup || "other";
+    if (!acc[subGroup]) {
+      acc[subGroup] = [];
+    }
+    acc[subGroup].push(exercise);
+    return acc;
+  }, {} as Record<string, Exercise[]>);
+}
+
+/**
  * 部位カードコンポーネント
  * サブ分類ごとにグループ化し、3行×n列のグリッドレイアウトで種目を表示
  */
@@ -32,15 +55,18 @@ export function BodyPartCard({
   onExerciseSelect,
   onAddExerciseClick,
 }: BodyPartCardProps) {
-  // サブ分類ごとに種目をグループ化
-  const groupedExercises = exercises.reduce((acc, exercise) => {
-    const subGroup = exercise.muscleSubGroup || "other";
-    if (!acc[subGroup]) {
-      acc[subGroup] = [];
+  const groupedExercises = groupExercisesBySubGroup(exercises);
+  const initialExercises = filterInitialExercises(exercises);
+
+  // デバッグ情報（開発環境のみ）
+  if (process.env.NODE_ENV === "development") {
+    if (exercises.length > 0 && initialExercises.length === 0) {
+      console.warn(
+        `[BodyPartCard] ${bodyPart}: ${exercises.length}件の種目がありますが、tier="initial"の種目が0件です。`,
+        exercises.map((e) => ({ name: e.name, tier: e.tier }))
+      );
     }
-    acc[subGroup].push(exercise);
-    return acc;
-  }, {} as Record<string, Exercise[]>);
+  }
 
   return (
     <Card className="p-4">
@@ -55,19 +81,26 @@ export function BodyPartCard({
       {/* サブ分類ごとのグループ */}
       <div className="space-y-6">
         {Object.entries(groupedExercises).map(
-          ([subGroup, subGroupExercises]) => (
-            <div key={subGroup}>
-              {/* サブ分類見出し */}
-              <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
-                {MUSCLE_SUB_GROUP_LABELS[subGroup as MuscleSubGroup] ||
-                  subGroup}
-              </h3>
+          ([subGroup, subGroupExercises]) => {
+            const initialSubGroupExercises =
+              filterInitialExercises(subGroupExercises);
 
-              {/* 種目グリッド（3行×n列） */}
-              <div className="grid grid-cols-3 gap-2">
-                {subGroupExercises
-                  .filter((exercise) => exercise.tier === "initial")
-                  .map((exercise) => {
+            // tier="initial"の種目が存在しない場合はスキップ
+            if (initialSubGroupExercises.length === 0) {
+              return null;
+            }
+
+            return (
+              <div key={subGroup}>
+                {/* サブ分類見出し */}
+                <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
+                  {MUSCLE_SUB_GROUP_LABELS[subGroup as MuscleSubGroup] ||
+                    subGroup}
+                </h3>
+
+                {/* 種目グリッド（3行×n列） */}
+                <div className="grid grid-cols-3 gap-2">
+                  {initialSubGroupExercises.map((exercise) => {
                     const maxWeight = maxWeights[exercise.id];
                     const isCardio = isCardioExercise(exercise);
                     return (
@@ -88,11 +121,32 @@ export function BodyPartCard({
                       </button>
                     );
                   })}
+                </div>
               </div>
-            </div>
-          )
+            );
+          }
         )}
       </div>
+
+      {/* 種目が存在しない場合のメッセージ */}
+      {initialExercises.length === 0 && exercises.length > 0 && (
+        <div className="py-4 text-center text-sm text-muted-foreground">
+          <p>この部位には表示可能な種目がありません。</p>
+          {process.env.NODE_ENV === "development" && (
+            <p className="mt-1 text-xs">
+              （{exercises.length}
+              件の種目がありますが、tier=&quot;initial&quot;の種目が0件です）
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* 種目が全く存在しない場合のメッセージ */}
+      {exercises.length === 0 && (
+        <div className="py-4 text-center text-sm text-muted-foreground">
+          <p>この部位には種目が登録されていません。</p>
+        </div>
+      )}
 
       {/* フッター */}
       <div className="mt-4 flex gap-2">
