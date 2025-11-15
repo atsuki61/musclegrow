@@ -163,7 +163,7 @@ export function HistoryCalendar({
         classNames={{
           today: "", // todayスタイルを無効化（色付けを優先）
         }}
-        className="rounded-md border w-full [--cell-size:3rem] h-auto !p-4" // カードのサイズを調整、paddingを上書き
+        className="rounded-md border w-full [--cell-size:3rem] h-auto" // カードのサイズを調整、paddingを上書き
       />
     </div>
   );
