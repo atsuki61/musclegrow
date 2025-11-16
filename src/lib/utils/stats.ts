@@ -62,7 +62,7 @@ export function extractMaxWeightUpdates(
 }
 
 /**
- * Big3種目を特定する
+ * Big3種目を特定する（完全一致で判定）
  */
 export function identifyBig3Exercises(
   big3Exercises: Array<{ id: string; name: string }>
@@ -71,19 +71,44 @@ export function identifyBig3Exercises(
   squatId: string | undefined;
   deadliftId: string | undefined;
 } {
-  const benchPressId = big3Exercises.find(
-    (e) => e.name.includes("ベンチ") || e.name.toLowerCase().includes("bench")
+  const benchPressId = big3Exercises.find((e) =>
+    e.name.includes("ベンチプレス")
   )?.id;
-  const squatId = big3Exercises.find(
-    (e) =>
-      e.name.includes("スクワット") || e.name.toLowerCase().includes("squat")
-  )?.id;
-  const deadliftId = big3Exercises.find(
-    (e) =>
-      e.name.includes("デッド") || e.name.toLowerCase().includes("deadlift")
+  const squatId = big3Exercises.find((e) => e.name.includes("スクワット"))?.id;
+  const deadliftId = big3Exercises.find((e) =>
+    e.name.includes("デッドリフト")
   )?.id;
 
   return { benchPressId, squatId, deadliftId };
+}
+
+/**
+ * データベースとローカルストレージのデータをマージ
+ * 同じ日付のデータがある場合、大きい方を優先
+ */
+export function mergeProgressData(
+  dbData: Array<{ date: string; maxWeight: number }>,
+  storageData: Array<{ date: string; maxWeight: number }>
+): Array<{ date: string; maxWeight: number }> {
+  const merged = new Map<string, number>();
+
+  // データベースのデータを追加
+  for (const item of dbData) {
+    merged.set(item.date, item.maxWeight);
+  }
+
+  // ローカルストレージのデータを追加（大きい方を優先）
+  for (const item of storageData) {
+    const existing = merged.get(item.date);
+    if (!existing || item.maxWeight > existing) {
+      merged.set(item.date, item.maxWeight);
+    }
+  }
+
+  // 日付でソート
+  return Array.from(merged.entries())
+    .map(([date, maxWeight]) => ({ date, maxWeight }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /**
