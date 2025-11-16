@@ -18,7 +18,6 @@ import {
 import { getExercises } from "@/lib/actions/exercises";
 import { getBig3ProgressDataFromStorage } from "@/lib/local-storage-big3-progress";
 import { getExerciseProgressDataFromStorage } from "@/lib/local-storage-exercise-progress";
-import { extractMaxWeightUpdates } from "@/lib/utils/stats";
 import type {
   DateRangePreset,
   ProfileChartType,
@@ -102,20 +101,22 @@ export function StatsPage() {
     if (exercises.length === 0) return;
 
     setTrainingLoading(true);
-    
+
     // データベースから取得
     const dbResult = await getBig3ProgressData({ preset: trainingDateRange });
-    
+
     // Big3種目のIDを取得
     const big3Exercises = exercises.filter((ex) => ex.isBig3);
     const benchPressId = big3Exercises.find(
       (e) => e.name.includes("ベンチ") || e.name.toLowerCase().includes("bench")
     )?.id;
     const squatId = big3Exercises.find(
-      (e) => e.name.includes("スクワット") || e.name.toLowerCase().includes("squat")
+      (e) =>
+        e.name.includes("スクワット") || e.name.toLowerCase().includes("squat")
     )?.id;
     const deadliftId = big3Exercises.find(
-      (e) => e.name.includes("デッド") || e.name.toLowerCase().includes("deadlift")
+      (e) =>
+        e.name.includes("デッド") || e.name.toLowerCase().includes("deadlift")
     )?.id;
 
     // ローカルストレージから取得
@@ -170,12 +171,8 @@ export function StatsPage() {
       ),
     };
 
-    // 最大重量が更新された日のみを抽出（マージ後のデータに対して）
-    setBig3Data({
-      benchPress: extractMaxWeightUpdates(mergedData.benchPress),
-      squat: extractMaxWeightUpdates(mergedData.squat),
-      deadlift: extractMaxWeightUpdates(mergedData.deadlift),
-    });
+    // プロフィールと同じく、全ての記録日をそのまま表示
+    setBig3Data(mergedData);
 
     setTrainingLoading(false);
   }, [trainingDateRange, exercises]);
@@ -218,7 +215,7 @@ export function StatsPage() {
     }
 
     setTrainingLoading(true);
-    
+
     // データベースから取得
     const dbResult = await getExerciseProgressData({
       exerciseId: selectedExerciseId,
@@ -255,8 +252,8 @@ export function StatsPage() {
       .map(([date, maxWeight]) => ({ date, maxWeight }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // 最大重量が更新された日のみを抽出
-    setExerciseData(extractMaxWeightUpdates(mergedData));
+    // プロフィールと同じく、全ての記録日をそのまま表示
+    setExerciseData(mergedData);
     setTrainingLoading(false);
   }, [selectedExerciseId, selectedBodyPart, trainingDateRange, exercises]);
 
@@ -356,65 +353,52 @@ export function StatsPage() {
 
           {/* Big3グラフ */}
           {isBig3Selected && (
-            <div className="rounded-lg border bg-card p-4">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold">
-                  {selectedBodyPart === "big3"
-                    ? "Big3 推移"
-                    : "トレーニング推移"}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  最大重量が更新された日のみ表示
-                </p>
-              </div>
+            <>
               {trainingLoading ? (
                 <ChartLoading />
               ) : (
-                <Big3Chart data={big3Data} />
+                <Big3Chart
+                  data={big3Data}
+                  dataCount={
+                    big3Data.benchPress.length +
+                    big3Data.squat.length +
+                    big3Data.deadlift.length
+                  }
+                />
               )}
-              <div className="mt-4 flex flex-wrap gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span>ベンチプレス</span>
+              {/* Big3選択時のみ色分け凡例を表示 */}
+              {selectedBodyPart === "big3" && (
+                <div className="mt-4 flex flex-wrap gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <span>ベンチプレス</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span>スクワット</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span>デッドリフト</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span>スクワット</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span>デッドリフト</span>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                ※ 最大重量が更新された日のみ表示
-              </p>
-            </div>
+              )}
+            </>
           )}
 
           {/* 種目別グラフ */}
           {!isBig3Selected && selectedExerciseId && (
-            <div className="rounded-lg border bg-card p-4">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold">
-                  {selectedExercise?.name || "種目別"} の推移
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  最大重量が更新された日のみ表示
-                </p>
-              </div>
+            <>
               {trainingLoading ? (
                 <ChartLoading />
               ) : (
                 <ExerciseChart
                   data={exerciseData}
                   exercise={selectedExercise || null}
+                  dataCount={exerciseData.length}
                 />
               )}
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                ※ 最大重量が更新された日のみ表示
-              </p>
-            </div>
+            </>
           )}
         </TabsContent>
       </Tabs>
