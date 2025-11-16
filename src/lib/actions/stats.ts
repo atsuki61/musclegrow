@@ -8,7 +8,7 @@ import {
   exercises,
 } from "../../../db/schemas/app";
 import { getCurrentUserId } from "@/lib/auth-utils";
-import { eq, and, gte, sql } from "drizzle-orm";
+import { eq, and, gte, sql, or, isNull } from "drizzle-orm";
 import type {
   ProfileHistoryData,
   ExerciseProgressData,
@@ -105,12 +105,18 @@ export async function getBig3ProgressData({
     }
 
     const startDate = getStartDate(preset);
+    const startDateStr = format(startDate, "yyyy-MM-dd");
 
-    // Big3種目のIDを取得
+    // Big3種目のIDを取得（共通マスタ + ユーザー独自種目）
     const big3Exercises = await db
       .select({ id: exercises.id, name: exercises.name })
       .from(exercises)
-      .where(eq(exercises.isBig3, true));
+      .where(
+        and(
+          eq(exercises.isBig3, true),
+          or(isNull(exercises.userId), eq(exercises.userId, userId))
+        )
+      );
 
     if (big3Exercises.length === 0) {
       return {
@@ -154,7 +160,7 @@ export async function getBig3ProgressData({
           and(
             eq(workoutSessions.userId, userId),
             eq(sets.exerciseId, exerciseId),
-            gte(workoutSessions.date, format(startDate, "yyyy-MM-dd")),
+            gte(workoutSessions.date, startDateStr),
             eq(sets.isWarmup, false) // ウォームアップセットを除外
           )
         )
