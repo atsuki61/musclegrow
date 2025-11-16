@@ -22,9 +22,13 @@ import {
   transformChartData,
   calculateXAxisDomain,
   calculateYAxisDomain,
-  findClosestDataPointIndex,
 } from "./profile-chart.utils";
 import { useDataPointCoordinates } from "./profile-chart.hooks";
+import {
+  VerticalReferenceLineComponent,
+  SelectionLabel,
+  createChartEventHandlers,
+} from "./shared-chart-components";
 
 interface ProfileChartProps {
   data: ProfileHistoryData[];
@@ -32,111 +36,6 @@ interface ProfileChartProps {
   dataCount?: number; // データ件数（オプション）
 }
 
-/**
- * 垂直線コンポーネント（Customized用）
- * RechartsのCustomizedコンポーネントから呼び出される
- */
-function VerticalReferenceLineComponent(props: {
-  width?: number;
-  height?: number;
-  margin?: {
-    top: number;
-    right: number;
-    bottom: number;
-    left: number;
-  };
-  selectedIndex?: number | null;
-  dataPointCoordinates?: Array<{ cx: number; cy: number; value: number }>;
-}) {
-  // propsの検証
-  if (!props.width || !props.height || !props.margin) {
-    return null;
-  }
-
-  // 選択状態の検証
-  if (
-    props.selectedIndex === null ||
-    props.selectedIndex === undefined ||
-    !props.dataPointCoordinates ||
-    props.selectedIndex >= props.dataPointCoordinates.length
-  ) {
-    return null;
-  }
-
-  const selectedPoint = props.dataPointCoordinates[props.selectedIndex];
-  if (!selectedPoint || selectedPoint.cx === undefined) {
-    return null;
-  }
-
-  // グラフの上端からX軸まで垂直線を描画
-  const startY = props.margin.top;
-  const endY = props.height - props.margin.bottom;
-
-  return (
-    <line
-      x1={selectedPoint.cx}
-      y1={startY}
-      x2={selectedPoint.cx}
-      y2={endY}
-      stroke={COLORS.referenceLine}
-      strokeWidth={1}
-      strokeDasharray="5 5"
-      opacity={0.6}
-      style={{ pointerEvents: "none" }}
-    />
-  );
-}
-
-/**
- * 選択ラベルコンポーネント（InBody風 - 控えめで上品なデザイン）
- */
-function SelectionLabel({
-  x,
-  date,
-  value,
-  unit,
-  containerWidth,
-}: {
-  x: number;
-  date: string;
-  value: number;
-  unit: string;
-  containerWidth: number;
-}) {
-  // ラベルの幅を推定（日付 + 値 + パディング + ギャップ）
-  // text-[10px] + text-[10px] + px-2 (8px*2) + gap-1 (4px) = 約80-90px
-  const labelWidth = 90;
-  const padding = 24; // カードの左右パディング（p-6 = 24px）
-
-  // ラベルの位置をclamp（カード内に制限）
-  const minX = padding + labelWidth / 2;
-  const maxX =
-    containerWidth > 0 ? containerWidth - padding - labelWidth / 2 : x; // containerWidthが0の場合は元の位置を使用
-
-  const clampedX = Math.min(Math.max(x, minX), maxX);
-
-  return (
-    <div
-      className="absolute pointer-events-none z-10"
-      style={{
-        top: "8px", // グラフの上端に配置
-        left: `${clampedX}px`,
-        transform: "translateX(-50%)",
-      }}
-    >
-      {/* InBody風：小さく控えめで上品なラベル */}
-      <div className="flex items-center gap-1 whitespace-nowrap bg-orange-50 px-2 py-[2px] rounded-md shadow-xs border border-gray-100/50">
-        <span className="text-[10px] font-medium text-gray-500">
-          {format(new Date(date), "yy.MM.dd")}
-        </span>
-        <span className="text-[10px] font-semibold text-orange-500">
-          {value.toFixed(1)}
-          {unit}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 /**
  * プロフィールグラフコンポーネント（モダン版）
@@ -197,6 +96,12 @@ export function ProfileChart({
   const xAxisDomain = calculateXAxisDomain(chartData);
   const yAxisDomain = calculateYAxisDomain(chartData);
 
+  // 共通イベントハンドラを作成
+  const chartEventHandlers = createChartEventHandlers(
+    dataPointCoordinates,
+    setSelectedIndex
+  );
+
   // アイコンコンポーネント
   const Icon = CHART_ICONS[chartType];
 
@@ -233,29 +138,7 @@ export function ProfileChart({
           <LineChart
             data={chartData}
             margin={{ top: 8, right: 20, left: 0, bottom: 10 }}
-            onMouseMove={(data) => {
-              if (data?.activeCoordinate && dataPointCoordinates.length > 0) {
-                const closestIndex = findClosestDataPointIndex(
-                  data.activeCoordinate.x,
-                  dataPointCoordinates
-                );
-                if (closestIndex !== null) {
-                  setSelectedIndex(closestIndex);
-                }
-              }
-            }}
-            onMouseLeave={() => {
-              setSelectedIndex(null);
-            }}
-            onClick={(data) => {
-              if (data?.activeCoordinate && dataPointCoordinates.length > 0) {
-                const closestIndex = findClosestDataPointIndex(
-                  data.activeCoordinate.x,
-                  dataPointCoordinates
-                );
-                setSelectedIndex(closestIndex);
-              }
-            }}
+            {...chartEventHandlers}
           >
             <defs>
               <filter
@@ -377,6 +260,7 @@ export function ProfileChart({
                       margin={props.margin}
                       selectedIndex={selectedIndex}
                       dataPointCoordinates={dataPointCoordinates}
+                      referenceLineColor={COLORS.referenceLine}
                     />
                   )}
                 />
@@ -395,6 +279,7 @@ export function ProfileChart({
               value={selectedData.value}
               unit={CHART_UNITS[chartType]}
               containerWidth={containerRef.current?.offsetWidth || 0}
+              color={COLORS.primary}
             />
           )}
       </div>
