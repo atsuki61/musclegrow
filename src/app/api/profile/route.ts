@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "../../../../db";
 import { profiles, profileHistory } from "../../../../db/schemas/app";
-import { eq } from "drizzle-orm";
+import { and, eq, gte, lte } from "drizzle-orm";
 import { updateProfileSchema } from "@/lib/validations";
 import { getValidationErrorMessage } from "@/lib/validations";
 import { calculateBMI } from "@/lib/utils/bmi";
@@ -253,14 +253,48 @@ export async function PUT(request: NextRequest) {
           ? calculateBMI(height, weight)
           : null;
 
-      await db.insert(profileHistory).values({
-        userId,
-        height: updatedProfile.height,
-        weight: updatedProfile.weight,
-        bodyFat: updatedProfile.bodyFat,
-        muscleMass: updatedProfile.muscleMass,
-        bmi: bmi ? bmi.toString() : null,
-      });
+      const now = new Date();
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // 同じ日に記録された履歴がある場合は上書き、なければ新規作成
+      const [existingHistory] = await db
+        .select()
+        .from(profileHistory)
+        .where(
+          and(
+            eq(profileHistory.userId, userId),
+            gte(profileHistory.recordedAt, startOfDay),
+            lte(profileHistory.recordedAt, endOfDay)
+          )
+        )
+        .limit(1);
+
+      if (existingHistory) {
+        await db
+          .update(profileHistory)
+          .set({
+            height: updatedProfile.height,
+            weight: updatedProfile.weight,
+            bodyFat: updatedProfile.bodyFat,
+            muscleMass: updatedProfile.muscleMass,
+            bmi: bmi ? bmi.toString() : null,
+            recordedAt: now,
+          })
+          .where(eq(profileHistory.id, existingHistory.id));
+      } else {
+        await db.insert(profileHistory).values({
+          userId,
+          height: updatedProfile.height,
+          weight: updatedProfile.weight,
+          bodyFat: updatedProfile.bodyFat,
+          muscleMass: updatedProfile.muscleMass,
+          bmi: bmi ? bmi.toString() : null,
+          recordedAt: now,
+        });
+      }
     }
 
     return NextResponse.json({
