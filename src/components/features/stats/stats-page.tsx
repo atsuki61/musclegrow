@@ -17,7 +17,11 @@ import {
 } from "@/lib/actions/stats";
 import { getExercises } from "@/lib/actions/exercises";
 import { getBig3ProgressDataFromStorage } from "@/lib/local-storage-big3-progress";
-import { getExerciseProgressDataFromStorage } from "@/lib/local-storage-exercise-progress";
+import {
+  getExerciseProgressDataFromStorage,
+  getExercisesWithDataFromStorage,
+} from "@/lib/local-storage-exercise-progress";
+import { identifyBig3Exercises, mergeProgressData } from "@/lib/utils/stats";
 import type {
   DateRangePreset,
   ProfileChartType,
@@ -33,6 +37,29 @@ const PROFILE_CHART_TYPES: { value: ProfileChartType; label: string }[] = [
   { value: "muscleMass", label: "筋肉量" },
   { value: "bmi", label: "BMI" },
 ];
+
+/**
+ * データなしメッセージコンポーネント
+ */
+function EmptyStateMessage({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-6">
+      <div
+        className="flex flex-col items-center justify-center h-[280px]"
+        style={{ color: "#6B7280" }}
+      >
+        <p className="text-sm">{title}</p>
+        <p className="text-xs mt-1">{description}</p>
+      </div>
+    </div>
+  );
+}
 
 /**
  * グラフページコンポーネント
@@ -59,6 +86,9 @@ export function StatsPage() {
     null
   );
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exercisesWithData, setExercisesWithData] = useState<Set<string>>(
+    new Set()
+  );
   const [big3Data, setBig3Data] = useState<Big3ProgressData>({
     benchPress: [],
     squat: [],
@@ -73,10 +103,25 @@ export function StatsPage() {
       const result = await getExercises();
       if (result.success && result.data) {
         setExercises(result.data);
-        // Big3種目を初期選択
-        const big3Exercise = result.data.find((ex) => ex.isBig3);
+
+        // ローカルストレージから記録がある種目IDを取得
+        const exercisesWithDataFromStorage = getExercisesWithDataFromStorage();
+        setExercisesWithData(exercisesWithDataFromStorage);
+
+        // Big3種目を初期選択（データがある場合のみ）
+        const big3Exercise = result.data.find(
+          (ex) => ex.isBig3 && exercisesWithDataFromStorage.has(ex.id)
+        );
         if (big3Exercise) {
           setSelectedExerciseId(big3Exercise.id);
+        } else {
+          // Big3にデータがない場合、データがある最初の種目を選択
+          const firstExerciseWithData = result.data.find((ex) =>
+            exercisesWithDataFromStorage.has(ex.id)
+          );
+          if (firstExerciseWithData) {
+            setSelectedExerciseId(firstExerciseWithData.id);
+          }
         }
       }
     }
@@ -105,19 +150,10 @@ export function StatsPage() {
     // データベースから取得
     const dbResult = await getBig3ProgressData({ preset: trainingDateRange });
 
-    // Big3種目のIDを取得
+    // Big3種目のIDを取得（isBig3フラグで判定）
     const big3Exercises = exercises.filter((ex) => ex.isBig3);
-    const benchPressId = big3Exercises.find(
-      (e) => e.name.includes("ベンチ") || e.name.toLowerCase().includes("bench")
-    )?.id;
-    const squatId = big3Exercises.find(
-      (e) =>
-        e.name.includes("スクワット") || e.name.toLowerCase().includes("squat")
-    )?.id;
-    const deadliftId = big3Exercises.find(
-      (e) =>
-        e.name.includes("デッド") || e.name.toLowerCase().includes("deadlift")
-    )?.id;
+    const { benchPressId, squatId, deadliftId } =
+      identifyBig3Exercises(big3Exercises);
 
     // ローカルストレージから取得
     const storageData = getBig3ProgressDataFromStorage({
@@ -130,46 +166,47 @@ export function StatsPage() {
     });
 
     // データベースとローカルストレージのデータをマージ
-    // 同じ日付のデータがある場合、大きい方を優先
-    const mergeData = (
-      dbData: Array<{ date: string; maxWeight: number }>,
-      storageData: Array<{ date: string; maxWeight: number }>
-    ): Array<{ date: string; maxWeight: number }> => {
-      const merged = new Map<string, number>();
-
-      // データベースのデータを追加
-      for (const item of dbData) {
-        merged.set(item.date, item.maxWeight);
-      }
-
-      // ローカルストレージのデータを追加（大きい方を優先）
-      for (const item of storageData) {
-        const existing = merged.get(item.date);
-        if (!existing || item.maxWeight > existing) {
-          merged.set(item.date, item.maxWeight);
-        }
-      }
-
-      // 日付でソート
-      return Array.from(merged.entries())
-        .map(([date, maxWeight]) => ({ date, maxWeight }))
-        .sort((a, b) => a.date.localeCompare(b.date));
-    };
-
     const mergedData = {
-      benchPress: mergeData(
+      benchPress: mergeProgressData(
         dbResult.success && dbResult.data ? dbResult.data.benchPress : [],
         storageData.benchPress
       ),
-      squat: mergeData(
+      squat: mergeProgressData(
         dbResult.success && dbResult.data ? dbResult.data.squat : [],
         storageData.squat
       ),
-      deadlift: mergeData(
+      deadlift: mergeProgressData(
         dbResult.success && dbResult.data ? dbResult.data.deadlift : [],
         storageData.deadlift
       ),
     };
+
+    // データがあるBig3種目をexercisesWithDataに追加
+    const newExerciseIds = new Set<string>();
+    if (mergedData.benchPress.length > 0 && benchPressId) {
+      newExerciseIds.add(benchPressId);
+    }
+    if (mergedData.squat.length > 0 && squatId) {
+      newExerciseIds.add(squatId);
+    }
+    if (mergedData.deadlift.length > 0 && deadliftId) {
+      newExerciseIds.add(deadliftId);
+    }
+
+    // 変更がある場合のみ更新（関数型更新で無限ループを防止）
+    if (newExerciseIds.size > 0) {
+      setExercisesWithData((prev) => {
+        const updated = new Set(prev);
+        let hasChanges = false;
+        newExerciseIds.forEach((id) => {
+          if (!updated.has(id)) {
+            updated.add(id);
+            hasChanges = true;
+          }
+        });
+        return hasChanges ? updated : prev;
+      });
+    }
 
     // プロフィールと同じく、全ての記録日をそのまま表示
     setBig3Data(mergedData);
@@ -205,11 +242,8 @@ export function StatsPage() {
       return;
     }
 
-    // Big3種目またはBig3フィルターの場合はスキップ（Big3グラフを表示）
-    const selectedExercise = exercises.find(
-      (ex) => ex.id === selectedExerciseId
-    );
-    if (selectedBodyPart === "big3" || selectedExercise?.isBig3) {
+    // Big3タブ選択時のみスキップ（Big3グラフを表示）
+    if (selectedBodyPart === "big3") {
       setExerciseData([]);
       return;
     }
@@ -229,33 +263,25 @@ export function StatsPage() {
     });
 
     // データベースとローカルストレージのデータをマージ
-    // 同じ日付のデータがある場合、大きい方を優先
-    const merged = new Map<string, number>();
+    const mergedData = mergeProgressData(
+      dbResult.success && dbResult.data ? dbResult.data : [],
+      storageData
+    );
 
-    // データベースのデータを追加
-    if (dbResult.success && dbResult.data) {
-      for (const item of dbResult.data) {
-        merged.set(item.date, item.maxWeight);
-      }
+    // データがある場合、exercisesWithDataに追加（関数型更新で無限ループを防止）
+    if (mergedData.length > 0) {
+      setExercisesWithData((prev) => {
+        if (prev.has(selectedExerciseId)) return prev;
+        const updated = new Set(prev);
+        updated.add(selectedExerciseId);
+        return updated;
+      });
     }
-
-    // ローカルストレージのデータを追加（大きい方を優先）
-    for (const item of storageData) {
-      const existing = merged.get(item.date);
-      if (!existing || item.maxWeight > existing) {
-        merged.set(item.date, item.maxWeight);
-      }
-    }
-
-    // 日付でソート
-    const mergedData = Array.from(merged.entries())
-      .map(([date, maxWeight]) => ({ date, maxWeight }))
-      .sort((a, b) => a.date.localeCompare(b.date));
 
     // プロフィールと同じく、全ての記録日をそのまま表示
     setExerciseData(mergedData);
     setTrainingLoading(false);
-  }, [selectedExerciseId, selectedBodyPart, trainingDateRange, exercises]);
+  }, [selectedExerciseId, selectedBodyPart, trainingDateRange]);
 
   // 種目別データを取得（初期読み込みと選択変更時）
   useEffect(() => {
@@ -274,18 +300,19 @@ export function StatsPage() {
     };
   }, [fetchExerciseData]);
 
-  // 選択された種目がBig3かどうかを判定
+  // 選択された種目を取得
   const selectedExercise = exercises.find((ex) => ex.id === selectedExerciseId);
-  const isBig3Selected =
-    selectedBodyPart === "big3" ||
-    selectedExercise?.isBig3 ||
-    selectedExerciseId === null ||
-    Boolean(
-      selectedExercise &&
-        (selectedExercise.name.includes("ベンチ") ||
-          selectedExercise.name.includes("スクワット") ||
-          selectedExercise.name.includes("デッド"))
-    );
+
+  // Big3タブ選択時のみBig3グラフを表示
+  // 個別のBig3種目を選択した場合は、ExerciseChartで単独表示（オレンジ色）
+  const isBig3Selected = selectedBodyPart === "big3";
+
+  // データの有無をチェック
+  const hasBig3Data =
+    big3Data.benchPress.length > 0 ||
+    big3Data.squat.length > 0 ||
+    big3Data.deadlift.length > 0;
+  const hasExerciseData = exerciseData.length > 0;
 
   return (
     <div className="container mx-auto px-4 py-4 space-y-4 pb-20">
@@ -347,12 +374,13 @@ export function StatsPage() {
               exercises={exercises}
               selectedExerciseId={selectedExerciseId}
               selectedBodyPart={selectedBodyPart}
+              exercisesWithData={exercisesWithData}
               onChange={setSelectedExerciseId}
             />
           )}
 
           {/* Big3グラフ */}
-          {isBig3Selected && (
+          {isBig3Selected && hasBig3Data && (
             <>
               {trainingLoading ? (
                 <ChartLoading />
@@ -387,7 +415,7 @@ export function StatsPage() {
           )}
 
           {/* 種目別グラフ */}
-          {!isBig3Selected && selectedExerciseId && (
+          {!isBig3Selected && selectedExerciseId && hasExerciseData && (
             <>
               {trainingLoading ? (
                 <ChartLoading />
@@ -399,6 +427,21 @@ export function StatsPage() {
                 />
               )}
             </>
+          )}
+
+          {/* データなしメッセージ */}
+          {!isBig3Selected && !selectedExerciseId && (
+            <EmptyStateMessage
+              title="種目を選択してください"
+              description="記録がある種目から選択できます"
+            />
+          )}
+
+          {!isBig3Selected && selectedExerciseId && !hasExerciseData && (
+            <EmptyStateMessage
+              title="この種目のデータがありません"
+              description="記録を追加すると、ここにグラフが表示されます"
+            />
           )}
         </TabsContent>
       </Tabs>
