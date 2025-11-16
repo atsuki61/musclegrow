@@ -15,6 +15,7 @@ export const BODY_PART_LABELS: Record<BodyPart, string> = {
   arms: "腕",
   core: "腹筋",
   other: "その他",
+  big3: "Big3",
 };
 
 /**
@@ -29,6 +30,7 @@ export const BODY_PART_COLORS: Record<BodyPart, string> = {
   arms: "bg-purple-500",
   core: "bg-orange-500",
   other: "bg-gray-500",
+  big3: "bg-indigo-500",
 };
 
 /**
@@ -42,6 +44,7 @@ export const BODY_PART_COLOR_HEX: Record<Exclude<BodyPart, "all">, string> = {
   arms: "#a855f7",
   core: "#f97316",
   other: "#6b7280",
+  big3: "#6366f1",
 };
 
 /**

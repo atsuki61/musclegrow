@@ -34,7 +34,7 @@ export function getStartDate(preset: DateRangePreset): Date {
 export function extractMaxWeightUpdates(
   maxWeightByDate: Array<{ date: string; maxWeight: number | string }>
 ): Array<{ date: string; maxWeight: number }> {
-  let previousMax = 0;
+  let previousMax: number | null = null;
   const progressData: Array<{ date: string; maxWeight: number }> = [];
 
   for (const row of maxWeightByDate) {
@@ -43,7 +43,13 @@ export function extractMaxWeightUpdates(
         ? row.maxWeight
         : parseFloat(row.maxWeight.toString());
 
-    if (maxWeight > previousMax) {
+    // NaNや無効な値はスキップ
+    if (isNaN(maxWeight) || maxWeight <= 0) {
+      continue;
+    }
+
+    // 最初の記録、または最大重量が更新された場合のみ追加
+    if (previousMax === null || maxWeight > previousMax) {
       progressData.push({
         date: row.date,
         maxWeight,
@@ -95,3 +101,26 @@ export function toNumber(
   return null;
 }
 
+/**
+ * セット記録からその日の最大重量を計算する（ウォームアップセットを除外）
+ * @param sets セット記録の配列
+ * @returns その日の最大重量（kg）、有効な記録がない場合は0
+ */
+export function calculateDayMaxWeight(
+  sets: Array<{ weight?: number | null; isWarmup?: boolean }>
+): number {
+  let dayMaxWeight = 0;
+
+  for (const set of sets) {
+    // ウォームアップセットは除外
+    if (set.isWarmup) continue;
+    // 重量が無効な場合はスキップ
+    if (!set.weight || set.weight <= 0) continue;
+
+    if (set.weight > dayMaxWeight) {
+      dayMaxWeight = set.weight;
+    }
+  }
+
+  return dayMaxWeight;
+}

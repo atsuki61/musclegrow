@@ -13,6 +13,7 @@ const BODY_PARTS: BodyPart[] = [
   "arms",
   "core",
   "other",
+  "big3",
 ];
 
 const BODY_PART_ITEMS = BODY_PARTS.map((bodyPart) => ({
@@ -30,6 +31,7 @@ export function BodyPartSelector({
   value: BodyPart;
   onChange: (bodyPart: BodyPart) => void;
 }) {
-  return <HorizontalNav items={BODY_PART_ITEMS} value={value} onChange={onChange} />;
+  return (
+    <HorizontalNav items={BODY_PART_ITEMS} value={value} onChange={onChange} />
+  );
 }
-

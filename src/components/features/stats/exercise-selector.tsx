@@ -22,6 +22,8 @@ export function ExerciseSelector({
   const filteredExercises =
     selectedBodyPart === "all"
       ? exercises
+      : selectedBodyPart === "big3"
+      ? exercises.filter((ex) => ex.isBig3)
       : exercises.filter((ex) => ex.bodyPart === selectedBodyPart);
 
   const exerciseItems = filteredExercises.map((exercise) => ({
@@ -42,4 +44,3 @@ export function ExerciseSelector({
     />
   );
 }
-
