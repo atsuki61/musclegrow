@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DateRangeSelector } from "./date-range-selector";
 import { BodyPartSelector } from "./body-part-selector";
@@ -10,24 +10,14 @@ import { Big3Chart } from "./big3-chart";
 import { ExerciseChart } from "./exercise-chart";
 import { HorizontalNav } from "./horizontal-nav";
 import { ChartLoading } from "./chart-loading";
-import {
-  getProfileHistory,
-  getBig3ProgressData,
-  getExerciseProgressData,
-} from "@/lib/actions/stats";
+import { getProfileHistory } from "@/lib/actions/stats";
 import { getExercises } from "@/lib/actions/exercises";
-import { getBig3ProgressDataFromStorage } from "@/lib/local-storage-big3-progress";
-import {
-  getExerciseProgressDataFromStorage,
-  getExercisesWithDataFromStorage,
-} from "@/lib/local-storage-exercise-progress";
-import { identifyBig3Exercises, mergeProgressData } from "@/lib/utils/stats";
+import { getExercisesWithDataFromStorage } from "@/lib/local-storage-exercise-progress";
+import { useTrainingStats } from "@/hooks/use-training-stats";
 import type {
   DateRangePreset,
   ProfileChartType,
   ProfileHistoryData,
-  Big3ProgressData,
-  ExerciseProgressData,
 } from "@/types/stats";
 import type { Exercise, BodyPart } from "@/types/workout";
 
@@ -86,16 +76,19 @@ export function StatsPage() {
     null
   );
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [exercisesWithData, setExercisesWithData] = useState<Set<string>>(
-    new Set()
-  );
-  const [big3Data, setBig3Data] = useState<Big3ProgressData>({
-    benchPress: [],
-    squat: [],
-    deadlift: [],
+
+  // トレーニング統計データを管理するカスタムフック
+  const {
+    big3Data,
+    exerciseData,
+    loading: trainingLoading,
+    exercisesWithData,
+  } = useTrainingStats({
+    exercises,
+    trainingDateRange,
+    selectedBodyPart,
+    selectedExerciseId,
   });
-  const [exerciseData, setExerciseData] = useState<ExerciseProgressData[]>([]);
-  const [trainingLoading, setTrainingLoading] = useState(false);
 
   // 種目一覧を取得
   useEffect(() => {
@@ -106,7 +99,6 @@ export function StatsPage() {
 
         // ローカルストレージから記録がある種目IDを取得
         const exercisesWithDataFromStorage = getExercisesWithDataFromStorage();
-        setExercisesWithData(exercisesWithDataFromStorage);
 
         // Big3種目を初期選択（データがある場合のみ）
         const big3Exercise = result.data.find(
@@ -141,165 +133,6 @@ export function StatsPage() {
     fetchProfileHistory();
   }, [profileDateRange]);
 
-  // Big3データを取得する関数（再利用可能）
-  const fetchBig3Data = useCallback(async () => {
-    if (exercises.length === 0) return;
-
-    setTrainingLoading(true);
-
-    // データベースから取得
-    const dbResult = await getBig3ProgressData({ preset: trainingDateRange });
-
-    // Big3種目のIDを取得（isBig3フラグで判定）
-    const big3Exercises = exercises.filter((ex) => ex.isBig3);
-    const { benchPressId, squatId, deadliftId } =
-      identifyBig3Exercises(big3Exercises);
-
-    // ローカルストレージから取得
-    const storageData = getBig3ProgressDataFromStorage({
-      preset: trainingDateRange,
-      big3ExerciseIds: {
-        benchPressId,
-        squatId,
-        deadliftId,
-      },
-    });
-
-    // データベースとローカルストレージのデータをマージ
-    const mergedData = {
-      benchPress: mergeProgressData(
-        dbResult.success && dbResult.data ? dbResult.data.benchPress : [],
-        storageData.benchPress
-      ),
-      squat: mergeProgressData(
-        dbResult.success && dbResult.data ? dbResult.data.squat : [],
-        storageData.squat
-      ),
-      deadlift: mergeProgressData(
-        dbResult.success && dbResult.data ? dbResult.data.deadlift : [],
-        storageData.deadlift
-      ),
-    };
-
-    // データがあるBig3種目をexercisesWithDataに追加
-    const newExerciseIds = new Set<string>();
-    if (mergedData.benchPress.length > 0 && benchPressId) {
-      newExerciseIds.add(benchPressId);
-    }
-    if (mergedData.squat.length > 0 && squatId) {
-      newExerciseIds.add(squatId);
-    }
-    if (mergedData.deadlift.length > 0 && deadliftId) {
-      newExerciseIds.add(deadliftId);
-    }
-
-    // 変更がある場合のみ更新（関数型更新で無限ループを防止）
-    if (newExerciseIds.size > 0) {
-      setExercisesWithData((prev) => {
-        const updated = new Set(prev);
-        let hasChanges = false;
-        newExerciseIds.forEach((id) => {
-          if (!updated.has(id)) {
-            updated.add(id);
-            hasChanges = true;
-          }
-        });
-        return hasChanges ? updated : prev;
-      });
-    }
-
-    // プロフィールと同じく、全ての記録日をそのまま表示
-    setBig3Data(mergedData);
-
-    setTrainingLoading(false);
-  }, [trainingDateRange, exercises]);
-
-  // Big3データを取得（初期読み込みと期間変更時）
-  useEffect(() => {
-    if (exercises.length > 0) {
-      fetchBig3Data();
-    }
-  }, [fetchBig3Data, exercises]);
-
-  // 記録更新イベントをリッスンして再取得
-  useEffect(() => {
-    const handleRecordUpdate = () => {
-      if (exercises.length > 0) {
-        fetchBig3Data();
-      }
-    };
-
-    window.addEventListener("workout-record-updated", handleRecordUpdate);
-    return () => {
-      window.removeEventListener("workout-record-updated", handleRecordUpdate);
-    };
-  }, [fetchBig3Data, exercises]);
-
-  // 種目別データを取得する関数（再利用可能）
-  const fetchExerciseData = useCallback(async () => {
-    if (!selectedExerciseId) {
-      setExerciseData([]);
-      return;
-    }
-
-    // Big3タブ選択時のみスキップ（Big3グラフを表示）
-    if (selectedBodyPart === "big3") {
-      setExerciseData([]);
-      return;
-    }
-
-    setTrainingLoading(true);
-
-    // データベースから取得
-    const dbResult = await getExerciseProgressData({
-      exerciseId: selectedExerciseId,
-      preset: trainingDateRange,
-    });
-
-    // ローカルストレージから取得
-    const storageData = getExerciseProgressDataFromStorage({
-      exerciseId: selectedExerciseId,
-      preset: trainingDateRange,
-    });
-
-    // データベースとローカルストレージのデータをマージ
-    const mergedData = mergeProgressData(
-      dbResult.success && dbResult.data ? dbResult.data : [],
-      storageData
-    );
-
-    // データがある場合、exercisesWithDataに追加（関数型更新で無限ループを防止）
-    if (mergedData.length > 0) {
-      setExercisesWithData((prev) => {
-        if (prev.has(selectedExerciseId)) return prev;
-        const updated = new Set(prev);
-        updated.add(selectedExerciseId);
-        return updated;
-      });
-    }
-
-    // プロフィールと同じく、全ての記録日をそのまま表示
-    setExerciseData(mergedData);
-    setTrainingLoading(false);
-  }, [selectedExerciseId, selectedBodyPart, trainingDateRange]);
-
-  // 種目別データを取得（初期読み込みと選択変更時）
-  useEffect(() => {
-    fetchExerciseData();
-  }, [fetchExerciseData]);
-
-  // 記録更新イベントをリッスンして再取得
-  useEffect(() => {
-    const handleRecordUpdate = () => {
-      fetchExerciseData();
-    };
-
-    window.addEventListener("workout-record-updated", handleRecordUpdate);
-    return () => {
-      window.removeEventListener("workout-record-updated", handleRecordUpdate);
-    };
-  }, [fetchExerciseData]);
-
   // 選択された種目を取得
   const selectedExercise = exercises.find((ex) => ex.id === selectedExerciseId);
 
@@ -316,8 +149,6 @@ export function StatsPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 space-y-4 pb-20">
-      <h1 className="text-2xl font-bold">グラフ</h1>
-
       <Tabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as typeof activeTab)}
