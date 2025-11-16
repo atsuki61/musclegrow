@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { FooterNav } from "@/components/layout/footer-nav";
+import { GuestDataMigrator } from "@/components/features/guest-data-migrator";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -95,6 +96,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <GuestDataMigrator />
         <Header />
         <main className="min-h-screen pb-24">{children}</main>
         <FooterNav />

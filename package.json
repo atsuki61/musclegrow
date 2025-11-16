@@ -15,6 +15,7 @@
     "drizzle:migrate": "pnpm drizzle-kit migrate",
     "drizzle:gm": "pnpm drizzle:generate && pnpm drizzle:migrate",
     "migrate:profile-history": "pnpm tsx scripts/run-migration.ts",
+    "seed:exercises": "pnpm tsx db/seed.ts",
     "supabase:start": "pnpx supabase start",
     "supabase:stop": "pnpx supabase stop",
     "supabase:status": "pnpx supabase status"

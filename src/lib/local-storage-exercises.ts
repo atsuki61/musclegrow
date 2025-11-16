@@ -80,20 +80,22 @@ async function loadExercisesFromDatabase(): Promise<Exercise[] | null> {
   try {
     const { getExercises } = await import("@/lib/api");
     const result = await getExercises();
-    
+
     if (result.success && result.data && result.data.length > 0) {
       const exercises = result.data;
-      
+
       if (hasInitialExercises(exercises)) {
-        console.log(`データベースから種目を読み込みました: ${exercises.length}件`);
+        console.log(
+          `データベースから種目を読み込みました: ${exercises.length}件`
+        );
         saveExercisesToStorage(exercises);
         return exercises;
       }
-      
+
       // tier="initial"の種目がない場合は警告
       if (process.env.NODE_ENV === "development") {
         console.warn(
-          "データベースから取得した種目にtier=\"initial\"の種目が存在しません。モックデータを使用します。"
+          'データベースから取得した種目にtier="initial"の種目が存在しません。モックデータを使用します。'
         );
       }
     }
@@ -102,35 +104,38 @@ async function loadExercisesFromDatabase(): Promise<Exercise[] | null> {
       console.error("種目取得エラー:", error);
     }
   }
-  
+
   return null;
 }
 
 export async function loadExercisesWithFallback(): Promise<Exercise[]> {
+  // 1. まずデータベースから取得を試みる（認証済みユーザーではDBを正とする）
+  const databaseExercises = await loadExercisesFromDatabase();
+  if (databaseExercises && databaseExercises.length > 0) {
+    return databaseExercises;
+  }
+
+  // 2. データベースから取得できなかった場合、ローカルストレージから取得
   const storedExercises = loadExercisesFromStorage();
-  
-  // ローカルストレージにデータがある場合、tier="initial"の種目が存在するか確認
+
   if (storedExercises.length > 0) {
+    // tier="initial"の種目が存在する場合は、そのまま使用
     if (hasInitialExercises(storedExercises)) {
-      console.log(`ローカルストレージから種目を読み込みました: ${storedExercises.length}件`);
+      console.log(
+        `ローカルストレージから種目を読み込みました: ${storedExercises.length}件`
+      );
       return storedExercises;
     }
-    
-    // tier="initial"の種目が存在しない場合は、データベースから再取得を試みる
+
+    // tier="initial"の種目が存在しない場合は、開発時のみ警告を出してモックにフォールバック
     if (process.env.NODE_ENV === "development") {
       console.warn(
-        `ローカルストレージにtier="initial"の種目が存在しません（${storedExercises.length}件の種目があります）。データベースから再取得を試みます。`
+        `ローカルストレージにtier="initial"の種目が存在しません（${storedExercises.length}件の種目があります）。モックデータを使用します。`
       );
     }
   }
 
-  // データベースから取得を試みる
-  const databaseExercises = await loadExercisesFromDatabase();
-  if (databaseExercises) {
-    return databaseExercises;
-  }
-
-  // フォールバック: モックデータを使用
+  // 3. フォールバック: モックデータを使用（ゲスト利用時など）
   return loadMockExercises();
 }
 
@@ -149,4 +154,3 @@ export function getExerciseById(
   const storedExercises = loadExercisesFromStorage();
   return storedExercises.find((e) => e.id === exerciseId);
 }
-

@@ -257,6 +257,13 @@ export function useCardioSession({
           );
         }
       }
+
+      // 3. 記録更新イベントを発行（グラフページなどで再取得をトリガー）
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("workout-record-updated", {
+          detail: { exerciseId, date: formatDateToYYYYMMDD(date) },
+        }));
+      }
     },
     [date, exerciseId]
   );
