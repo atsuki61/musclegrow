@@ -41,7 +41,7 @@ const seedExercises = [
     isBig3: false,
   },
   {
-    name: "インクラインベンチプレス（バーベル）",
+    name: "インクラインベンチプレス",
     bodyPart: "chest",
     subGroup: "上部",
     tier: "selectable",
@@ -56,7 +56,7 @@ const seedExercises = [
     isBig3: false,
   },
   {
-    name: "デクラインベンチプレス（バーベル）",
+    name: "デクラインベンチプレス",
     bodyPart: "chest",
     subGroup: "下部",
     tier: "selectable",
@@ -99,7 +99,7 @@ const seedExercises = [
     isBig3: false,
   },
   {
-    name: "プッシュアップ（腕立て伏せ）",
+    name: "プッシュアップ",
     bodyPart: "chest",
     subGroup: "外側",
     tier: "selectable",
@@ -277,13 +277,6 @@ const seedExercises = [
     tier: "selectable",
     isBig3: false,
   },
-  {
-    name: "ヒップスラスト（バーベル）",
-    bodyPart: "legs",
-    subGroup: "臀筋",
-    tier: "selectable",
-    isBig3: false,
-  },
   // 下腿
   {
     name: "カーフレイズ",
@@ -303,7 +296,7 @@ const seedExercises = [
     isBig3: false,
   },
   {
-    name: "ショルダープレス（スミス）",
+    name: "ショルダープレス",
     bodyPart: "shoulders",
     subGroup: "全体",
     tier: "initial",
@@ -584,14 +577,14 @@ const seedExercises = [
   // ===== その他 =====
   // 有酸素
   {
-    name: "ランニング（トレッドミル／屋外）",
+    name: "ランニング",
     bodyPart: "other",
     subGroup: "有酸素",
     tier: "initial",
     isBig3: false,
   },
   {
-    name: "エアロバイク（バイク）",
+    name: "エアロバイク",
     bodyPart: "other",
     subGroup: "有酸素",
     tier: "initial",

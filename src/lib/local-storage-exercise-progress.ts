@@ -7,6 +7,49 @@ import type { DateRangePreset, ExerciseProgressData } from "@/types/stats";
 import { getStartDate, extractMaxWeightUpdates, calculateDayMaxWeight } from "./utils/stats";
 
 /**
+ * ローカルストレージから記録がある種目IDのSetを取得する
+ */
+export function getExercisesWithDataFromStorage(): Set<string> {
+  if (typeof window === "undefined") {
+    return new Set();
+  }
+
+  const exerciseIds = new Set<string>();
+
+  try {
+    // ローカルストレージの全てのキーを走査
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith("workout_")) continue;
+
+      const keyInfo = parseStorageKey(key);
+      if (!keyInfo || keyInfo.type !== "workout") continue;
+
+      const { exerciseId } = keyInfo;
+
+      const stored = localStorage.getItem(key);
+      if (!stored) continue;
+
+      try {
+        const sets = JSON.parse(stored) as SetRecord[];
+        // データがある場合のみ追加
+        if (sets.length > 0) {
+          exerciseIds.add(exerciseId);
+        }
+      } catch (error) {
+        console.warn(`Failed to parse sets for key ${key}:`, error);
+        continue;
+      }
+    }
+
+    return exerciseIds;
+  } catch (error) {
+    console.error("Failed to get exercises with data from storage:", error);
+    return new Set();
+  }
+}
+
+/**
  * ローカルストレージから種目別の推移データを取得する
  */
 export function getExerciseProgressDataFromStorage({
@@ -80,4 +123,3 @@ export function getExerciseProgressDataFromStorage({
     return [];
   }
 }
-

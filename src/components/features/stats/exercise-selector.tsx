@@ -11,20 +11,25 @@ export function ExerciseSelector({
   exercises,
   selectedExerciseId,
   selectedBodyPart,
+  exercisesWithData,
   onChange,
 }: {
   exercises: Exercise[];
   selectedExerciseId: string | null;
   selectedBodyPart: BodyPart;
+  exercisesWithData: Set<string>;
   onChange: (exerciseId: string) => void;
 }) {
-  // 部位でフィルタリング
+  // 部位でフィルタリング & データがある種目のみ
   const filteredExercises =
     selectedBodyPart === "all"
-      ? exercises
+      ? exercises.filter((ex) => exercisesWithData.has(ex.id))
       : selectedBodyPart === "big3"
-      ? exercises.filter((ex) => ex.isBig3)
-      : exercises.filter((ex) => ex.bodyPart === selectedBodyPart);
+      ? exercises.filter((ex) => ex.isBig3 && exercisesWithData.has(ex.id))
+      : exercises.filter(
+          (ex) =>
+            ex.bodyPart === selectedBodyPart && exercisesWithData.has(ex.id)
+        );
 
   const exerciseItems = filteredExercises.map((exercise) => ({
     value: exercise.id,
