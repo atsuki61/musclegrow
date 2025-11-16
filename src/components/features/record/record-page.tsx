@@ -21,25 +21,15 @@ import {
 } from "@/lib/local-storage-exercises";
 import type { BodyPart, Exercise } from "@/types/workout";
 
-const ALL_BODY_PARTS: Exclude<BodyPart, "all">[] = [
-  "chest",
-  "back",
-  "legs",
-  "shoulders",
-  "arms",
-  "core",
-  "other",
-];
-
 function getBodyPartsToShow(
-  selectedPart: BodyPart
+  selectedPart: Exclude<BodyPart, "all">
 ): Exclude<BodyPart, "all">[] {
-  return selectedPart === "all" ? ALL_BODY_PARTS : [selectedPart];
+  return [selectedPart];
 }
 
 export function RecordPage() {
   const searchParams = useSearchParams();
-  
+
   // クエリパラメータから日付を取得（例: /record?date=2024-11-13）
   const getInitialDate = (): Date => {
     const dateParam = searchParams.get("date");
@@ -59,7 +49,7 @@ export function RecordPage() {
   };
 
   const [selectedDate, setSelectedDate] = useState<Date>(getInitialDate());
-  const [selectedPart, setSelectedPart] = useState<BodyPart>("all");
+  const [selectedPart, setSelectedPart] = useState<Exclude<BodyPart, "all">>("chest");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
     null
@@ -100,7 +90,7 @@ export function RecordPage() {
     setSelectedDate(date);
   };
 
-  const handlePartChange = (part: BodyPart) => {
+  const handlePartChange = (part: Exclude<BodyPart, "all">) => {
     setSelectedPart(part);
   };
 
@@ -172,8 +162,8 @@ export function RecordPage() {
       </nav>
 
       {/* メインコンテンツエリア */}
-      <main className="flex-1 container mx-auto px-4 py-4">
-        <div className="space-y-4">
+      <main className="flex-1 container mx-auto px-3 py-2">
+        <div className="space-y-2">
           {bodyPartsToShow.map((bodyPart) => {
             const bodyPartExercises = exercises.filter(
               (e) => e.bodyPart === bodyPart
