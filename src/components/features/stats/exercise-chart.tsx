@@ -102,7 +102,7 @@ export function ExerciseChart({
         <div className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5" style={{ color: COLORS.primary }} />
           <h3 className="text-lg font-semibold" style={{ color: COLORS.text }}>
-            {exercise?.name || "種目別"} の最大重量推移
+            {exercise?.name || "種目別"} の推移
           </h3>
         </div>
         {dataCount !== undefined && (

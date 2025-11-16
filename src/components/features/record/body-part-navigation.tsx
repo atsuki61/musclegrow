@@ -4,8 +4,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BODY_PART_LABELS } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
 
-const BODY_PARTS: BodyPart[] = [
-  "all",
+const BODY_PARTS: Exclude<BodyPart, "all">[] = [
   "chest",
   "back",
   "legs",
@@ -17,9 +16,9 @@ const BODY_PARTS: BodyPart[] = [
 
 interface BodyPartNavigationProps {
   /** 選択された部位 */
-  selectedPart?: BodyPart;
+  selectedPart?: Exclude<BodyPart, "all">;
   /** 部位変更時のコールバック */
-  onPartChange?: (part: BodyPart) => void;
+  onPartChange?: (part: Exclude<BodyPart, "all">) => void;
 }
 
 /**
@@ -27,17 +26,17 @@ interface BodyPartNavigationProps {
  * ページ上部に固定表示され、部位タブをクリックで該当部位のカードにスクロール
  */
 export function BodyPartNavigation({
-  selectedPart = "all",
+  selectedPart = "chest",
   onPartChange,
 }: BodyPartNavigationProps) {
-  const handlePartChange = (part: BodyPart) => {
-    onPartChange?.(part);
+  const handlePartChange = (part: string) => {
+    onPartChange?.(part as Exclude<BodyPart, "all">);
   };
 
   return (
     <Tabs
       value={selectedPart}
-      onValueChange={(value) => handlePartChange(value as BodyPart)}
+      onValueChange={(value) => handlePartChange(value)}
     >
       <TabsList className="h-12 w-full justify-start overflow-x-auto">
         {BODY_PARTS.map((part) => (
