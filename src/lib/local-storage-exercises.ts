@@ -108,7 +108,15 @@ async function loadExercisesFromDatabase(): Promise<Exercise[] | null> {
   return null;
 }
 
-export async function loadExercisesWithFallback(): Promise<Exercise[]> {
+export async function loadExercisesWithFallback(
+  initialExercises?: Exercise[]
+): Promise<Exercise[]> {
+  // 0. サーバーから受け取った初期データがあれば最優先で利用
+  if (initialExercises && initialExercises.length > 0) {
+    saveExercisesToStorage(initialExercises);
+    return initialExercises;
+  }
+
   // 1. まずデータベースから取得を試みる（認証済みユーザーではDBを正とする）
   const databaseExercises = await loadExercisesFromDatabase();
   if (databaseExercises && databaseExercises.length > 0) {

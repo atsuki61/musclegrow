@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
 import { db } from "../../../db";
 import {
   profileHistory,
@@ -25,6 +26,36 @@ import {
 /**
  * プロフィール履歴を取得する
  */
+const fetchProfileHistoryCached = unstable_cache(
+  async (userId: string, preset: DateRangePreset) => {
+    const startDate = getStartDate(preset);
+
+    const history = await db
+      .select()
+      .from(profileHistory)
+      .where(
+        and(
+          eq(profileHistory.userId, userId),
+          gte(profileHistory.recordedAt, startDate)
+        )
+      )
+      .orderBy(profileHistory.recordedAt);
+
+    return history.map((h) => ({
+      id: h.id,
+      userId: h.userId,
+      height: h.height ? parseFloat(h.height) : null,
+      weight: h.weight ? parseFloat(h.weight) : null,
+      bodyFat: h.bodyFat ? parseFloat(h.bodyFat) : null,
+      muscleMass: h.muscleMass ? parseFloat(h.muscleMass) : null,
+      bmi: h.bmi ? parseFloat(h.bmi) : null,
+      recordedAt: h.recordedAt.toISOString(),
+    }));
+  },
+  ["profile-history"],
+  { tags: ["profile:history"] }
+);
+
 export async function getProfileHistory({
   preset = "month",
 }: {
@@ -43,29 +74,7 @@ export async function getProfileHistory({
       };
     }
 
-    const startDate = getStartDate(preset);
-
-    const history = await db
-      .select()
-      .from(profileHistory)
-      .where(
-        and(
-          eq(profileHistory.userId, userId),
-          gte(profileHistory.recordedAt, startDate)
-        )
-      )
-      .orderBy(profileHistory.recordedAt);
-
-    const historyData: ProfileHistoryData[] = history.map((h) => ({
-      id: h.id,
-      userId: h.userId,
-      height: h.height ? parseFloat(h.height) : null,
-      weight: h.weight ? parseFloat(h.weight) : null,
-      bodyFat: h.bodyFat ? parseFloat(h.bodyFat) : null,
-      muscleMass: h.muscleMass ? parseFloat(h.muscleMass) : null,
-      bmi: h.bmi ? parseFloat(h.bmi) : null,
-      recordedAt: h.recordedAt.toISOString(),
-    }));
+    const historyData = await fetchProfileHistoryCached(userId, preset);
 
     return {
       success: true,
@@ -86,28 +95,11 @@ export async function getProfileHistory({
 /**
  * Big3の推移データを取得する（最大重量が更新された日のみ）
  */
-export async function getBig3ProgressData({
-  preset = "month",
-}: {
-  preset?: DateRangePreset;
-}): Promise<{
-  success: boolean;
-  error?: string;
-  data?: Big3ProgressData;
-}> {
-  try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
-      };
-    }
-
+const fetchBig3ProgressCached = unstable_cache(
+  async (userId: string, preset: DateRangePreset) => {
     const startDate = getStartDate(preset);
     const startDateStr = format(startDate, "yyyy-MM-dd");
 
-    // Big3種目のIDを取得（共通マスタ + ユーザー独自種目）
     const big3Exercises = await db
       .select({ id: exercises.id, name: exercises.name })
       .from(exercises)
@@ -120,16 +112,12 @@ export async function getBig3ProgressData({
 
     if (big3Exercises.length === 0) {
       return {
-        success: true,
-        data: {
-          benchPress: [],
-          squat: [],
-          deadlift: [],
-        },
+        benchPress: [],
+        squat: [],
+        deadlift: [],
       };
     }
 
-    // Big3種目を特定
     const { benchPressId, squatId, deadliftId } =
       identifyBig3Exercises(big3Exercises);
 
@@ -139,7 +127,6 @@ export async function getBig3ProgressData({
       deadlift: [],
     };
 
-    // 各Big3種目の最大重量更新日を取得
     const exerciseMap = [
       { id: benchPressId, key: "benchPress" as const },
       { id: squatId, key: "squat" as const },
@@ -161,19 +148,44 @@ export async function getBig3ProgressData({
             eq(workoutSessions.userId, userId),
             eq(sets.exerciseId, exerciseId),
             gte(workoutSessions.date, startDateStr),
-            eq(sets.isWarmup, false) // ウォームアップセットを除外
+            eq(sets.isWarmup, false)
           )
         )
         .groupBy(workoutSessions.date)
         .orderBy(workoutSessions.date);
 
-      // 最大重量が更新された日のみを抽出
       result[key] = extractMaxWeightUpdates(maxWeightByDate);
     }
 
+    return result;
+  },
+  ["stats-big3"],
+  { tags: ["stats:big3"] }
+);
+
+export async function getBig3ProgressData({
+  preset = "month",
+}: {
+  preset?: DateRangePreset;
+}): Promise<{
+  success: boolean;
+  error?: string;
+  data?: Big3ProgressData;
+}> {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return {
+        success: false,
+        error: "認証が必要です",
+      };
+    }
+
+    const data = await fetchBig3ProgressCached(userId, preset);
+
     return {
       success: true,
-      data: result,
+      data,
     };
   } catch (error: unknown) {
     console.error("Big3推移データ取得エラー:", error);
@@ -190,6 +202,34 @@ export async function getBig3ProgressData({
 /**
  * 種目別の推移データを取得する（最大重量が更新された日のみ）
  */
+const fetchExerciseProgressCached = unstable_cache(
+  async (userId: string, exerciseId: string, preset: DateRangePreset) => {
+    const startDate = getStartDate(preset);
+
+    const maxWeightByDate = await db
+      .select({
+        date: workoutSessions.date,
+        maxWeight: sql<number>`MAX(${sets.weight}::numeric)::float`,
+      })
+      .from(sets)
+      .innerJoin(workoutSessions, eq(sets.sessionId, workoutSessions.id))
+      .where(
+        and(
+          eq(workoutSessions.userId, userId),
+          eq(sets.exerciseId, exerciseId),
+          gte(workoutSessions.date, format(startDate, "yyyy-MM-dd")),
+          eq(sets.isWarmup, false)
+        )
+      )
+      .groupBy(workoutSessions.date)
+      .orderBy(workoutSessions.date);
+
+    return extractMaxWeightUpdates(maxWeightByDate);
+  },
+  ["stats-exercise"],
+  { tags: ["stats:exercise"] }
+);
+
 export async function getExerciseProgressData({
   exerciseId,
   preset = "month",
@@ -210,29 +250,11 @@ export async function getExerciseProgressData({
       };
     }
 
-    const startDate = getStartDate(preset);
-
-    // 日付ごとの最大重量を取得
-    const maxWeightByDate = await db
-      .select({
-        date: workoutSessions.date,
-        maxWeight: sql<number>`MAX(${sets.weight}::numeric)::float`,
-      })
-      .from(sets)
-      .innerJoin(workoutSessions, eq(sets.sessionId, workoutSessions.id))
-      .where(
-        and(
-          eq(workoutSessions.userId, userId),
-          eq(sets.exerciseId, exerciseId),
-          gte(workoutSessions.date, format(startDate, "yyyy-MM-dd")),
-          eq(sets.isWarmup, false) // ウォームアップセットを除外
-        )
-      )
-      .groupBy(workoutSessions.date)
-      .orderBy(workoutSessions.date);
-
-    // 最大重量が更新された日のみを抽出
-    const progressData = extractMaxWeightUpdates(maxWeightByDate);
+    const progressData = await fetchExerciseProgressCached(
+      userId,
+      exerciseId,
+      preset
+    );
 
     return {
       success: true,

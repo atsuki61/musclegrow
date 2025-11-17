@@ -5,26 +5,15 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getBMIResult, getBMIPercentage } from "@/lib/utils/bmi";
 import {
   calculateBodyComposition,
   isBodyCompositionValid,
 } from "@/lib/utils/body-composition";
+import type { ProfileResponse } from "@/types/profile";
 
-/**
- * APIレスポンス用のプロフィールデータの型
- * （日付はISO文字列として返される）
- */
-interface ProfileResponse {
-  id: string;
-  userId: string;
-  height: number | null;
-  weight: number | null;
-  bodyFat: number | null;
-  muscleMass: number | null;
-  createdAt: string;
-  updatedAt: string;
+interface ProfilePageProps {
+  initialProfile: ProfileResponse | null;
 }
 
 /**
@@ -33,49 +22,41 @@ interface ProfileResponse {
  * BMI計算、体組成の内訳表示、プログレスバーなど、
  * ビジュアル要素を重視したプロフィール画面です。
  */
-export function ProfilePage() {
+export function ProfilePage({ initialProfile }: ProfilePageProps) {
   // State管理
-  const [profile, setProfile] = useState<ProfileResponse | null>(null);
-  const [height, setHeight] = useState<string>("");
-  const [weight, setWeight] = useState<string>("");
-  const [bodyFat, setBodyFat] = useState<string>("");
-  const [muscleMass, setMuscleMass] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [profile, setProfile] = useState<ProfileResponse | null>(initialProfile);
+  const [height, setHeight] = useState<string>(
+    initialProfile?.height?.toString() ?? ""
+  );
+  const [weight, setWeight] = useState<string>(
+    initialProfile?.weight?.toString() ?? ""
+  );
+  const [bodyFat, setBodyFat] = useState<string>(
+    initialProfile?.bodyFat?.toString() ?? ""
+  );
+  const [muscleMass, setMuscleMass] = useState<string>(
+    initialProfile?.muscleMass?.toString() ?? ""
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // プロフィールデータの取得
   useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  /**
-   * プロフィールデータを取得
-   */
-  const fetchProfile = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/profile");
-      const data = await response.json();
-
-      if (data.success) {
-        setProfile(data.data);
-        // フォームに初期値を設定
-        setHeight(data.data.height?.toString() ?? "");
-        setWeight(data.data.weight?.toString() ?? "");
-        setBodyFat(data.data.bodyFat?.toString() ?? "");
-        setMuscleMass(data.data.muscleMass?.toString() ?? "");
-      } else {
-        setError(data.error.message);
-      }
-    } catch (err) {
-      setError("プロフィールの取得に失敗しました");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+    if (!initialProfile) {
+      setProfile(null);
+      setHeight("");
+      setWeight("");
+      setBodyFat("");
+      setMuscleMass("");
+      return;
     }
-  };
+
+    setProfile(initialProfile);
+    setHeight(initialProfile.height?.toString() ?? "");
+    setWeight(initialProfile.weight?.toString() ?? "");
+    setBodyFat(initialProfile.bodyFat?.toString() ?? "");
+    setMuscleMass(initialProfile.muscleMass?.toString() ?? "");
+  }, [initialProfile]);
 
   /**
    * プロフィールを保存
@@ -213,17 +194,6 @@ export function ProfilePage() {
       </div>
     </div>
   );
-
-  // ローディング中の表示
-  if (isLoading) {
-    return (
-      <div className="p-4 space-y-4 pb-20">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-40 w-full" />
-      </div>
-    );
-  }
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-20">

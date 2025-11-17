@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidateTag } from "next/cache";
 import { db } from "../../../db";
 import { sets, workoutSessions } from "../../../db/schemas/app";
 import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
@@ -114,6 +115,11 @@ export async function saveSets({
 
       await tx.insert(sets).values(setsToInsert);
     });
+
+    await Promise.all([
+      revalidateTag("stats:exercise"),
+      revalidateTag("stats:big3"),
+    ]);
 
     return {
       success: true,
