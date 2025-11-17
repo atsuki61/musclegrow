@@ -63,7 +63,6 @@ const SUB_GROUP_OPTIONS: Record<
     { value: "core_obliques", label: "腹斜筋（お腹の横側）" },
   ],
   other: [], // その他はサブ分類なし
-  big3: [], // Big3はサブ分類なし
 };
 
 /**

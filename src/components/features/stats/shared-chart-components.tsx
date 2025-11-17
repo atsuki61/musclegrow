@@ -1,6 +1,6 @@
 /**
  * グラフ共通コンポーネント
- * ProfileChart、Big3Chart、ExerciseChartで共通使用
+ * ProfileChart、ExerciseChartで共通使用
  */
 
 import { format } from "date-fns";
@@ -111,6 +111,17 @@ export function SelectionLabel({
   containerWidth: number;
   color?: string;
 }) {
+  // 'YYYY-MM-DD' をローカル日付として扱う関数
+  const parseLocalISO = (input: string) => {
+    // YYYY-MM-DD形式の場合はローカル日付として解釈
+    if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+      const [y, m, d] = input.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+    // それ以外の形式は従来通り
+    return new Date(input);
+  };
+
   // ラベルの幅を推定（日付 + 値 + パディング + ギャップ）
   // text-[10px] + text-[10px] + px-2 (8px*2) + gap-1 (4px) = 約80-90px
   const labelWidth = 90;
@@ -135,7 +146,7 @@ export function SelectionLabel({
       {/* InBody風：小さく控えめで上品なラベル */}
       <div className="flex items-center gap-1 whitespace-nowrap bg-orange-50 px-2 py-[2px] rounded-md shadow-xs border border-gray-100/50">
         <span className="text-[10px] font-medium text-gray-500">
-          {format(new Date(date), "yy.MM.dd")}
+          {format(parseLocalISO(date), "yy.MM.dd")}
         </span>
         <span
           className="text-[10px] font-semibold"

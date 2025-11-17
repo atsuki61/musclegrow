@@ -2,7 +2,7 @@
 
 /**
  * トレーニング部位の型定義
- * UI用の"all"と"other"、"big3"を含む
+ * UI用の"all"と"other"を含む
  */
 export type BodyPart =
   | "all"
@@ -12,8 +12,7 @@ export type BodyPart =
   | "shoulders"
   | "arms"
   | "core"
-  | "other"
-  | "big3";
+  | "other";
 
 /**
  * 機材タイプ

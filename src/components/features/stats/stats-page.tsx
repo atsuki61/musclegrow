@@ -6,7 +6,6 @@ import { DateRangeSelector } from "./date-range-selector";
 import { BodyPartSelector } from "./body-part-selector";
 import { ExerciseSelector } from "./exercise-selector";
 import { ProfileChart } from "./profile-chart";
-import { Big3Chart } from "./big3-chart";
 import { ExerciseChart } from "./exercise-chart";
 import { HorizontalNav } from "./horizontal-nav";
 import { ChartLoading } from "./chart-loading";
@@ -79,14 +78,12 @@ export function StatsPage() {
 
   // トレーニング統計データを管理するカスタムフック
   const {
-    big3Data,
     exerciseData,
     loading: trainingLoading,
     exercisesWithData,
   } = useTrainingStats({
     exercises,
     trainingDateRange,
-    selectedBodyPart,
     selectedExerciseId,
   });
 
@@ -100,20 +97,12 @@ export function StatsPage() {
         // ローカルストレージから記録がある種目IDを取得
         const exercisesWithDataFromStorage = getExercisesWithDataFromStorage();
 
-        // Big3種目を初期選択（データがある場合のみ）
-        const big3Exercise = result.data.find(
-          (ex) => ex.isBig3 && exercisesWithDataFromStorage.has(ex.id)
+        // データがある最初の種目を選択
+        const firstExerciseWithData = result.data.find((ex) =>
+          exercisesWithDataFromStorage.has(ex.id)
         );
-        if (big3Exercise) {
-          setSelectedExerciseId(big3Exercise.id);
-        } else {
-          // Big3にデータがない場合、データがある最初の種目を選択
-          const firstExerciseWithData = result.data.find((ex) =>
-            exercisesWithDataFromStorage.has(ex.id)
-          );
-          if (firstExerciseWithData) {
-            setSelectedExerciseId(firstExerciseWithData.id);
-          }
+        if (firstExerciseWithData) {
+          setSelectedExerciseId(firstExerciseWithData.id);
         }
       }
     }
@@ -136,15 +125,7 @@ export function StatsPage() {
   // 選択された種目を取得
   const selectedExercise = exercises.find((ex) => ex.id === selectedExerciseId);
 
-  // Big3タブ選択時のみBig3グラフを表示
-  // 個別のBig3種目を選択した場合は、ExerciseChartで単独表示（オレンジ色）
-  const isBig3Selected = selectedBodyPart === "big3";
-
   // データの有無をチェック
-  const hasBig3Data =
-    big3Data.benchPress.length > 0 ||
-    big3Data.squat.length > 0 ||
-    big3Data.deadlift.length > 0;
   const hasExerciseData = exerciseData.length > 0;
 
   return (
@@ -200,53 +181,16 @@ export function StatsPage() {
             onChange={setSelectedBodyPart}
           />
 
-          {selectedBodyPart !== "big3" && (
-            <ExerciseSelector
-              exercises={exercises}
-              selectedExerciseId={selectedExerciseId}
-              selectedBodyPart={selectedBodyPart}
-              exercisesWithData={exercisesWithData}
-              onChange={setSelectedExerciseId}
-            />
-          )}
-
-          {/* Big3グラフ */}
-          {isBig3Selected && hasBig3Data && (
-            <>
-              {trainingLoading ? (
-                <ChartLoading />
-              ) : (
-                <Big3Chart
-                  data={big3Data}
-                  dataCount={
-                    big3Data.benchPress.length +
-                    big3Data.squat.length +
-                    big3Data.deadlift.length
-                  }
-                />
-              )}
-              {/* Big3選択時のみ色分け凡例を表示 */}
-              {selectedBodyPart === "big3" && (
-                <div className="mt-4 flex flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <span>ベンチプレス</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span>スクワット</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <span>デッドリフト</span>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+          <ExerciseSelector
+            exercises={exercises}
+            selectedExerciseId={selectedExerciseId}
+            selectedBodyPart={selectedBodyPart}
+            exercisesWithData={exercisesWithData}
+            onChange={setSelectedExerciseId}
+          />
 
           {/* 種目別グラフ */}
-          {!isBig3Selected && selectedExerciseId && hasExerciseData && (
+          {selectedExerciseId && hasExerciseData && (
             <>
               {trainingLoading ? (
                 <ChartLoading />
@@ -261,14 +205,14 @@ export function StatsPage() {
           )}
 
           {/* データなしメッセージ */}
-          {!isBig3Selected && !selectedExerciseId && (
+          {!selectedExerciseId && (
             <EmptyStateMessage
               title="種目を選択してください"
               description="記録がある種目から選択できます"
             />
           )}
 
-          {!isBig3Selected && selectedExerciseId && !hasExerciseData && (
+          {selectedExerciseId && !hasExerciseData && (
             <EmptyStateMessage
               title="この種目のデータがありません"
               description="記録を追加すると、ここにグラフが表示されます"
