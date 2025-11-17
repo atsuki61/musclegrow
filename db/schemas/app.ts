@@ -6,48 +6,62 @@ import {
   date,
   integer,
   boolean,
+  index,
 } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { users } from "./auth";
 
 // ① profiles テーブル - ユーザーのプロフィール情報
-export const profiles = pgTable("profiles", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => nanoid(10)),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" })
-    .unique(),
-  height: numeric("height", { precision: 5, scale: 2 }), // 身長（cm）例: 175.50
-  weight: numeric("weight", { precision: 5, scale: 2 }), // 体重（kg）例: 70.50
-  bodyFat: numeric("body_fat", { precision: 4, scale: 1 }), // 体脂肪率（%）例: 15.5
-  muscleMass: numeric("muscle_mass", { precision: 5, scale: 2 }), // 筋肉量（kg）例: 35.20
-  big3TargetBenchPress: numeric("big3_target_bench_press", { precision: 6, scale: 1 }), // ベンチプレスの目標重量（kg）例: 100.0
-  big3TargetSquat: numeric("big3_target_squat", { precision: 6, scale: 1 }), // スクワットの目標重量（kg）例: 120.0
-  big3TargetDeadlift: numeric("big3_target_deadlift", { precision: 6, scale: 1 }), // デッドリフトの目標重量（kg）例: 140.0
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .notNull()
-    .$onUpdate(() => new Date()),
-});
+export const profiles = pgTable(
+  "profiles",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid(10)),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" })
+      .unique(),
+    height: numeric("height", { precision: 5, scale: 2 }), // 身長（cm）例: 175.50
+    weight: numeric("weight", { precision: 5, scale: 2 }), // 体重（kg）例: 70.50
+    bodyFat: numeric("body_fat", { precision: 4, scale: 1 }), // 体脂肪率（%）例: 15.5
+    muscleMass: numeric("muscle_mass", { precision: 5, scale: 2 }), // 筋肉量（kg）例: 35.20
+    big3TargetBenchPress: numeric("big3_target_bench_press", { precision: 6, scale: 1 }), // ベンチプレスの目標重量（kg）例: 100.0
+    big3TargetSquat: numeric("big3_target_squat", { precision: 6, scale: 1 }), // スクワットの目標重量（kg）例: 120.0
+    big3TargetDeadlift: numeric("big3_target_deadlift", { precision: 6, scale: 1 }), // デッドリフトの目標重量（kg）例: 140.0
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => ({
+    profilesUserIdIdx: index("profiles_user_id_idx").on(table.userId),
+  })
+);
 
 // ①-2 profile_history テーブル - プロフィール履歴（グラフ用）
-export const profileHistory = pgTable("profile_history", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => nanoid(10)),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  height: numeric("height", { precision: 5, scale: 2 }), // 身長（cm）
-  weight: numeric("weight", { precision: 5, scale: 2 }), // 体重（kg）
-  bodyFat: numeric("body_fat", { precision: 4, scale: 1 }), // 体脂肪率（%）
-  muscleMass: numeric("muscle_mass", { precision: 5, scale: 2 }), // 筋肉量（kg）
-  bmi: numeric("bmi", { precision: 4, scale: 1 }), // BMI（計算値）
-  recordedAt: timestamp("recorded_at").defaultNow().notNull(), // 記録日時
-});
+export const profileHistory = pgTable(
+  "profile_history",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid(10)),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    height: numeric("height", { precision: 5, scale: 2 }), // 身長（cm）
+    weight: numeric("weight", { precision: 5, scale: 2 }), // 体重（kg）
+    bodyFat: numeric("body_fat", { precision: 4, scale: 1 }), // 体脂肪率（%）
+    muscleMass: numeric("muscle_mass", { precision: 5, scale: 2 }), // 筋肉量（kg）
+    bmi: numeric("bmi", { precision: 4, scale: 1 }), // BMI（計算値）
+    recordedAt: timestamp("recorded_at").defaultNow().notNull(), // 記録日時
+  },
+  (table) => ({
+    profileHistoryUserIdIdx: index("profile_history_user_id_idx").on(table.userId),
+    profileHistoryDateIdx: index("profile_history_date_idx").on(table.recordedAt),
+  })
+);
 
 // ② exercises テーブル - 種目マスタ（共通マスタ + ユーザー独自種目）
 export const exercises = pgTable("exercises", {
@@ -70,44 +84,58 @@ export const exercises = pgTable("exercises", {
 });
 
 // ③ workout_sessions テーブル - トレーニングセッション（1日=1セッション）
-export const workoutSessions = pgTable("workout_sessions", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => nanoid(10)),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  date: date("date").notNull(), // トレーニング日（例: 2025-01-15）
-  note: text("note"), // メモ（例: "今日は胸の日"）
-  durationMinutes: integer("duration_minutes"), // トレーニング時間（分）
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .notNull()
-    .$onUpdate(() => new Date()),
-});
+export const workoutSessions = pgTable(
+  "workout_sessions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid(10)),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: date("date").notNull(), // トレーニング日（例: 2025-01-15）
+    note: text("note"), // メモ（例: "今日は胸の日"）
+    durationMinutes: integer("duration_minutes"), // トレーニング時間（分）
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => ({
+    workoutSessionsUserIdIdx: index("workout_sessions_user_id_idx").on(table.userId),
+    workoutSessionsDateIdx: index("workout_sessions_date_idx").on(table.date),
+  })
+);
 
 // ④ sets テーブル - セット記録（1セット=1レコード）
-export const sets = pgTable("sets", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => nanoid(10)),
-  sessionId: text("session_id")
-    .notNull()
-    .references(() => workoutSessions.id, { onDelete: "cascade" }),
-  exerciseId: text("exercise_id")
-    .notNull()
-    .references(() => exercises.id, { onDelete: "restrict" }),
-  setOrder: integer("set_order").notNull(), // セット順（1, 2, 3...）
-  weight: numeric("weight", { precision: 6, scale: 1 }).notNull(), // 重量（kg）例: 100.0
-  reps: integer("reps").notNull(), // 回数 例: 10
-  rpe: numeric("rpe", { precision: 3, scale: 1 }), // 主観的疲労度（RPE: 1-10）例: 8.5
-  isWarmup: boolean("is_warmup").default(false).notNull(), // ウォームアップセットか
-  restSeconds: integer("rest_seconds"), // セット間の休憩時間（秒）
-  notes: text("notes"), // セットごとのメモ
-  failure: boolean("failure").default(false), // 限界まで追い込んだか
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const sets = pgTable(
+  "sets",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid(10)),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => workoutSessions.id, { onDelete: "cascade" }),
+    exerciseId: text("exercise_id")
+      .notNull()
+      .references(() => exercises.id, { onDelete: "restrict" }),
+    setOrder: integer("set_order").notNull(), // セット順（1, 2, 3...）
+    weight: numeric("weight", { precision: 6, scale: 1 }).notNull(), // 重量（kg）例: 100.0
+    reps: integer("reps").notNull(), // 回数 例: 10
+    rpe: numeric("rpe", { precision: 3, scale: 1 }), // 主観的疲労度（RPE: 1-10）例: 8.5
+    isWarmup: boolean("is_warmup").default(false).notNull(), // ウォームアップセットか
+    restSeconds: integer("rest_seconds"), // セット間の休憩時間（秒）
+    notes: text("notes"), // セットごとのメモ
+    failure: boolean("failure").default(false), // 限界まで追い込んだか
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    setsSessionIdIdx: index("sets_session_id_idx").on(table.sessionId),
+    setsExerciseIdIdx: index("sets_exercise_id_idx").on(table.exerciseId),
+  })
+);
 
 // ⑤ cardio_records テーブル - 有酸素種目の記録
 export const cardioRecords = pgTable("cardio_records", {
