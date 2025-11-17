@@ -24,8 +24,6 @@ export function ExerciseSelector({
   const filteredExercises =
     selectedBodyPart === "all"
       ? exercises.filter((ex) => exercisesWithData.has(ex.id))
-      : selectedBodyPart === "big3"
-      ? exercises.filter((ex) => ex.isBig3 && exercisesWithData.has(ex.id))
       : exercises.filter(
           (ex) =>
             ex.bodyPart === selectedBodyPart && exercisesWithData.has(ex.id)

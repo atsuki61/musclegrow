@@ -13,7 +13,6 @@ const BODY_PARTS: BodyPart[] = [
   "arms",
   "core",
   "other",
-  "big3",
 ];
 
 const BODY_PART_ITEMS = BODY_PARTS.map((bodyPart) => ({
