@@ -1,6 +1,6 @@
 /**
  * トレーニング統計データを管理するカスタムフック
- * Big3データと種目別データの取得・更新を統合管理
+ * 種目別データの取得・更新を統合管理
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -10,7 +10,6 @@ import { getExerciseProgressDataFromStorage } from "@/lib/local-storage-exercise
 import { identifyBig3Exercises, mergeProgressData } from "@/lib/utils/stats";
 import type {
   DateRangePreset,
-  Big3ProgressData,
   ExerciseProgressData,
 } from "@/types/stats";
 import type { Exercise } from "@/types/workout";
@@ -18,12 +17,10 @@ import type { Exercise } from "@/types/workout";
 interface UseTrainingStatsOptions {
   exercises: Exercise[];
   trainingDateRange: DateRangePreset;
-  selectedBodyPart: string;
   selectedExerciseId: string | null;
 }
 
 interface UseTrainingStatsReturn {
-  big3Data: Big3ProgressData;
   exerciseData: ExerciseProgressData[];
   loading: boolean;
   exercisesWithData: Set<string>;
@@ -36,14 +33,8 @@ interface UseTrainingStatsReturn {
 export function useTrainingStats({
   exercises,
   trainingDateRange,
-  selectedBodyPart,
   selectedExerciseId,
 }: UseTrainingStatsOptions): UseTrainingStatsReturn {
-  const [big3Data, setBig3Data] = useState<Big3ProgressData>({
-    benchPress: [],
-    squat: [],
-    deadlift: [],
-  });
   const [exerciseData, setExerciseData] = useState<ExerciseProgressData[]>([]);
   const [loading, setLoading] = useState(false);
   const [exercisesWithData, setExercisesWithData] = useState<Set<string>>(
@@ -127,8 +118,6 @@ export function useTrainingStats({
         exerciseIds.push(deadliftId);
       }
       updateExercisesWithData(exerciseIds);
-
-      setBig3Data(mergedData);
     } finally {
       setLoading(false);
     }
@@ -139,12 +128,6 @@ export function useTrainingStats({
    */
   const fetchExerciseData = useCallback(async () => {
     if (!selectedExerciseId) {
-      setExerciseData([]);
-      return;
-    }
-
-    // Big3タブ選択時はスキップ
-    if (selectedBodyPart === "big3") {
       setExerciseData([]);
       return;
     }
@@ -181,7 +164,6 @@ export function useTrainingStats({
     }
   }, [
     selectedExerciseId,
-    selectedBodyPart,
     trainingDateRange,
     updateExercisesWithData,
   ]);
@@ -192,14 +174,14 @@ export function useTrainingStats({
   const refreshData = useCallback(() => {
     if (exercises.length === 0) return;
 
-    // Big3データを再取得
+    // Big3データを再取得（exercisesWithData更新のため）
     fetchBig3Data();
 
     // 種目別データも再取得（選択されている場合）
-    if (selectedExerciseId && selectedBodyPart !== "big3") {
+    if (selectedExerciseId) {
       fetchExerciseData();
     }
-  }, [exercises.length, fetchBig3Data, fetchExerciseData, selectedExerciseId, selectedBodyPart]);
+  }, [exercises.length, fetchBig3Data, fetchExerciseData, selectedExerciseId]);
 
   // Big3データを取得（初期読み込みと期間変更時）
   useEffect(() => {
@@ -226,7 +208,6 @@ export function useTrainingStats({
   }, [refreshData]);
 
   return {
-    big3Data,
     exerciseData,
     loading,
     exercisesWithData,
