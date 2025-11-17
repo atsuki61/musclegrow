@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { format } from "date-fns";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { format, isSameMonth, parseISO, startOfMonth } from "date-fns";
 import { deleteExerciseSets, deleteCardioRecords } from "@/lib/api";
 import { getWorkoutSession } from "@/lib/api";
 import { loadExercisesWithFallback } from "@/lib/local-storage-exercises";
@@ -11,21 +11,60 @@ import { HistoryCalendar } from "./history-calendar";
 import { SessionHistoryCard } from "./session-history-card";
 import { ExerciseRecordModal } from "../record/exercise-record-modal";
 import { useHistoryData } from "./hooks/use-history-data";
+import {
+  deserializeSessionDetails,
+  type SerializedSessionDetails,
+} from "./types";
 import type { Exercise, BodyPart } from "@/types/workout";
+
+interface HistoryPageProps {
+  initialMonthDate: string;
+  initialBodyPartsByDate: Record<string, BodyPart[]>;
+  initialSelectedDate?: string | null;
+  initialSessionDetails?: SerializedSessionDetails | null;
+  hasInitialMonthData?: boolean;
+}
 
 /**
  * 履歴ページコンポーネント
  * カレンダーと履歴表示を統合
  */
-export function HistoryPage() {
+export function HistoryPage({
+  initialMonthDate,
+  initialBodyPartsByDate,
+  initialSelectedDate,
+  initialSessionDetails,
+  hasInitialMonthData = false,
+}: HistoryPageProps) {
+  const initialMonth = useMemo(
+    () => parseISO(initialMonthDate),
+    [initialMonthDate]
+  );
+  const initialSelected = useMemo(
+    () => (initialSelectedDate ? parseISO(initialSelectedDate) : null),
+    [initialSelectedDate]
+  );
+  const initialSessionDetailsValue = useMemo(
+    () =>
+      initialSessionDetails
+        ? deserializeSessionDetails(initialSessionDetails)
+        : null,
+    [initialSessionDetails]
+  );
+
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedBodyPart, setSelectedBodyPart] = useState<BodyPart>("all");
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [currentMonth, setCurrentMonth] = useState<Date>(
+    selectedMonthFromSelection(initialSelected) ?? initialMonth
+  );
+  const [selectedDate, setSelectedDate] = useState<Date | null>(
+    initialSelected
+  );
   const [editingExercise, setEditingExercise] = useState<{
     exercise: Exercise;
     date: Date;
   } | null>(null);
+  const hasSkippedInitialFetchRef = useRef(false);
 
   // 最大重量を管理するカスタムフック
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
@@ -37,7 +76,10 @@ export function HistoryPage() {
     isLoading,
     loadBodyPartsByDate,
     loadSessionDetails,
-  } = useHistoryData(exercises);
+  } = useHistoryData(exercises, {
+    initialBodyPartsByDate,
+    initialSessionDetails: initialSessionDetailsValue,
+  });
 
   // 種目一覧を取得
   const loadExercises = useCallback(async () => {
@@ -52,9 +94,19 @@ export function HistoryPage() {
 
   // 種目一覧が読み込まれた後、または月が変更されたときに部位一覧を取得
   useEffect(() => {
-    // exercisesが空でも実行する（ローカルストレージから取得するため）
+    const shouldSkipInitialFetch =
+      !hasSkippedInitialFetchRef.current &&
+      hasInitialMonthData &&
+      isSameMonth(currentMonth, initialMonth);
+
+    if (shouldSkipInitialFetch) {
+      hasSkippedInitialFetchRef.current = true;
+      return;
+    }
+
+    hasSkippedInitialFetchRef.current = true;
     loadBodyPartsByDate(currentMonth);
-  }, [loadBodyPartsByDate, currentMonth, exercises]);
+  }, [currentMonth, hasInitialMonthData, initialMonth, loadBodyPartsByDate]);
 
   // 日付選択時の処理
   const handleDateSelect = useCallback(
@@ -202,4 +254,11 @@ export function HistoryPage() {
       </div>
     </>
   );
+}
+
+function selectedMonthFromSelection(selectedDate: Date | null) {
+  if (!selectedDate) {
+    return undefined;
+  }
+  return startOfMonth(selectedDate);
 }

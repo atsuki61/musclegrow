@@ -21,13 +21,17 @@ import {
 } from "@/lib/local-storage-exercises";
 import type { BodyPart, Exercise } from "@/types/workout";
 
+interface RecordPageProps {
+  initialExercises?: Exercise[];
+}
+
 function getBodyPartsToShow(
   selectedPart: Exclude<BodyPart, "all">
 ): Exclude<BodyPart, "all">[] {
   return [selectedPart];
 }
 
-export function RecordPage() {
+export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const searchParams = useSearchParams();
 
   // クエリパラメータから日付を取得（例: /record?date=2024-11-13）
@@ -50,7 +54,7 @@ export function RecordPage() {
 
   const [selectedDate, setSelectedDate] = useState<Date>(getInitialDate());
   const [selectedPart, setSelectedPart] = useState<Exclude<BodyPart, "all">>("chest");
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
     null
   );
@@ -67,11 +71,11 @@ export function RecordPage() {
 
   useEffect(() => {
     const loadExercises = async () => {
-      const exercises = await loadExercisesWithFallback();
-      setExercises(exercises);
+      const exercisesList = await loadExercisesWithFallback(initialExercises);
+      setExercises(exercisesList);
     };
     loadExercises();
-  }, []);
+  }, [initialExercises]);
 
   const recalculateStats = useCallback(() => {
     // 最大重量はカスタムフックで管理されるため、ここでは再計算のみ呼び出す
