@@ -3,7 +3,7 @@
 import { db } from "../../../db";
 import { sets, cardioRecords, exercises, workoutSessions } from "../../../db/schemas/app";
 import { getCurrentUserId } from "@/lib/auth-utils";
-import { eq, and, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, gte, lte } from "drizzle-orm";
 import type { SetRecord, CardioRecord } from "@/types/workout";
 import type { BodyPart } from "@/types/workout";
 
@@ -89,7 +89,18 @@ export async function getSessionDetails(sessionId: string): Promise<{
 
     // セット記録を取得
     const setsData = await db
-      .select()
+      .select({
+        id: sets.id,
+        exerciseId: sets.exerciseId,
+        setOrder: sets.setOrder,
+        weight: sets.weight,
+        reps: sets.reps,
+        rpe: sets.rpe,
+        isWarmup: sets.isWarmup,
+        restSeconds: sets.restSeconds,
+        notes: sets.notes,
+        failure: sets.failure,
+      })
       .from(sets)
       .where(eq(sets.sessionId, sessionId))
       .orderBy(sets.exerciseId, sets.setOrder);
@@ -98,7 +109,17 @@ export async function getSessionDetails(sessionId: string): Promise<{
     const cardioData = await handleTableNotExistsError(
       () =>
         db
-          .select()
+          .select({
+            id: cardioRecords.id,
+            exerciseId: cardioRecords.exerciseId,
+            duration: cardioRecords.duration,
+            distance: cardioRecords.distance,
+            speed: cardioRecords.speed,
+            calories: cardioRecords.calories,
+            heartRate: cardioRecords.heartRate,
+            incline: cardioRecords.incline,
+            notes: cardioRecords.notes,
+          })
           .from(cardioRecords)
           .where(eq(cardioRecords.sessionId, sessionId))
           .orderBy(cardioRecords.exerciseId, cardioRecords.createdAt),
@@ -197,125 +218,64 @@ export async function getBodyPartsByDateRange({
       };
     }
 
-    // 日付範囲内のセッションを取得
-    const sessions = await db
+    const strengthRows = await db
       .select({
-        id: workoutSessions.id,
         date: workoutSessions.date,
+        bodyPart: exercises.bodyPart,
       })
       .from(workoutSessions)
+      .innerJoin(sets, eq(sets.sessionId, workoutSessions.id))
+      .innerJoin(exercises, eq(sets.exerciseId, exercises.id))
       .where(
         and(
           eq(workoutSessions.userId, userId),
           gte(workoutSessions.date, startDate),
           lte(workoutSessions.date, endDate)
         )
-      );
+      )
+      .groupBy(workoutSessions.date, exercises.bodyPart);
 
-    if (sessions.length === 0) {
-      return {
-        success: true,
-        data: {},
-      };
-    }
-
-    const sessionIds = sessions.map((s) => s.id);
-
-    // セッションごとの種目IDを取得（筋トレ種目）
-    const workoutExerciseIds = await db
-      .selectDistinct({
-        sessionId: sets.sessionId,
-        exerciseId: sets.exerciseId,
-      })
-      .from(sets)
-      .where(inArray(sets.sessionId, sessionIds));
-
-    // セッションごとの種目IDを取得（有酸素種目）
-    // テーブルが存在しない場合は空配列を返す
-    const cardioExerciseIds = await handleTableNotExistsError(
+    const cardioRows = await handleTableNotExistsError(
       () =>
         db
-          .selectDistinct({
-            sessionId: cardioRecords.sessionId,
-            exerciseId: cardioRecords.exerciseId,
+          .select({
+            date: workoutSessions.date,
+            bodyPart: exercises.bodyPart,
           })
-          .from(cardioRecords)
-          .where(inArray(cardioRecords.sessionId, sessionIds)),
+          .from(workoutSessions)
+          .innerJoin(cardioRecords, eq(cardioRecords.sessionId, workoutSessions.id))
+          .innerJoin(exercises, eq(cardioRecords.exerciseId, exercises.id))
+          .where(
+            and(
+              eq(workoutSessions.userId, userId),
+              gte(workoutSessions.date, startDate),
+              lte(workoutSessions.date, endDate)
+            )
+          )
+          .groupBy(workoutSessions.date, exercises.bodyPart),
       [],
       "cardio_records"
     );
 
-    // 全ての種目IDを取得
-    const allExerciseIds = [
-      ...new Set([
-        ...workoutExerciseIds.map((e) => e.exerciseId),
-        ...cardioExerciseIds.map((e) => e.exerciseId),
-      ]),
-    ];
-
-    if (allExerciseIds.length === 0) {
-      return {
-        success: true,
-        data: {},
-      };
-    }
-
-    // 種目IDから部位を取得
-    const exerciseBodyParts = await db
-      .select({
-        id: exercises.id,
-        bodyPart: exercises.bodyPart,
-      })
-      .from(exercises)
-      .where(inArray(exercises.id, allExerciseIds));
-
-    // 種目ID → 部位のマップを作成
-    const exerciseIdToBodyPart = new Map<string, BodyPart>();
-    exerciseBodyParts.forEach((ex) => {
-      exerciseIdToBodyPart.set(ex.id, ex.bodyPart as BodyPart);
-    });
-
-    // 日付ごとに部位を集計
     const bodyPartsByDate: Record<string, Set<BodyPart>> = {};
 
-    // セッションID → 日付のマップを作成
-    // データベースから取得した日付はyyyy-MM-dd形式の文字列
-    const sessionIdToDate = new Map<string, string>();
-    sessions.forEach((s) => {
-      sessionIdToDate.set(s.id, s.date);
-    });
-
-    // 部位を集計する共通関数
-    const addBodyPartToDate = (
-      sessionId: string,
-      exerciseId: string
-    ): void => {
-      const date = sessionIdToDate.get(sessionId);
-      const bodyPart = exerciseIdToBodyPart.get(exerciseId);
-      if (date && bodyPart) {
-        if (!bodyPartsByDate[date]) {
-          bodyPartsByDate[date] = new Set();
-        }
-        bodyPartsByDate[date].add(bodyPart);
+    const appendRow = (row: { date: string; bodyPart: string | null }) => {
+      if (!row.bodyPart) return;
+      if (!bodyPartsByDate[row.date]) {
+        bodyPartsByDate[row.date] = new Set();
       }
+      bodyPartsByDate[row.date].add(row.bodyPart as BodyPart);
     };
 
-    // 筋トレ種目の部位を集計
-    workoutExerciseIds.forEach(({ sessionId, exerciseId }) => {
-      addBodyPartToDate(sessionId, exerciseId);
-    });
+    strengthRows.forEach(appendRow);
+    cardioRows.forEach(appendRow);
 
-    // 有酸素種目の部位を集計
-    cardioExerciseIds.forEach(({ sessionId, exerciseId }) => {
-      addBodyPartToDate(sessionId, exerciseId);
-    });
-
-    // Setを配列に変換
     const result: Record<string, BodyPart[]> = {};
     Object.keys(bodyPartsByDate).forEach((date) => {
       result[date] = Array.from(bodyPartsByDate[date]);
     });
 
+    // TODO: history:month-YYYY-MM といったタグで revalidateTag を行い、更新時のみ再取得する。
     return {
       success: true,
       data: result,

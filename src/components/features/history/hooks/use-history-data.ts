@@ -13,16 +13,13 @@ import type {
   SetRecord,
   CardioRecord,
 } from "@/types/workout";
+import type { SessionDetails } from "../types";
 
-/**
- * セッション詳細の型定義
- */
-export interface SessionDetails {
-  workoutExercises: Array<{ exerciseId: string; sets: SetRecord[] }>;
-  cardioExercises: Array<{ exerciseId: string; records: CardioRecord[] }>;
-  date: Date;
-  durationMinutes?: number | null;
-  note?: string | null;
+export type { SessionDetails } from "../types";
+
+interface UseHistoryDataOptions {
+  initialBodyPartsByDate?: Record<string, BodyPart[]>;
+  initialSessionDetails?: SessionDetails | null;
 }
 
 /**
@@ -107,12 +104,15 @@ function mergeSessionDetails(
 /**
  * 履歴データを管理するカスタムフック
  */
-export function useHistoryData(exercises: Exercise[]) {
+export function useHistoryData(
+  exercises: Exercise[],
+  options?: UseHistoryDataOptions
+) {
   const [bodyPartsByDate, setBodyPartsByDate] = useState<
     Record<string, BodyPart[]>
-  >({});
+  >(options?.initialBodyPartsByDate ?? {});
   const [sessionDetails, setSessionDetails] = useState<SessionDetails | null>(
-    null
+    options?.initialSessionDetails ?? null
   );
   const [isLoading, setIsLoading] = useState(false);
 
@@ -160,8 +160,11 @@ export function useHistoryData(exercises: Exercise[]) {
     try {
       const dateStr = format(date, "yyyy-MM-dd");
 
-      // データベースから取得を試みる
-      const sessionResult = await getWorkoutSession(dateStr);
+      // データベースとローカルストレージを並列に取得
+      const [sessionResult, storageDetails] = await Promise.all([
+        getWorkoutSession(dateStr),
+        Promise.resolve(getSessionDetailsFromStorage({ date })),
+      ]);
       let dbDetails: {
         workoutExercises: Array<{ exerciseId: string; sets: SetRecord[] }>;
         cardioExercises: Array<{ exerciseId: string; records: CardioRecord[] }>;
@@ -177,9 +180,6 @@ export function useHistoryData(exercises: Exercise[]) {
           dbDurationMinutes = sessionResult.data.durationMinutes;
         }
       }
-
-      // ローカルストレージから取得
-      const storageDetails = getSessionDetailsFromStorage({ date });
 
       // マージ
       const merged = mergeSessionDetails(dbDetails, storageDetails);

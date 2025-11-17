@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DateRangeSelector } from "./date-range-selector";
 import { BodyPartSelector } from "./body-part-selector";
@@ -10,7 +10,6 @@ import { ExerciseChart } from "./exercise-chart";
 import { HorizontalNav } from "./horizontal-nav";
 import { ChartLoading } from "./chart-loading";
 import { getProfileHistory } from "@/lib/actions/stats";
-import { getExercises } from "@/lib/actions/exercises";
 import { getExercisesWithDataFromStorage } from "@/lib/local-storage-exercise-progress";
 import { useTrainingStats } from "@/hooks/use-training-stats";
 import type {
@@ -50,31 +49,49 @@ function EmptyStateMessage({
   );
 }
 
+interface StatsPageProps {
+  initialProfileHistory: ProfileHistoryData[];
+  initialProfileDateRange: DateRangePreset;
+  initialTrainingDateRange: DateRangePreset;
+  initialExercises: Exercise[];
+  initialExercisesWithData: string[];
+}
+
 /**
  * グラフページコンポーネント
  */
-export function StatsPage() {
+export function StatsPage({
+  initialProfileHistory,
+  initialProfileDateRange,
+  initialTrainingDateRange,
+  initialExercises,
+  initialExercisesWithData,
+}: StatsPageProps) {
   // タブ状態
   const [activeTab, setActiveTab] = useState<"profile" | "training">("profile");
 
   // プロフィールタブの状態
-  const [profileDateRange, setProfileDateRange] =
-    useState<DateRangePreset>("month");
+  const [profileDateRange, setProfileDateRange] = useState<DateRangePreset>(
+    initialProfileDateRange
+  );
   const [profileChartType, setProfileChartType] =
     useState<ProfileChartType>("weight");
   const [profileHistory, setProfileHistory] = useState<ProfileHistoryData[]>(
-    []
+    initialProfileHistory
   );
   const [profileLoading, setProfileLoading] = useState(false);
+  const initialProfileRangeRef = useRef(initialProfileDateRange);
+  const hasHydratedProfileRef = useRef(false);
 
   // トレーニングタブの状態
-  const [trainingDateRange, setTrainingDateRange] =
-    useState<DateRangePreset>("month");
+  const [trainingDateRange, setTrainingDateRange] = useState<DateRangePreset>(
+    initialTrainingDateRange
+  );
   const [selectedBodyPart, setSelectedBodyPart] = useState<BodyPart>("all");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
     null
   );
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exercises] = useState<Exercise[]>(initialExercises);
 
   // トレーニング統計データを管理するカスタムフック
   const {
@@ -85,32 +102,43 @@ export function StatsPage() {
     exercises,
     trainingDateRange,
     selectedExerciseId,
+    initialExercisesWithData,
   });
 
-  // 種目一覧を取得
+  // 初回マウント時にローカルストレージの記録がある種目を自動選択
   useEffect(() => {
-    async function fetchExercises() {
-      const result = await getExercises();
-      if (result.success && result.data) {
-        setExercises(result.data);
+    if (selectedExerciseId) return;
+    const exercisesWithDataFromStorage = getExercisesWithDataFromStorage();
+    const firstExerciseWithLocalData = exercises.find((ex) =>
+      exercisesWithDataFromStorage.has(ex.id)
+    );
+    if (firstExerciseWithLocalData) {
+      setSelectedExerciseId(firstExerciseWithLocalData.id);
+      return;
+    }
 
-        // ローカルストレージから記録がある種目IDを取得
-        const exercisesWithDataFromStorage = getExercisesWithDataFromStorage();
-
-        // データがある最初の種目を選択
-        const firstExerciseWithData = result.data.find((ex) =>
-          exercisesWithDataFromStorage.has(ex.id)
-        );
-        if (firstExerciseWithData) {
-          setSelectedExerciseId(firstExerciseWithData.id);
-        }
+    if (initialExercisesWithData.length > 0) {
+      const fallback = initialExercisesWithData.find((id) =>
+        exercises.some((ex) => ex.id === id)
+      );
+      if (fallback) {
+        setSelectedExerciseId(fallback);
       }
     }
-    fetchExercises();
-  }, []);
+  }, [exercises, initialExercisesWithData, selectedExerciseId]);
 
   // プロフィール履歴を取得
   useEffect(() => {
+    if (
+      !hasHydratedProfileRef.current &&
+      profileDateRange === initialProfileRangeRef.current
+    ) {
+      hasHydratedProfileRef.current = true;
+      return;
+    }
+
+    hasHydratedProfileRef.current = true;
+
     async function fetchProfileHistory() {
       setProfileLoading(true);
       const result = await getProfileHistory({ preset: profileDateRange });

@@ -1,10 +1,48 @@
 "use server";
 
+import { unstable_cache, revalidateTag } from "next/cache";
 import { db } from "../../../db";
 import { exercises } from "../../../db/schemas/app";
 import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, and, or, isNull } from "drizzle-orm";
 import type { Exercise } from "@/types/workout";
+
+type ExerciseRow = typeof exercises.$inferSelect;
+
+const fetchExercisesForUser = unstable_cache(
+  async (userKey: string): Promise<Exercise[]> => {
+    if (userKey === "guest") {
+      return [];
+    }
+
+    const exercisesList = await db
+      .select()
+      .from(exercises)
+      .where(or(isNull(exercises.userId), eq(exercises.userId, userKey)))
+      .orderBy(exercises.createdAt);
+
+    return exercisesList.map(mapExerciseRow);
+  },
+  ["exercises"],
+  { tags: ["exercises"] }
+);
+
+function mapExerciseRow(ex: ExerciseRow): Exercise {
+  return {
+    id: ex.id,
+    name: ex.name,
+    nameEn: ex.nameEn ?? undefined,
+    bodyPart: ex.bodyPart as Exercise["bodyPart"],
+    muscleSubGroup:
+      (ex.muscleSubGroup as Exercise["muscleSubGroup"] | null) ?? undefined,
+    primaryEquipment:
+      (ex.primaryEquipment as Exercise["primaryEquipment"] | null) ?? undefined,
+    tier: ex.tier as Exercise["tier"],
+    isBig3: ex.isBig3,
+    userId: ex.userId ?? undefined,
+    createdAt: ex.createdAt,
+  };
+}
 
 /**
  * 種目IDのバリデーションと認証チェックを行う共通関数
@@ -91,26 +129,14 @@ export async function saveExercise(exercise: Exercise): Promise<{
       })
       .returning();
 
-    return {
+    const response = {
       success: true,
-      data: {
-        id: savedExercise.id,
-        name: savedExercise.name,
-        nameEn: savedExercise.nameEn ?? undefined,
-        bodyPart: savedExercise.bodyPart as Exercise["bodyPart"],
-        muscleSubGroup:
-          (savedExercise.muscleSubGroup as Exercise["muscleSubGroup"] | null) ??
-          undefined,
-        primaryEquipment:
-          (savedExercise.primaryEquipment as
-            | Exercise["primaryEquipment"]
-            | null) ?? undefined,
-        tier: savedExercise.tier as Exercise["tier"],
-        isBig3: savedExercise.isBig3,
-        userId: savedExercise.userId ?? undefined,
-        createdAt: savedExercise.createdAt,
-      },
+      data: mapExerciseRow(savedExercise),
     };
+
+    await revalidateTag("exercises");
+
+    return response;
   } catch (error: unknown) {
     console.error("種目保存エラー:", error);
     return {
@@ -131,38 +157,8 @@ export async function getExercises(): Promise<{
 }> {
   try {
     const userId = await getCurrentUserId();
-
-    // 認証されていない場合は空の配列を返す（モックデータを使用）
-    // これにより、データベースクエリエラーを回避し、クライアント側でモックデータを使用できる
-    if (!userId) {
-      return {
-        success: true,
-        data: [],
-      };
-    }
-
-    // 共通マスタ（userIdがnull）とユーザー独自種目（userIdが現在のユーザーID）を取得
-    const exercisesList = await db
-      .select()
-      .from(exercises)
-      .where(or(isNull(exercises.userId), eq(exercises.userId, userId)))
-      .orderBy(exercises.createdAt);
-
-    const exercisesData: Exercise[] = exercisesList.map((ex) => ({
-      id: ex.id,
-      name: ex.name,
-      nameEn: ex.nameEn ?? undefined,
-      bodyPart: ex.bodyPart as Exercise["bodyPart"],
-      muscleSubGroup:
-        (ex.muscleSubGroup as Exercise["muscleSubGroup"] | null) ?? undefined,
-      primaryEquipment:
-        (ex.primaryEquipment as Exercise["primaryEquipment"] | null) ??
-        undefined,
-      tier: ex.tier as Exercise["tier"],
-      isBig3: ex.isBig3,
-      userId: ex.userId ?? undefined,
-      createdAt: ex.createdAt,
-    }));
+    const cacheKey = userId ?? "guest";
+    const exercisesData = await fetchExercisesForUser(cacheKey);
 
     return {
       success: true,

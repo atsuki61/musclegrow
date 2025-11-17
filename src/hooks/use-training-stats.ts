@@ -18,6 +18,7 @@ interface UseTrainingStatsOptions {
   exercises: Exercise[];
   trainingDateRange: DateRangePreset;
   selectedExerciseId: string | null;
+  initialExercisesWithData?: string[];
 }
 
 interface UseTrainingStatsReturn {
@@ -34,11 +35,12 @@ export function useTrainingStats({
   exercises,
   trainingDateRange,
   selectedExerciseId,
+  initialExercisesWithData = [],
 }: UseTrainingStatsOptions): UseTrainingStatsReturn {
   const [exerciseData, setExerciseData] = useState<ExerciseProgressData[]>([]);
   const [loading, setLoading] = useState(false);
   const [exercisesWithData, setExercisesWithData] = useState<Set<string>>(
-    new Set()
+    () => new Set(initialExercisesWithData)
   );
 
   /**
