@@ -8,6 +8,7 @@ import { getBig3ProgressData, getExerciseProgressData } from "@/lib/actions/stat
 import { getBig3ProgressDataFromStorage } from "@/lib/local-storage-big3-progress";
 import { getExerciseProgressDataFromStorage } from "@/lib/local-storage-exercise-progress";
 import { identifyBig3Exercises, mergeProgressData } from "@/lib/utils/stats";
+import { useAuthSession } from "@/lib/auth-session-context";
 import type {
   DateRangePreset,
   ExerciseProgressData,
@@ -37,6 +38,7 @@ export function useTrainingStats({
   selectedExerciseId,
   initialExercisesWithData = [],
 }: UseTrainingStatsOptions): UseTrainingStatsReturn {
+  const { userId } = useAuthSession();
   const [exerciseData, setExerciseData] = useState<ExerciseProgressData[]>([]);
   const [loading, setLoading] = useState(false);
   const [exercisesWithData, setExercisesWithData] = useState<Set<string>>(
@@ -75,7 +77,7 @@ export function useTrainingStats({
 
     try {
       // データベースから取得
-      const dbResult = await getBig3ProgressData({ preset: trainingDateRange });
+      const dbResult = await getBig3ProgressData(userId, { preset: trainingDateRange });
 
       // Big3種目のIDを取得
       const big3Exercises = exercises.filter((ex) => ex.isBig3);
@@ -123,7 +125,7 @@ export function useTrainingStats({
     } finally {
       setLoading(false);
     }
-  }, [trainingDateRange, exercises, updateExercisesWithData]);
+  }, [trainingDateRange, exercises, updateExercisesWithData, userId]);
 
   /**
    * 種目別データを取得する関数
@@ -138,7 +140,7 @@ export function useTrainingStats({
 
     try {
       // データベースから取得
-      const dbResult = await getExerciseProgressData({
+      const dbResult = await getExerciseProgressData(userId, {
         exerciseId: selectedExerciseId,
         preset: trainingDateRange,
       });
@@ -168,6 +170,7 @@ export function useTrainingStats({
     selectedExerciseId,
     trainingDateRange,
     updateExercisesWithData,
+    userId,
   ]);
 
   /**

@@ -8,7 +8,6 @@ import {
   workoutSessions,
   exercises,
 } from "../../../db/schemas/app";
-import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, and, gte, sql, or, isNull } from "drizzle-orm";
 import type {
   ProfileHistoryData,
@@ -56,24 +55,19 @@ const fetchProfileHistoryCached = unstable_cache(
   { tags: ["profile:history"] }
 );
 
-export async function getProfileHistory({
-  preset = "month",
-}: {
-  preset?: DateRangePreset;
-}): Promise<{
+export async function getProfileHistory(
+  userId: string,
+  {
+    preset = "month",
+  }: {
+    preset?: DateRangePreset;
+  } = {}
+): Promise<{
   success: boolean;
   error?: string;
   data?: ProfileHistoryData[];
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
-      };
-    }
-
     const historyData = await fetchProfileHistoryCached(userId, preset);
 
     return {
@@ -163,24 +157,19 @@ const fetchBig3ProgressCached = unstable_cache(
   { tags: ["stats:big3"] }
 );
 
-export async function getBig3ProgressData({
-  preset = "month",
-}: {
-  preset?: DateRangePreset;
-}): Promise<{
+export async function getBig3ProgressData(
+  userId: string,
+  {
+    preset = "month",
+  }: {
+    preset?: DateRangePreset;
+  } = {}
+): Promise<{
   success: boolean;
   error?: string;
   data?: Big3ProgressData;
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
-      };
-    }
-
     const data = await fetchBig3ProgressCached(userId, preset);
 
     return {
@@ -230,26 +219,21 @@ const fetchExerciseProgressCached = unstable_cache(
   { tags: ["stats:exercise"] }
 );
 
-export async function getExerciseProgressData({
-  exerciseId,
-  preset = "month",
-}: {
-  exerciseId: string;
-  preset?: DateRangePreset;
-}): Promise<{
+export async function getExerciseProgressData(
+  userId: string,
+  {
+    exerciseId,
+    preset = "month",
+  }: {
+    exerciseId: string;
+    preset?: DateRangePreset;
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: ExerciseProgressData[];
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
-      };
-    }
-
     const progressData = await fetchExerciseProgressCached(
       userId,
       exerciseId,

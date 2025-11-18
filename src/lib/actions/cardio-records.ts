@@ -3,41 +3,42 @@
 import { db } from "../../../db";
 import { cardioRecords, workoutSessions } from "../../../db/schemas/app";
 import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
-import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, and } from "drizzle-orm";
 import type { CardioRecord } from "@/types/workout";
 
 /**
  * 有酸素種目の記録を保存する（既存の記録を削除してから新規保存）
+ * @param userId ユーザーID
  * @param sessionId ワークアウトセッションID
  * @param exerciseId 種目ID
  * @param recordsToSave 有酸素記録の配列
  * @returns 保存結果
  */
-export async function saveCardioRecords({
-  sessionId,
-  exerciseId,
-  records: recordsToSave,
-}: {
-  sessionId: string;
-  exerciseId: string;
-  records: CardioRecord[];
-}): Promise<{
+export async function saveCardioRecords(
+  userId: string,
+  {
+    sessionId,
+    exerciseId,
+    records: recordsToSave,
+  }: {
+    sessionId: string;
+    exerciseId: string;
+    records: CardioRecord[];
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: { count: number };
 }> {
   try {
     // 種目IDのバリデーションと認証チェック
-    const validationResult = await validateExerciseIdAndAuth(exerciseId);
+    const validationResult = await validateExerciseIdAndAuth(userId, exerciseId);
     if (!validationResult.success) {
       return {
         success: false,
         error: validationResult.error,
       };
     }
-
-    const userId = validationResult.userId;
 
     // セッションがそのユーザーのものか確認
     const [session] = await db
@@ -142,30 +143,26 @@ export async function saveCardioRecords({
 
 /**
  * 指定セッション・種目の有酸素記録を取得する
+ * @param userId ユーザーID
  * @param sessionId ワークアウトセッションID
  * @param exerciseId 種目ID
  * @returns 有酸素記録の配列
  */
-export async function getCardioRecords({
-  sessionId,
-  exerciseId,
-}: {
-  sessionId: string;
-  exerciseId: string;
-}): Promise<{
+export async function getCardioRecords(
+  userId: string,
+  {
+    sessionId,
+    exerciseId,
+  }: {
+    sessionId: string;
+    exerciseId: string;
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: CardioRecord[];
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
-      };
-    }
-
     // exerciseIdがモックID（mock-で始まる）の場合は空の配列を返す
     if (exerciseId.startsWith("mock-")) {
       return {

@@ -3,11 +3,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../../db";
 import { profiles } from "../../../db/schemas/app";
-import { getCurrentUserId } from "@/lib/auth-utils";
-import {
-  DEFAULT_BIG3_TARGETS,
-  type Big3Targets,
-} from "@/lib/big3";
+import { DEFAULT_BIG3_TARGETS, type Big3Targets } from "@/lib/big3";
 import type { ProfileResponse } from "@/types/profile";
 
 type ProfileRow = typeof profiles.$inferSelect;
@@ -34,20 +30,12 @@ function mapProfileRow(profile: ProfileRow): ProfileResponse {
   };
 }
 
-export async function getProfileData(): Promise<{
+export async function getProfileData(userId: string): Promise<{
   success: boolean;
   error?: string;
   data?: ProfileResponse;
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
-      };
-    }
-
     let profile = await db
       .select()
       .from(profiles)
@@ -78,13 +66,12 @@ export async function getProfileData(): Promise<{
   }
 }
 
-export async function getBig3TargetValues(): Promise<{
+export async function getBig3TargetValues(userId: string | null): Promise<{
   success: boolean;
   error?: string;
   data?: Big3Targets;
 }> {
   try {
-    const userId = await getCurrentUserId();
     if (!userId) {
       return {
         success: true,
@@ -137,4 +124,3 @@ export async function getBig3TargetValues(): Promise<{
     };
   }
 }
-
