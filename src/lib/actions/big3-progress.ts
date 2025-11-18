@@ -2,7 +2,6 @@
 
 import { db } from "../../../db";
 import { sets, exercises, workoutSessions } from "../../../db/schemas/app";
-import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, and, sql, isNull, or, inArray } from "drizzle-orm";
 
 type Big3MaxWeightsResult = {
@@ -35,11 +34,13 @@ function createEmptyBig3Data(
 
 /**
  * Big3種目の最大重量を取得する
+ * @param userId ユーザーID
  * @returns Big3種目（ベンチプレス、スクワット、デッドリフト）の最大重量
  */
-export async function getBig3MaxWeights(): Promise<Big3MaxWeightsResult> {
+export async function getBig3MaxWeights(
+  userId: string | null
+): Promise<Big3MaxWeightsResult> {
   try {
-    const userId = await getCurrentUserId();
 
     // Big3種目を取得（名前で検索）
     // 認証されていない場合は共通マスタ（userIdがnull）のみを取得

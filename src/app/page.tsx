@@ -2,11 +2,14 @@ import { HomePage } from "@/components/features/home";
 import { getBig3MaxWeights } from "@/lib/actions/big3-progress";
 import { getBig3TargetValues } from "@/lib/actions/profile";
 import { DEFAULT_BIG3_TARGETS, type Big3Targets, type Big3Weights } from "@/lib/big3";
+import { getAuthUserId } from "@/lib/auth-session-server";
 
 export default async function Page() {
+  const userId = await getAuthUserId();
+
   const [big3Result, targetResult] = await Promise.all([
-    getBig3MaxWeights(),
-    getBig3TargetValues(),
+    getBig3MaxWeights(userId),
+    getBig3TargetValues(userId),
   ]);
 
   const dbWeights: Big3Weights = {

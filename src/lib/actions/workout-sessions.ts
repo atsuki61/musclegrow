@@ -2,37 +2,33 @@
 
 import { db } from "../../../db";
 import { workoutSessions } from "../../../db/schemas/app";
-import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 
 /**
  * ワークアウトセッションを保存または更新する
+ * @param userId ユーザーID
  * @param date トレーニング日（YYYY-MM-DD形式の文字列）
  * @param note メモ（オプション）
  * @param durationMinutes トレーニング時間（分、オプション）
  * @returns 保存結果
  */
-export async function saveWorkoutSession({
-  date,
-  note,
-  durationMinutes,
-}: {
-  date: string; // YYYY-MM-DD形式
-  note?: string | null;
-  durationMinutes?: number | null;
-}): Promise<{
+export async function saveWorkoutSession(
+  userId: string,
+  {
+    date,
+    note,
+    durationMinutes,
+  }: {
+    date: string; // YYYY-MM-DD形式
+    note?: string | null;
+    durationMinutes?: number | null;
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: { id: string; date: string };
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
-      };
-    }
 
     // 既存のセッションを確認
     const existingSession = await db
@@ -99,10 +95,12 @@ export async function saveWorkoutSession({
 
 /**
  * 指定日付のワークアウトセッションを取得する
+ * @param userId ユーザーID
  * @param date トレーニング日（YYYY-MM-DD形式の文字列）
  * @returns セッション情報
  */
 export async function getWorkoutSession(
+  userId: string,
   date: string
 ): Promise<{
   success: boolean;
@@ -110,13 +108,6 @@ export async function getWorkoutSession(
   data?: { id: string; date: string; note?: string | null; durationMinutes?: number | null };
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
-      };
-    }
 
     const [session] = await db
       .select()
@@ -159,17 +150,21 @@ export async function getWorkoutSession(
 
 /**
  * 日付範囲でワークアウトセッション一覧を取得する
+ * @param userId ユーザーID
  * @param startDate 開始日（YYYY-MM-DD形式の文字列）
  * @param endDate 終了日（YYYY-MM-DD形式の文字列）
  * @returns セッション一覧
  */
-export async function getWorkoutSessionsByDateRange({
-  startDate,
-  endDate,
-}: {
-  startDate: string; // YYYY-MM-DD形式
-  endDate: string; // YYYY-MM-DD形式
-}): Promise<{
+export async function getWorkoutSessionsByDateRange(
+  userId: string,
+  {
+    startDate,
+    endDate,
+  }: {
+    startDate: string; // YYYY-MM-DD形式
+    endDate: string; // YYYY-MM-DD形式
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: Array<{
@@ -180,13 +175,6 @@ export async function getWorkoutSessionsByDateRange({
   }>;
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
-      };
-    }
 
     const sessions = await db
       .select({

@@ -18,8 +18,9 @@ type ProfileRow = InferSelectModel<typeof profiles>;
  * @returns ユーザーID（認証されていない場合はnull）
  */
 async function getAuthenticatedUserId(): Promise<string | null> {
+  const h = await headers();
   const session = await auth.api.getSession({
-    headers: await headers(),
+    headers: h,
   });
 
   return session?.user?.id ?? null;

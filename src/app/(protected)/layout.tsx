@@ -1,7 +1,7 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { auth } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth-session-server";
+import { AuthSessionProvider } from "@/lib/auth-session-context";
 
 interface ProtectedLayoutProps {
   children: ReactNode;
@@ -10,14 +10,14 @@ interface ProtectedLayoutProps {
 export default async function ProtectedLayout({
   children,
 }: ProtectedLayoutProps) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getAuthSession();
 
   if (!session) {
     redirect("/login");
   }
 
-  return <>{children}</>;
+  const userId = session.user.id;
+
+  return <AuthSessionProvider userId={userId}>{children}</AuthSessionProvider>;
 }
 

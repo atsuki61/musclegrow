@@ -19,6 +19,7 @@ import {
   loadExercisesWithFallback,
   addExerciseToStorage,
 } from "@/lib/local-storage-exercises";
+import { useAuthSession } from "@/lib/auth-session-context";
 import type { BodyPart, Exercise } from "@/types/workout";
 
 interface RecordPageProps {
@@ -33,6 +34,7 @@ function getBodyPartsToShow(
 
 export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const searchParams = useSearchParams();
+  const { userId } = useAuthSession();
 
   // クエリパラメータから日付を取得（例: /record?date=2024-11-13）
   const getInitialDate = (): Date => {
@@ -71,11 +73,11 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
 
   useEffect(() => {
     const loadExercises = async () => {
-      const exercisesList = await loadExercisesWithFallback(initialExercises);
+      const exercisesList = await loadExercisesWithFallback(initialExercises, userId);
       setExercises(exercisesList);
     };
     loadExercises();
-  }, [initialExercises]);
+  }, [initialExercises, userId]);
 
   const recalculateStats = useCallback(() => {
     // 最大重量はカスタムフックで管理されるため、ここでは再計算のみ呼び出す
@@ -119,7 +121,7 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   };
 
   const saveCustomExercise = async (exercise: Exercise) => {
-    const result = await saveExercise(exercise);
+    const result = await saveExercise(userId, exercise);
     if (result.success && result.data) {
       addExerciseToState(result.data);
     } else {

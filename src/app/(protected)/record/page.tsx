@@ -1,9 +1,11 @@
 import { Suspense } from "react";
 import { RecordPage } from "@/components/features/record";
 import { getExercises } from "@/lib/actions/exercises";
+import { getAuthUserId } from "@/lib/auth-session-server";
 
 export default async function Page() {
-  const exercisesResult = await getExercises();
+  const userId = await getAuthUserId();
+  const exercisesResult = await getExercises(userId);
   const initialExercises = exercisesResult.success && exercisesResult.data ? exercisesResult.data : [];
 
   return (
