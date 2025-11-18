@@ -3,8 +3,14 @@ import { HistoryPage } from "@/components/features/history";
 import { getBodyPartsByDateRange, getSessionDetails } from "@/lib/actions/history";
 import { getWorkoutSession } from "@/lib/actions/workout-sessions";
 import { serializeSessionDetails } from "@/components/features/history/types";
+import { getAuthUserId } from "@/lib/auth-session-server";
 
 export default async function Page() {
+  const userId = await getAuthUserId();
+  if (!userId) {
+    throw new Error("認証が必要です");
+  }
+
   const today = new Date();
   const monthStart = startOfMonth(today);
 
@@ -14,14 +20,14 @@ export default async function Page() {
   };
 
   const [bodyPartsResult, sessionResult] = await Promise.all([
-    getBodyPartsByDateRange(monthRange),
-    getWorkoutSession(format(today, "yyyy-MM-dd")),
+    getBodyPartsByDateRange(userId, monthRange),
+    getWorkoutSession(userId, format(today, "yyyy-MM-dd")),
   ]);
 
   let initialSessionDetails = null;
 
   if (sessionResult.success && sessionResult.data) {
-    const detailsResult = await getSessionDetails(sessionResult.data.id);
+    const detailsResult = await getSessionDetails(userId, sessionResult.data.id);
     if (detailsResult.success && detailsResult.data) {
       initialSessionDetails = serializeSessionDetails({
         ...detailsResult.data,

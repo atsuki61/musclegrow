@@ -9,6 +9,7 @@ import {
   getCardioRecords as getCardioRecordsFromAPI,
 } from "@/lib/api";
 import { formatDateToYYYYMMDD } from "@/lib/utils";
+import { useAuthSession } from "@/lib/auth-session-context";
 
 /**
  * ローカルストレージのキーを生成（有酸素種目用）
@@ -117,6 +118,7 @@ export function useCardioSession({
   isOpen,
   createInitialRecord,
 }: UseCardioSessionOptions) {
+  const { userId } = useAuthSession();
   const [records, setRecords] = useState<CardioRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   // 前回の日付と種目IDを追跡（日付変更時の自動保存用）
@@ -168,11 +170,11 @@ export function useCardioSession({
     // まずデータベースから取得を試みる
     try {
       const dateStr = formatDateToYYYYMMDD(date); // YYYY-MM-DD形式（ローカルタイムゾーン）
-      const sessionResult = await getWorkoutSession(dateStr);
+      const sessionResult = await getWorkoutSession(userId, dateStr);
 
       if (sessionResult.success && sessionResult.data) {
         // セッションが存在する場合、有酸素記録を取得
-        const recordsResult = await getCardioRecordsFromAPI({
+        const recordsResult = await getCardioRecordsFromAPI(userId, {
           sessionId: sessionResult.data.id,
           exerciseId,
         });
@@ -218,7 +220,7 @@ export function useCardioSession({
       }
     }
     setIsLoading(false);
-  }, [date, exerciseId, isOpen, createInitialRecord]);
+  }, [date, exerciseId, isOpen, createInitialRecord, userId]);
 
   /**
    * 有酸素種目の記録を保存する
@@ -236,13 +238,13 @@ export function useCardioSession({
         const dateStr = formatDateToYYYYMMDD(date); // YYYY-MM-DD形式（ローカルタイムゾーン）
 
         // セッションを保存または取得
-        const sessionResult = await saveWorkoutSession({
+        const sessionResult = await saveWorkoutSession(userId, {
           date: dateStr,
         });
 
         if (sessionResult.success && sessionResult.data) {
           // 有酸素記録を保存
-          await saveCardioRecordsToAPI({
+          await saveCardioRecordsToAPI(userId, {
             sessionId: sessionResult.data.id,
             exerciseId,
             records: recordsToSave,
@@ -265,7 +267,7 @@ export function useCardioSession({
         }));
       }
     },
-    [date, exerciseId]
+    [date, exerciseId, userId]
   );
 
   /**
@@ -316,12 +318,12 @@ export function useCardioSession({
       (async () => {
         try {
           const previousDateStr = formatDateToYYYYMMDD(previousDateRef.current); // YYYY-MM-DD形式（ローカルタイムゾーン）
-          const sessionResult = await saveWorkoutSession({
+          const sessionResult = await saveWorkoutSession(userId, {
             date: previousDateStr,
           });
 
           if (sessionResult.success && sessionResult.data) {
-            await saveCardioRecordsToAPI({
+            await saveCardioRecordsToAPI(userId, {
               sessionId: sessionResult.data.id,
               exerciseId: previousExerciseIdRef.current!,
               records: recordsRef.current,
@@ -338,7 +340,7 @@ export function useCardioSession({
     // 参照を更新
     previousDateRef.current = date;
     previousExerciseIdRef.current = exerciseId;
-  }, [date, exerciseId, isOpen]);
+  }, [date, exerciseId, isOpen, userId]);
 
   /**
    * 外部リソース（ローカルストレージ、データベース）との同期

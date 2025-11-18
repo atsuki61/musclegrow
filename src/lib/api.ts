@@ -36,49 +36,67 @@ import type {
 
 /**
  * 種目を保存する（カスタム種目）
+ * @param userId ユーザーID
+ * @param exercise 種目データ
  */
-export async function saveExercise(exercise: Exercise): Promise<{
+export async function saveExercise(
+  userId: string,
+  exercise: Exercise
+): Promise<{
   success: boolean;
   error?: string;
   data?: Exercise;
 }> {
-  return await saveExerciseAction(exercise);
+  return await saveExerciseAction(userId, exercise);
 }
 
 /**
  * 種目一覧を取得する（共通マスタ + ユーザー独自種目）
+ * @param userId ユーザーID（nullの場合はゲスト）
  */
-export async function getExercises(): Promise<{
+export async function getExercises(userId: string | null): Promise<{
   success: boolean;
   error?: string;
   data?: Exercise[];
 }> {
-  return await getExercisesAction();
+  return await getExercisesAction(userId);
 }
 
 /**
  * ワークアウトセッションを保存または更新する
+ * @param userId ユーザーID
  */
-export async function saveWorkoutSession({
-  date,
-  note,
-  durationMinutes,
-}: {
-  date: string; // YYYY-MM-DD形式
-  note?: string | null;
-  durationMinutes?: number | null;
-}): Promise<{
+export async function saveWorkoutSession(
+  userId: string,
+  {
+    date,
+    note,
+    durationMinutes,
+  }: {
+    date: string; // YYYY-MM-DD形式
+    note?: string | null;
+    durationMinutes?: number | null;
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: { id: string; date: string };
 }> {
-  return await saveWorkoutSessionAction({ date, note, durationMinutes });
+  return await saveWorkoutSessionAction(userId, {
+    date,
+    note,
+    durationMinutes,
+  });
 }
 
 /**
  * 指定日付のワークアウトセッションを取得する
+ * @param userId ユーザーID
  */
-export async function getWorkoutSession(date: string): Promise<{
+export async function getWorkoutSession(
+  userId: string,
+  date: string
+): Promise<{
   success: boolean;
   error?: string;
   data?: {
@@ -88,62 +106,78 @@ export async function getWorkoutSession(date: string): Promise<{
     durationMinutes?: number | null;
   };
 }> {
-  return await getWorkoutSessionAction(date);
+  return await getWorkoutSessionAction(userId, date);
 }
 
 /**
  * セット記録を保存する
+ * @param userId ユーザーID
  */
-export async function saveSets({
-  sessionId,
-  exerciseId,
-  sets: setsToSave,
-}: {
-  sessionId: string;
-  exerciseId: string;
-  sets: SetRecord[];
-}): Promise<{
+export async function saveSets(
+  userId: string,
+  {
+    sessionId,
+    exerciseId,
+    sets: setsToSave,
+  }: {
+    sessionId: string;
+    exerciseId: string;
+    sets: SetRecord[];
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: { count: number };
 }> {
-  return await saveSetsAction({ sessionId, exerciseId, sets: setsToSave });
+  return await saveSetsAction(userId, {
+    sessionId,
+    exerciseId,
+    sets: setsToSave,
+  });
 }
 
 /**
  * 指定セッション・種目のセット記録を取得する
+ * @param userId ユーザーID
  */
-export async function getSets({
-  sessionId,
-  exerciseId,
-}: {
-  sessionId: string;
-  exerciseId: string;
-}): Promise<{
+export async function getSets(
+  userId: string,
+  {
+    sessionId,
+    exerciseId,
+  }: {
+    sessionId: string;
+    exerciseId: string;
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: SetRecord[];
 }> {
-  return await getSetsAction({ sessionId, exerciseId });
+  return await getSetsAction(userId, { sessionId, exerciseId });
 }
 
 /**
  * 有酸素種目の記録を保存する
+ * @param userId ユーザーID
  */
-export async function saveCardioRecords({
-  sessionId,
-  exerciseId,
-  records: recordsToSave,
-}: {
-  sessionId: string;
-  exerciseId: string;
-  records: CardioRecord[];
-}): Promise<{
+export async function saveCardioRecords(
+  userId: string,
+  {
+    sessionId,
+    exerciseId,
+    records: recordsToSave,
+  }: {
+    sessionId: string;
+    exerciseId: string;
+    records: CardioRecord[];
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: { count: number };
 }> {
-  return await saveCardioRecordsAction({
+  return await saveCardioRecordsAction(userId, {
     sessionId,
     exerciseId,
     records: recordsToSave,
@@ -152,25 +186,30 @@ export async function saveCardioRecords({
 
 /**
  * 指定セッション・種目の有酸素記録を取得する
+ * @param userId ユーザーID
  */
-export async function getCardioRecords({
-  sessionId,
-  exerciseId,
-}: {
-  sessionId: string;
-  exerciseId: string;
-}): Promise<{
+export async function getCardioRecords(
+  userId: string,
+  {
+    sessionId,
+    exerciseId,
+  }: {
+    sessionId: string;
+    exerciseId: string;
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: CardioRecord[];
 }> {
-  return await getCardioRecordsAction({ sessionId, exerciseId });
+  return await getCardioRecordsAction(userId, { sessionId, exerciseId });
 }
 
 /**
  * Big3種目の最大重量を取得する
+ * @param userId ユーザーID（nullの場合はゲスト）
  */
-export async function getBig3MaxWeights(): Promise<{
+export async function getBig3MaxWeights(userId: string | null): Promise<{
   success: boolean;
   error?: string;
   data?: {
@@ -179,19 +218,23 @@ export async function getBig3MaxWeights(): Promise<{
     deadlift: { exerciseId: string; maxWeight: number };
   };
 }> {
-  return await getBig3MaxWeightsAction();
+  return await getBig3MaxWeightsAction(userId);
 }
 
 /**
  * 日付範囲でワークアウトセッション一覧を取得する
+ * @param userId ユーザーID
  */
-export async function getWorkoutSessionsByDateRange({
-  startDate,
-  endDate,
-}: {
-  startDate: string; // YYYY-MM-DD形式
-  endDate: string; // YYYY-MM-DD形式
-}): Promise<{
+export async function getWorkoutSessionsByDateRange(
+  userId: string,
+  {
+    startDate,
+    endDate,
+  }: {
+    startDate: string; // YYYY-MM-DD形式
+    endDate: string; // YYYY-MM-DD形式
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: Array<{
@@ -201,13 +244,20 @@ export async function getWorkoutSessionsByDateRange({
     durationMinutes?: number | null;
   }>;
 }> {
-  return await getWorkoutSessionsByDateRangeAction({ startDate, endDate });
+  return await getWorkoutSessionsByDateRangeAction(userId, {
+    startDate,
+    endDate,
+  });
 }
 
 /**
  * セッションIDでそのセッションの全種目とセット記録を取得する
+ * @param userId ユーザーID
  */
-export async function getSessionDetails(sessionId: string): Promise<{
+export async function getSessionDetails(
+  userId: string,
+  sessionId: string
+): Promise<{
   success: boolean;
   error?: string;
   data?: {
@@ -221,54 +271,66 @@ export async function getSessionDetails(sessionId: string): Promise<{
     }>;
   };
 }> {
-  return await getSessionDetailsAction(sessionId);
+  return await getSessionDetailsAction(userId, sessionId);
 }
 
 /**
  * 日付範囲で日付ごとの部位一覧を取得する（カレンダー色付け用）
+ * @param userId ユーザーID
  */
-export async function getBodyPartsByDateRange({
-  startDate,
-  endDate,
-}: {
-  startDate: string; // YYYY-MM-DD形式
-  endDate: string; // YYYY-MM-DD形式
-}): Promise<{
+export async function getBodyPartsByDateRange(
+  userId: string,
+  {
+    startDate,
+    endDate,
+  }: {
+    startDate: string; // YYYY-MM-DD形式
+    endDate: string; // YYYY-MM-DD形式
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: Record<string, BodyPart[]>; // 日付文字列をキー、部位配列を値
 }> {
-  return await getBodyPartsByDateRangeAction({ startDate, endDate });
+  return await getBodyPartsByDateRangeAction(userId, { startDate, endDate });
 }
 
 /**
  * 指定セッション・種目のセット記録を削除する
+ * @param userId ユーザーID
  */
-export async function deleteExerciseSets({
-  sessionId,
-  exerciseId,
-}: {
-  sessionId: string;
-  exerciseId: string;
-}): Promise<{
+export async function deleteExerciseSets(
+  userId: string,
+  {
+    sessionId,
+    exerciseId,
+  }: {
+    sessionId: string;
+    exerciseId: string;
+  }
+): Promise<{
   success: boolean;
   error?: string;
 }> {
-  return await deleteExerciseSetsAction({ sessionId, exerciseId });
+  return await deleteExerciseSetsAction(userId, { sessionId, exerciseId });
 }
 
 /**
  * 指定セッション・種目の有酸素記録を削除する
+ * @param userId ユーザーID
  */
-export async function deleteCardioRecords({
-  sessionId,
-  exerciseId,
-}: {
-  sessionId: string;
-  exerciseId: string;
-}): Promise<{
+export async function deleteCardioRecords(
+  userId: string,
+  {
+    sessionId,
+    exerciseId,
+  }: {
+    sessionId: string;
+    exerciseId: string;
+  }
+): Promise<{
   success: boolean;
   error?: string;
 }> {
-  return await deleteCardioRecordsAction({ sessionId, exerciseId });
+  return await deleteCardioRecordsAction(userId, { sessionId, exerciseId });
 }

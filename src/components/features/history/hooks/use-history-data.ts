@@ -106,6 +106,7 @@ function mergeSessionDetails(
  */
 export function useHistoryData(
   exercises: Exercise[],
+  userId: string,
   options?: UseHistoryDataOptions
 ) {
   const [bodyPartsByDate, setBodyPartsByDate] = useState<
@@ -130,7 +131,7 @@ export function useHistoryData(
         };
 
         // データベースから取得
-        const dbResult = await getBodyPartsByDateRange(monthRange);
+        const dbResult = await getBodyPartsByDateRange(userId, monthRange);
         const dbBodyParts = dbResult.success ? dbResult.data || {} : {};
 
         // ローカルストレージから取得
@@ -149,7 +150,7 @@ export function useHistoryData(
         console.error("部位一覧取得エラー:", error);
       }
     },
-    [exercises]
+    [exercises, userId]
   );
 
   /**
@@ -162,7 +163,7 @@ export function useHistoryData(
 
       // データベースとローカルストレージを並列に取得
       const [sessionResult, storageDetails] = await Promise.all([
-        getWorkoutSession(dateStr),
+        getWorkoutSession(userId, dateStr),
         Promise.resolve(getSessionDetailsFromStorage({ date })),
       ]);
       let dbDetails: {
@@ -173,7 +174,7 @@ export function useHistoryData(
       let dbDurationMinutes: number | null | undefined = null;
 
       if (sessionResult.success && sessionResult.data) {
-        const detailsResult = await getSessionDetails(sessionResult.data.id);
+        const detailsResult = await getSessionDetails(userId, sessionResult.data.id);
         if (detailsResult.success && detailsResult.data) {
           dbDetails = detailsResult.data;
           dbNote = sessionResult.data.note;
@@ -200,7 +201,7 @@ export function useHistoryData(
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   return {
     bodyPartsByDate,

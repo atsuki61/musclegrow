@@ -16,6 +16,7 @@ import {
   type SerializedSessionDetails,
 } from "./types";
 import type { Exercise, BodyPart } from "@/types/workout";
+import { useAuthSession } from "@/lib/auth-session-context";
 
 interface HistoryPageProps {
   initialMonthDate: string;
@@ -65,6 +66,7 @@ export function HistoryPage({
     date: Date;
   } | null>(null);
   const hasSkippedInitialFetchRef = useRef(false);
+  const { userId } = useAuthSession();
 
   // 最大重量を管理するカスタムフック
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
@@ -76,16 +78,16 @@ export function HistoryPage({
     isLoading,
     loadBodyPartsByDate,
     loadSessionDetails,
-  } = useHistoryData(exercises, {
+  } = useHistoryData(exercises, userId, {
     initialBodyPartsByDate,
     initialSessionDetails: initialSessionDetailsValue,
   });
 
   // 種目一覧を取得
   const loadExercises = useCallback(async () => {
-    const exercises = await loadExercisesWithFallback();
+    const exercises = await loadExercisesWithFallback(undefined, userId);
     setExercises(exercises);
-  }, []);
+  }, [userId]);
 
   // 初回マウント時に種目一覧を取得
   useEffect(() => {
@@ -135,15 +137,15 @@ export function HistoryPage({
 
       // データベースからも削除を試みる
       try {
-        const sessionResult = await getWorkoutSession(dateStr);
+        const sessionResult = await getWorkoutSession(userId, dateStr);
         if (sessionResult.success && sessionResult.data) {
           // セット記録と有酸素記録の両方を削除（どちらか一方が存在する可能性があるため）
           await Promise.all([
-            deleteExerciseSets({
+            deleteExerciseSets(userId, {
               sessionId: sessionResult.data.id,
               exerciseId,
             }),
-            deleteCardioRecords({
+            deleteCardioRecords(userId, {
               sessionId: sessionResult.data.id,
               exerciseId,
             }),
@@ -167,6 +169,7 @@ export function HistoryPage({
       }
     },
     [
+      userId,
       selectedDate,
       currentMonth,
       loadSessionDetails,

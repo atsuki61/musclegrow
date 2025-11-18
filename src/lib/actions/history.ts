@@ -2,7 +2,6 @@
 
 import { db } from "../../../db";
 import { sets, cardioRecords, exercises, workoutSessions } from "../../../db/schemas/app";
-import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, and, gte, lte } from "drizzle-orm";
 import type { SetRecord, CardioRecord } from "@/types/workout";
 import type { BodyPart } from "@/types/workout";
@@ -40,10 +39,14 @@ async function handleTableNotExistsError<T>(
 
 /**
  * セッションIDでそのセッションの全種目とセット記録を取得する
+ * @param userId ユーザーID
  * @param sessionId ワークアウトセッションID
  * @returns 種目ごとのセット記録と有酸素記録
  */
-export async function getSessionDetails(sessionId: string): Promise<{
+export async function getSessionDetails(
+  userId: string,
+  sessionId: string
+): Promise<{
   success: boolean;
   error?: string;
   data?: {
@@ -58,14 +61,6 @@ export async function getSessionDetails(sessionId: string): Promise<{
   };
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
-      };
-    }
-
     // セッションがそのユーザーのものか確認
     const [session] = await db
       .select({ userId: workoutSessions.userId })
@@ -194,29 +189,26 @@ export async function getSessionDetails(sessionId: string): Promise<{
 
 /**
  * 日付範囲で日付ごとの部位一覧を取得する（カレンダー色付け用）
+ * @param userId ユーザーID
  * @param startDate 開始日（YYYY-MM-DD形式の文字列）
  * @param endDate 終了日（YYYY-MM-DD形式の文字列）
  * @returns 日付文字列をキー、部位配列を値とするオブジェクト
  */
-export async function getBodyPartsByDateRange({
-  startDate,
-  endDate,
-}: {
-  startDate: string; // YYYY-MM-DD形式
-  endDate: string; // YYYY-MM-DD形式
-}): Promise<{
+export async function getBodyPartsByDateRange(
+  userId: string,
+  {
+    startDate,
+    endDate,
+  }: {
+    startDate: string; // YYYY-MM-DD形式
+    endDate: string; // YYYY-MM-DD形式
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: Record<string, BodyPart[]>; // 日付文字列をキー、部位配列を値
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
-      };
-    }
 
     const strengthRows = await db
       .select({

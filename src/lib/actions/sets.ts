@@ -4,41 +4,42 @@ import { revalidateTag } from "next/cache";
 import { db } from "../../../db";
 import { sets, workoutSessions } from "../../../db/schemas/app";
 import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
-import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, and } from "drizzle-orm";
 import type { SetRecord } from "@/types/workout";
 
 /**
  * セット記録を保存する（既存のセット記録を削除してから新規保存）
+ * @param userId ユーザーID
  * @param sessionId ワークアウトセッションID
  * @param exerciseId 種目ID
  * @param setsToSave セット記録の配列
  * @returns 保存結果
  */
-export async function saveSets({
-  sessionId,
-  exerciseId,
-  sets: setsToSave,
-}: {
-  sessionId: string;
-  exerciseId: string;
-  sets: SetRecord[];
-}): Promise<{
+export async function saveSets(
+  userId: string,
+  {
+    sessionId,
+    exerciseId,
+    sets: setsToSave,
+  }: {
+    sessionId: string;
+    exerciseId: string;
+    sets: SetRecord[];
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: { count: number };
 }> {
   try {
     // 種目IDのバリデーションと認証チェック
-    const validationResult = await validateExerciseIdAndAuth(exerciseId);
+    const validationResult = await validateExerciseIdAndAuth(userId, exerciseId);
     if (!validationResult.success) {
       return {
         success: false,
         error: validationResult.error,
       };
     }
-
-    const userId = validationResult.userId;
 
     // セッションがそのユーザーのものか確認
     const [session] = await db
@@ -139,17 +140,21 @@ export async function saveSets({
 
 /**
  * 指定セッション・種目のセット記録を取得する
+ * @param userId ユーザーID
  * @param sessionId ワークアウトセッションID
  * @param exerciseId 種目ID
  * @returns セット記録の配列
  */
-export async function getSets({
-  sessionId,
-  exerciseId,
-}: {
-  sessionId: string;
-  exerciseId: string;
-}): Promise<{
+export async function getSets(
+  userId: string,
+  {
+    sessionId,
+    exerciseId,
+  }: {
+    sessionId: string;
+    exerciseId: string;
+  }
+): Promise<{
   success: boolean;
   error?: string;
   data?: SetRecord[];
@@ -160,14 +165,6 @@ export async function getSets({
       return {
         success: true,
         data: [],
-      };
-    }
-
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
       };
     }
 
