@@ -140,7 +140,6 @@ export function useHistoryData(
         const storageBodyParts = getBodyPartsByDateRangeFromStorage({
           startDate,
           endDate,
-          exercises,
         });
 
         // マージ
@@ -150,58 +149,67 @@ export function useHistoryData(
         console.error("部位一覧取得エラー:", error);
       }
     },
-    [exercises, userId]
+    [userId]
   );
 
   /**
    * 選択された日付のセッション詳細を取得（データベース + ローカルストレージ）
    */
-  const loadSessionDetails = useCallback(async (date: Date) => {
-    setIsLoading(true);
-    try {
-      const dateStr = format(date, "yyyy-MM-dd");
+  const loadSessionDetails = useCallback(
+    async (date: Date) => {
+      setIsLoading(true);
+      try {
+        const dateStr = format(date, "yyyy-MM-dd");
 
-      // データベースとローカルストレージを並列に取得
-      const [sessionResult, storageDetails] = await Promise.all([
-        getWorkoutSession(userId, dateStr),
-        Promise.resolve(getSessionDetailsFromStorage({ date })),
-      ]);
-      let dbDetails: {
-        workoutExercises: Array<{ exerciseId: string; sets: SetRecord[] }>;
-        cardioExercises: Array<{ exerciseId: string; records: CardioRecord[] }>;
-      } | null = null;
-      let dbNote: string | null | undefined = null;
-      let dbDurationMinutes: number | null | undefined = null;
+        // データベースとローカルストレージを並列に取得
+        const [sessionResult, storageDetails] = await Promise.all([
+          getWorkoutSession(userId, dateStr),
+          Promise.resolve(getSessionDetailsFromStorage({ date })),
+        ]);
+        let dbDetails: {
+          workoutExercises: Array<{ exerciseId: string; sets: SetRecord[] }>;
+          cardioExercises: Array<{
+            exerciseId: string;
+            records: CardioRecord[];
+          }>;
+        } | null = null;
+        let dbNote: string | null | undefined = null;
+        let dbDurationMinutes: number | null | undefined = null;
 
-      if (sessionResult.success && sessionResult.data) {
-        const detailsResult = await getSessionDetails(userId, sessionResult.data.id);
-        if (detailsResult.success && detailsResult.data) {
-          dbDetails = detailsResult.data;
-          dbNote = sessionResult.data.note;
-          dbDurationMinutes = sessionResult.data.durationMinutes;
+        if (sessionResult.success && sessionResult.data) {
+          const detailsResult = await getSessionDetails(
+            userId,
+            sessionResult.data.id
+          );
+          if (detailsResult.success && detailsResult.data) {
+            dbDetails = detailsResult.data;
+            dbNote = sessionResult.data.note;
+            dbDurationMinutes = sessionResult.data.durationMinutes;
+          }
         }
-      }
 
-      // マージ
-      const merged = mergeSessionDetails(dbDetails, storageDetails);
+        // マージ
+        const merged = mergeSessionDetails(dbDetails, storageDetails);
 
-      if (merged) {
-        setSessionDetails({
-          ...merged,
-          date,
-          durationMinutes: dbDurationMinutes,
-          note: dbNote,
-        });
-      } else {
+        if (merged) {
+          setSessionDetails({
+            ...merged,
+            date,
+            durationMinutes: dbDurationMinutes,
+            note: dbNote,
+          });
+        } else {
+          setSessionDetails(null);
+        }
+      } catch (error) {
+        console.error("セッション詳細取得エラー:", error);
         setSessionDetails(null);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("セッション詳細取得エラー:", error);
-      setSessionDetails(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
+    },
+    [userId]
+  );
 
   return {
     bodyPartsByDate,
