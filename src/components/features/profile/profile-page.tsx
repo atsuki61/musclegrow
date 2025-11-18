@@ -24,7 +24,9 @@ interface ProfilePageProps {
  */
 export function ProfilePage({ initialProfile }: ProfilePageProps) {
   // State管理
-  const [profile, setProfile] = useState<ProfileResponse | null>(initialProfile);
+  const [profile, setProfile] = useState<ProfileResponse | null>(
+    initialProfile
+  );
   const [height, setHeight] = useState<string>(
     initialProfile?.height?.toString() ?? ""
   );
