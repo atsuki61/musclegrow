@@ -1,7 +1,12 @@
 "use server";
 
 import { db } from "../../../db";
-import { sets, cardioRecords, exercises, workoutSessions } from "../../../db/schemas/app";
+import {
+  sets,
+  cardioRecords,
+  exercises,
+  workoutSessions,
+} from "../../../db/schemas/app";
 import { eq, and, gte, lte } from "drizzle-orm";
 import type { SetRecord, CardioRecord } from "@/types/workout";
 import type { BodyPart } from "@/types/workout";
@@ -22,10 +27,7 @@ async function handleTableNotExistsError<T>(
     return await queryFn();
   } catch (error: unknown) {
     // テーブルが存在しない場合はデフォルト値を返す
-    if (
-      error instanceof Error &&
-      error.message.includes("does not exist")
-    ) {
+    if (error instanceof Error && error.message.includes("does not exist")) {
       // 開発環境でのみログに出力
       if (process.env.NODE_ENV === "development") {
         console.warn(`${tableName}テーブルが存在しません`);
@@ -43,6 +45,7 @@ async function handleTableNotExistsError<T>(
  * @param sessionId ワークアウトセッションID
  * @returns 種目ごとのセット記録と有酸素記録
  */
+
 export async function getSessionDetails(
   userId: string,
   sessionId: string
@@ -61,7 +64,7 @@ export async function getSessionDetails(
   };
 }> {
   try {
-    // セッションがそのユーザーのものか確認
+    // セッション所有者確認
     const [session] = await db
       .select({ userId: workoutSessions.userId })
       .from(workoutSessions)
@@ -69,20 +72,15 @@ export async function getSessionDetails(
       .limit(1);
 
     if (!session) {
-      return {
-        success: false,
-        error: "セッションが見つかりません",
-      };
+      return { success: false, error: "セッションが見つかりません" };
     }
-
     if (session.userId !== userId) {
-      return {
-        success: false,
-        error: "このセッションにアクセスする権限がありません",
-      };
+      return { success: false, error: "アクセス権限がありません" };
     }
 
-    // セット記録を取得
+    // ================================
+    // ① セット記録（無酸素）
+    // ================================
     const setsData = await db
       .select({
         id: sets.id,
@@ -100,7 +98,30 @@ export async function getSessionDetails(
       .where(eq(sets.sessionId, sessionId))
       .orderBy(sets.exerciseId, sets.setOrder);
 
-    // 有酸素記録を取得（テーブルが存在しない場合は空配列を返す）
+    const workoutExercisesMap = new Map<string, SetRecord[]>();
+
+    setsData.forEach((row) => {
+      const list = workoutExercisesMap.get(row.exerciseId) || [];
+
+      list.push({
+        id: row.id,
+        setOrder: row.setOrder,
+        weight: row.weight ? Number(row.weight) : undefined,
+        reps: row.reps,
+        rpe: row.rpe ? Number(row.rpe) : null,
+        isWarmup: row.isWarmup ?? false,
+        restSeconds: row.restSeconds ?? null,
+        notes: row.notes ?? null,
+        failure: row.failure ?? false,
+        duration: null, // ← DBに存在しないので常にnull
+      });
+
+      workoutExercisesMap.set(row.exerciseId, list);
+    });
+
+    // ================================
+    // ② 有酸素記録（cardio）
+    // ================================
     const cardioData = await handleTableNotExistsError(
       () =>
         db
@@ -114,76 +135,53 @@ export async function getSessionDetails(
             heartRate: cardioRecords.heartRate,
             incline: cardioRecords.incline,
             notes: cardioRecords.notes,
+            createdAt: cardioRecords.createdAt,
           })
           .from(cardioRecords)
-          .where(eq(cardioRecords.sessionId, sessionId))
-          .orderBy(cardioRecords.exerciseId, cardioRecords.createdAt),
+          .where(eq(cardioRecords.sessionId, sessionId)),
       [],
       "cardio_records"
     );
 
-    // 種目ごとにグループ化
-    const workoutExercisesMap = new Map<string, SetRecord[]>();
-    setsData.forEach((set) => {
-      const setsList = workoutExercisesMap.get(set.exerciseId) || [];
-      setsList.push({
-        id: set.id,
-        setOrder: set.setOrder,
-        weight: parseFloat(set.weight),
-        reps: set.reps,
-        rpe: set.rpe ? parseFloat(set.rpe) : null,
-        isWarmup: set.isWarmup,
-        restSeconds: set.restSeconds ?? null,
-        notes: set.notes ?? null,
-        failure: set.failure ?? undefined,
-        duration: null,
-      });
-      workoutExercisesMap.set(set.exerciseId, setsList);
-    });
-
     const cardioExercisesMap = new Map<string, CardioRecord[]>();
-    cardioData.forEach((record) => {
-      const recordsList = cardioExercisesMap.get(record.exerciseId) || [];
-      recordsList.push({
-        id: record.id,
-        duration: record.duration,
-        distance: record.distance ? parseFloat(record.distance) : null,
-        speed: record.speed ? parseFloat(record.speed) : null,
-        calories: record.calories ?? null,
-        heartRate: record.heartRate ?? null,
-        incline: record.incline ? parseFloat(record.incline) : null,
-        notes: record.notes ?? null,
-        date: new Date(), // セッションの日付を使用する必要があるが、ここでは現在時刻を設定
+
+    cardioData.forEach((row) => {
+      const list = cardioExercisesMap.get(row.exerciseId) || [];
+
+      list.push({
+        id: row.id,
+        duration: Number(row.duration),
+        distance: row.distance ? Number(row.distance) : null,
+        speed: row.speed ? Number(row.speed) : null,
+        calories: row.calories ?? null,
+        heartRate: row.heartRate ?? null,
+        incline: row.incline ? Number(row.incline) : null,
+        notes: row.notes ?? null,
+        date: new Date(row.createdAt),
       });
-      cardioExercisesMap.set(record.exerciseId, recordsList);
+
+      cardioExercisesMap.set(row.exerciseId, list);
     });
 
     return {
       success: true,
       data: {
         workoutExercises: Array.from(workoutExercisesMap.entries()).map(
-          ([exerciseId, sets]) => ({
-            exerciseId,
-            sets,
-          })
+          ([exerciseId, sets]) => ({ exerciseId, sets })
         ),
         cardioExercises: Array.from(cardioExercisesMap.entries()).map(
-          ([exerciseId, records]) => ({
-            exerciseId,
-            records,
-          })
+          ([exerciseId, records]) => ({ exerciseId, records })
         ),
       },
     };
   } catch (error: unknown) {
-    console.error("セッション詳細取得エラー:", error);
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "セッション詳細の取得に失敗しました",
-    };
+    const message =
+      error instanceof Error
+        ? error.message
+        : "セッション詳細の取得に失敗しました";
+
+    console.error("セッション取得エラー:", message);
+    return { success: false, error: message };
   }
 }
 
@@ -209,7 +207,6 @@ export async function getBodyPartsByDateRange(
   data?: Record<string, BodyPart[]>; // 日付文字列をキー、部位配列を値
 }> {
   try {
-
     const strengthRows = await db
       .select({
         date: workoutSessions.date,
@@ -235,7 +232,10 @@ export async function getBodyPartsByDateRange(
             bodyPart: exercises.bodyPart,
           })
           .from(workoutSessions)
-          .innerJoin(cardioRecords, eq(cardioRecords.sessionId, workoutSessions.id))
+          .innerJoin(
+            cardioRecords,
+            eq(cardioRecords.sessionId, workoutSessions.id)
+          )
           .innerJoin(exercises, eq(cardioRecords.exerciseId, exercises.id))
           .where(
             and(
@@ -278,9 +278,9 @@ export async function getBodyPartsByDateRange(
       error instanceof Error
         ? error.message
         : typeof error === "string"
-          ? error
-          : "部位一覧の取得に失敗しました";
-    
+        ? error
+        : "部位一覧の取得に失敗しました";
+
     return {
       success: false,
       error: errorMessage,
