@@ -76,10 +76,10 @@ function loadMockExercises(): Exercise[] {
 /**
  * データベースから種目を取得して検証
  */
-async function loadExercisesFromDatabase(): Promise<Exercise[] | null> {
+async function loadExercisesFromDatabase(userId: string | null): Promise<Exercise[] | null> {
   try {
     const { getExercises } = await import("@/lib/api");
-    const result = await getExercises();
+    const result = await getExercises(userId);
 
     if (result.success && result.data && result.data.length > 0) {
       const exercises = result.data;
@@ -109,7 +109,8 @@ async function loadExercisesFromDatabase(): Promise<Exercise[] | null> {
 }
 
 export async function loadExercisesWithFallback(
-  initialExercises?: Exercise[]
+  initialExercises?: Exercise[],
+  userId?: string | null
 ): Promise<Exercise[]> {
   // 0. サーバーから受け取った初期データがあれば最優先で利用
   if (initialExercises && initialExercises.length > 0) {
@@ -118,7 +119,7 @@ export async function loadExercisesWithFallback(
   }
 
   // 1. まずデータベースから取得を試みる（認証済みユーザーではDBを正とする）
-  const databaseExercises = await loadExercisesFromDatabase();
+  const databaseExercises = await loadExercisesFromDatabase(userId ?? null);
   if (databaseExercises && databaseExercises.length > 0) {
     return databaseExercises;
   }

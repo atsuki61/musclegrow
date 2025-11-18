@@ -35,6 +35,9 @@ export function GuestDataMigrator() {
     if (isPending) return;
     // 未ログインの場合は何もしない
     if (!session) return;
+    // userIdが取得できない場合は何もしない
+    const userId = session.user.id;
+    if (!userId) return;
     // すでに移行処理を開始している場合は二重実行を防止
     if (hasStartedRef.current) return;
     if (typeof window === "undefined") return;
@@ -49,7 +52,7 @@ export function GuestDataMigrator() {
     hasStartedRef.current = true;
 
     (async () => {
-      await migrateGuestData();
+      await migrateGuestData(userId);
     })().catch((error) => {
       // ここで例外が出てもアプリ全体には影響させない
       // 詳細はコンソールで確認できるようにしておく
@@ -177,14 +180,17 @@ function createExerciseIdMapper(
 /**
  * 既存のDB記録から種目IDセットを取得する
  */
-async function getExistingExerciseIds(sessionId: string): Promise<{
+async function getExistingExerciseIds(
+  userId: string,
+  sessionId: string
+): Promise<{
   workoutExerciseIds: Set<string>;
   cardioExerciseIds: Set<string>;
 }> {
   const existingWorkoutExerciseIds = new Set<string>();
   const existingCardioExerciseIds = new Set<string>();
 
-  const existingDetailsResult = await getSessionDetails(sessionId);
+  const existingDetailsResult = await getSessionDetails(userId, sessionId);
   if (existingDetailsResult.success && existingDetailsResult.data) {
     existingDetailsResult.data.workoutExercises.forEach(({ exerciseId }) => {
       existingWorkoutExerciseIds.add(exerciseId);
@@ -204,6 +210,7 @@ async function getExistingExerciseIds(sessionId: string): Promise<{
  * 1日分の記録を移行する
  */
 async function migrateDateRecords(
+  userId: string,
   dateStr: string,
   mapExerciseId: (localExerciseId: string) => string | null,
   workoutExercises: Array<{ exerciseId: string; sets: SetRecord[] }>,
@@ -211,7 +218,7 @@ async function migrateDateRecords(
 ): Promise<boolean> {
   try {
     // セッションを保存/取得
-    const sessionResult = await saveWorkoutSession({
+    const sessionResult = await saveWorkoutSession(userId, {
       date: dateStr,
     });
 
@@ -223,7 +230,7 @@ async function migrateDateRecords(
 
     // 既存のDB記録を取得し、同じ日付・種目があればスキップするためのセットを作成
     const { workoutExerciseIds, cardioExerciseIds } =
-      await getExistingExerciseIds(sessionId);
+      await getExistingExerciseIds(userId, sessionId);
 
     // 筋トレ記録の移行
     for (const { exerciseId: localExerciseId, sets } of workoutExercises) {
@@ -237,7 +244,7 @@ async function migrateDateRecords(
         continue;
       }
 
-      const saveResult = await saveSets({
+      const saveResult = await saveSets(userId, {
         sessionId,
         exerciseId: mappedExerciseId,
         sets,
@@ -259,7 +266,7 @@ async function migrateDateRecords(
         continue;
       }
 
-      const saveResult = await saveCardioRecords({
+      const saveResult = await saveCardioRecords(userId, {
         sessionId,
         exerciseId: mappedExerciseId,
         records,
@@ -280,7 +287,7 @@ async function migrateDateRecords(
 /**
  * ローカルストレージのゲスト記録をデータベースへ移行する
  */
-async function migrateGuestData(): Promise<void> {
+async function migrateGuestData(userId: string): Promise<void> {
   if (typeof window === "undefined") return;
 
   try {
@@ -293,7 +300,7 @@ async function migrateGuestData(): Promise<void> {
     }
 
     // データベースの種目一覧を取得
-    const exercisesResult = await getExercises();
+    const exercisesResult = await getExercises(userId);
     const dbExercises: Exercise[] =
       exercisesResult.success && exercisesResult.data
         ? exercisesResult.data
@@ -348,6 +355,7 @@ async function migrateGuestData(): Promise<void> {
 
       // 1日分の記録を移行
       const success = await migrateDateRecords(
+        userId,
         yyyyMMdd,
         mapExerciseId,
         workoutExercises,

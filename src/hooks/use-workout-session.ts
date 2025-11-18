@@ -9,6 +9,7 @@ import {
   getSets as getSetsFromAPI,
 } from "@/lib/api";
 import { formatDateToYYYYMMDD } from "@/lib/utils";
+import { useAuthSession } from "@/lib/auth-session-context";
 
 /**
  * ローカルストレージのキーを生成
@@ -105,6 +106,7 @@ export function useWorkoutSession({
   isOpen,
   createInitialSet,
 }: UseWorkoutSessionOptions) {
+  const { userId } = useAuthSession();
   const [sets, setSets] = useState<SetRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   // 前回の日付と種目IDを追跡（日付変更時の自動保存用）
@@ -150,11 +152,11 @@ export function useWorkoutSession({
     // まずデータベースから取得を試みる
     try {
       const dateStr = formatDateToYYYYMMDD(date); // YYYY-MM-DD形式（ローカルタイムゾーン）
-      const sessionResult = await getWorkoutSession(dateStr);
+      const sessionResult = await getWorkoutSession(userId, dateStr);
 
       if (sessionResult.success && sessionResult.data) {
         // セッションが存在する場合、セット記録を取得
-        const setsResult = await getSetsFromAPI({
+        const setsResult = await getSetsFromAPI(userId, {
           sessionId: sessionResult.data.id,
           exerciseId,
         });
@@ -195,7 +197,7 @@ export function useWorkoutSession({
       }
     }
     setIsLoading(false);
-  }, [date, exerciseId, isOpen, createInitialSet]);
+  }, [date, exerciseId, isOpen, createInitialSet, userId]);
 
   /**
    * セット記録を保存する
@@ -213,13 +215,13 @@ export function useWorkoutSession({
         const dateStr = formatDateToYYYYMMDD(date); // YYYY-MM-DD形式（ローカルタイムゾーン）
 
         // セッションを保存または取得
-        const sessionResult = await saveWorkoutSession({
+        const sessionResult = await saveWorkoutSession(userId, {
           date: dateStr,
         });
 
         if (sessionResult.success && sessionResult.data) {
           // セット記録を保存
-          await saveSetsToAPI({
+          await saveSetsToAPI(userId, {
             sessionId: sessionResult.data.id,
             exerciseId,
             sets: setsToSave,
@@ -242,7 +244,7 @@ export function useWorkoutSession({
         }));
       }
     },
-    [date, exerciseId]
+    [date, exerciseId, userId]
   );
 
   /**
@@ -293,12 +295,12 @@ export function useWorkoutSession({
       (async () => {
         try {
           const previousDateStr = formatDateToYYYYMMDD(previousDateRef.current); // YYYY-MM-DD形式（ローカルタイムゾーン）
-          const sessionResult = await saveWorkoutSession({
+          const sessionResult = await saveWorkoutSession(userId, {
             date: previousDateStr,
           });
 
           if (sessionResult.success && sessionResult.data) {
-            await saveSetsToAPI({
+            await saveSetsToAPI(userId, {
               sessionId: sessionResult.data.id,
               exerciseId: previousExerciseIdRef.current!,
               sets: setsRef.current,
@@ -315,7 +317,7 @@ export function useWorkoutSession({
     // 参照を更新
     previousDateRef.current = date;
     previousExerciseIdRef.current = exerciseId;
-  }, [date, exerciseId, isOpen]);
+  }, [date, exerciseId, isOpen, userId]);
 
   /**
    * 外部リソース（ローカルストレージ、データベース）との同期

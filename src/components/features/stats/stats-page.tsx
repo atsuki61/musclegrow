@@ -12,6 +12,7 @@ import { ChartLoading } from "./chart-loading";
 import { getProfileHistory } from "@/lib/actions/stats";
 import { getExercisesWithDataFromStorage } from "@/lib/local-storage-exercise-progress";
 import { useTrainingStats } from "@/hooks/use-training-stats";
+import { useAuthSession } from "@/lib/auth-session-context";
 import type {
   DateRangePreset,
   ProfileChartType,
@@ -67,6 +68,8 @@ export function StatsPage({
   initialExercises,
   initialExercisesWithData,
 }: StatsPageProps) {
+  const { userId } = useAuthSession();
+
   // タブ状態
   const [activeTab, setActiveTab] = useState<"profile" | "training">("profile");
 
@@ -141,14 +144,14 @@ export function StatsPage({
 
     async function fetchProfileHistory() {
       setProfileLoading(true);
-      const result = await getProfileHistory({ preset: profileDateRange });
+      const result = await getProfileHistory(userId, { preset: profileDateRange });
       if (result.success && result.data) {
         setProfileHistory(result.data);
       }
       setProfileLoading(false);
     }
     fetchProfileHistory();
-  }, [profileDateRange]);
+  }, [profileDateRange, userId]);
 
   // 選択された種目を取得
   const selectedExercise = exercises.find((ex) => ex.id === selectedExerciseId);

@@ -3,7 +3,6 @@
 import { unstable_cache, revalidateTag } from "next/cache";
 import { db } from "../../../db";
 import { exercises } from "../../../db/schemas/app";
-import { getCurrentUserId } from "@/lib/auth-utils";
 import { eq, and, or, isNull } from "drizzle-orm";
 import type { Exercise } from "@/types/workout";
 
@@ -46,22 +45,17 @@ function mapExerciseRow(ex: ExerciseRow): Exercise {
 
 /**
  * 種目IDのバリデーションと認証チェックを行う共通関数
+ * @param userId ユーザーID
  * @param exerciseId 種目ID
  * @returns バリデーション結果（成功時はuserId、失敗時はエラー情報）
  */
 export async function validateExerciseIdAndAuth(
+  userId: string,
   exerciseId: string
 ): Promise<
   | { success: true; userId: string }
   | { success: false; error: string }
 > {
-  const userId = await getCurrentUserId();
-  if (!userId) {
-    return {
-      success: false,
-      error: "認証が必要です",
-    };
-  }
 
   // exerciseIdがモックID（mock-で始まる）の場合はエラーを返す
   if (exerciseId.startsWith("mock-")) {
@@ -98,20 +92,18 @@ export async function validateExerciseIdAndAuth(
 
 /**
  * 種目を保存する（カスタム種目）
+ * @param userId ユーザーID
+ * @param exercise 種目データ
  */
-export async function saveExercise(exercise: Exercise): Promise<{
+export async function saveExercise(
+  userId: string,
+  exercise: Exercise
+): Promise<{
   success: boolean;
   error?: string;
   data?: Exercise;
 }> {
   try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証が必要です",
-      };
-    }
 
     // カスタム種目をデータベースに保存
     const [savedExercise] = await db
@@ -149,14 +141,16 @@ export async function saveExercise(exercise: Exercise): Promise<{
 
 /**
  * 種目一覧を取得する（共通マスタ + ユーザー独自種目）
+ * @param userId ユーザーID（nullの場合はゲスト）
  */
-export async function getExercises(): Promise<{
+export async function getExercises(
+  userId: string | null
+): Promise<{
   success: boolean;
   error?: string;
   data?: Exercise[];
 }> {
   try {
-    const userId = await getCurrentUserId();
     const cacheKey = userId ?? "guest";
     const exercisesData = await fetchExercisesForUser(cacheKey);
 
