@@ -87,7 +87,7 @@ function createExerciseIdToBodyPartMap(
 function getBodyPartForExercise(
   exerciseId: string,
   exerciseIdToBodyPart: Map<string, BodyPart>,
-  exercises: Exercise[]
+  exercises: Exercise[] = []
 ): BodyPart {
   return (
     exerciseIdToBodyPart.get(exerciseId) ??
@@ -155,7 +155,7 @@ function processStorageKeyForBodyParts(
   startDate: Date,
   endDate: Date,
   exerciseIdToBodyPart: Map<string, BodyPart>,
-  exercises: Exercise[],
+  exercises: Exercise[] = [],
   bodyPartsByDate: Record<string, Set<BodyPart>>
 ): void {
   // キーを解析（日付、種目ID、タイプを取得）
@@ -220,11 +220,11 @@ function convertSetsToArrays(
 export function getBodyPartsByDateRangeFromStorage({
   startDate,
   endDate,
-  exercises,
+  exercises = [],
 }: {
   startDate: Date;
   endDate: Date;
-  exercises: Exercise[];
+  exercises?: Exercise[];
 }): Record<string, BodyPart[]> {
   if (typeof window === "undefined") {
     return {};
