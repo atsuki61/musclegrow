@@ -6,10 +6,8 @@ import { deleteExerciseSets, deleteCardioRecords } from "@/lib/api";
 import { getWorkoutSession } from "@/lib/api";
 import { useMaxWeights } from "@/hooks/use-max-weights";
 import { BodyPartFilter } from "./body-part-filter";
-import { HistoryCalendar } from "./history-calendar";
 import { useHistoryData } from "./hooks/use-history-data";
 import { loadExercisesWithFallback } from "@/lib/local-storage-exercises";
-
 import {
   deserializeSessionDetails,
   type SerializedSessionDetails,
@@ -29,6 +27,13 @@ const ExerciseRecordModal = dynamic(
   () => import("../record/exercise-record-modal"),
   { ssr: false }
 );
+
+const HistoryCalendar = dynamic(() => import("./history-calendar"), {
+  ssr: false,
+  loading: () => (
+    <div className="animate-pulse h-[300px] w-full rounded-lg bg-muted" />
+  ),
+});
 
 interface HistoryPageProps {
   initialMonthDate: string;
@@ -101,8 +106,7 @@ export function HistoryPage({
     initialSessionDetails: initialSessionDetailsValue,
   });
 
-  // 初回マウント時に種目一覧を「アイドル時」に取得
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // 種目一覧を「アイドル時」に取得（マウント時またはuserIdの変更時）
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -131,7 +135,7 @@ export function HistoryPage({
         window.clearTimeout(handle);
       }
     };
-  }, []);
+  }, [loadExercises]);
 
   // 種目一覧が読み込まれた後、または月が変更されたときに部位一覧を取得
 
