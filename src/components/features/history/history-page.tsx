@@ -9,7 +9,6 @@ import { useMaxWeights } from "@/hooks/use-max-weights";
 import { BodyPartFilter } from "./body-part-filter";
 import { HistoryCalendar } from "./history-calendar";
 import { SessionHistoryCard } from "./session-history-card";
-import { ExerciseRecordModal } from "../record/exercise-record-modal";
 import { useHistoryData } from "./hooks/use-history-data";
 import {
   deserializeSessionDetails,
@@ -17,6 +16,12 @@ import {
 } from "./types";
 import type { Exercise, BodyPart } from "@/types/workout";
 import { useAuthSession } from "@/lib/auth-session-context";
+import dynamic from "next/dynamic";
+
+const ExerciseRecordModal = dynamic(
+  () => import("../record/exercise-record-modal"),
+  { ssr: false }
+);
 
 interface HistoryPageProps {
   initialMonthDate: string;
