@@ -66,6 +66,7 @@ export function HistoryPage({
     date: Date;
   } | null>(null);
   const hasSkippedInitialFetchRef = useRef(false);
+  const hasLoadedInitialSessionRef = useRef(false);
   const { userId } = useAuthSession();
 
   // 最大重量を管理するカスタムフック
@@ -105,10 +106,46 @@ export function HistoryPage({
       hasSkippedInitialFetchRef.current = true;
       return;
     }
+    hasSkippedInitialFetchRef.current = true;
+    loadBodyPartsByDate(currentMonth);
+  }, [currentMonth, hasInitialMonthData, initialMonth, loadBodyPartsByDate]);
+
+  // 種目一覧が読み込まれた後、または月が変更されたときに部位一覧を取得
+  useEffect(() => {
+    const shouldSkipInitialFetch =
+      !hasSkippedInitialFetchRef.current &&
+      hasInitialMonthData &&
+      isSameMonth(currentMonth, initialMonth);
+
+    if (shouldSkipInitialFetch) {
+      hasSkippedInitialFetchRef.current = true;
+      return;
+    }
 
     hasSkippedInitialFetchRef.current = true;
     loadBodyPartsByDate(currentMonth);
   }, [currentMonth, hasInitialMonthData, initialMonth, loadBodyPartsByDate]);
+
+  // 初期選択日がある場合、マウント時に一度だけセッション詳細を読み込む
+  useEffect(() => {
+    // すでに初期ロード済みなら何もしない
+    if (hasLoadedInitialSessionRef.current) return;
+
+    // 選択日が存在しない場合は何もしない
+    if (!selectedDate) return;
+
+    // SSR から initialSessionDetails が渡されている場合は、
+    // それを使えばよいので追加の fetch は不要
+    if (initialSessionDetailsValue) {
+      hasLoadedInitialSessionRef.current = true;
+      return;
+    }
+
+    // ここまで来たら「選択日はあるが initialSessionDetails は無い」ケース。
+    // → 初回マウント時に一度だけ詳細を取りに行く。
+    hasLoadedInitialSessionRef.current = true;
+    loadSessionDetails(selectedDate);
+  }, [selectedDate, initialSessionDetailsValue, loadSessionDetails]);
 
   // 日付選択時の処理
   const handleDateSelect = useCallback(
