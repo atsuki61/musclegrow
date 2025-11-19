@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Big3Progress } from "./big3-progress";
 import { RecordButton } from "./record-button";
-import { calculateMaxWeights } from "@/lib/max-weight";
+import { calculateMaxWeightsFromStorage } from "@/lib/max-weight";
+
 import {
   createBig3Data,
   type Big3ProgressData,
@@ -49,7 +50,7 @@ export function HomePage({ dbWeights, targets, exerciseIds }: HomePageProps) {
   }, [dbWeights, targets, exerciseIds]);
 
   const mergeWithLocalData = useCallback(() => {
-    const localMaxWeights = calculateMaxWeights();
+    const localMaxWeights = calculateMaxWeightsFromStorage();
     const currentExerciseIds = exerciseIdsRef.current;
 
     const finalWeights: Big3Weights = {

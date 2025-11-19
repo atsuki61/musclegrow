@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { format, parseISO, startOfMonth } from "date-fns";
 import { deleteExerciseSets, deleteCardioRecords } from "@/lib/api";
 import { getWorkoutSession } from "@/lib/api";
-import { loadExercisesWithFallback } from "@/lib/local-storage-exercises";
 import { useMaxWeights } from "@/hooks/use-max-weights";
 import { BodyPartFilter } from "./body-part-filter";
 import { HistoryCalendar } from "./history-calendar";
 import { useHistoryData } from "./hooks/use-history-data";
+import { loadExercisesWithFallback } from "@/lib/local-storage-exercises";
+
 import {
   deserializeSessionDetails,
   type SerializedSessionDetails,
@@ -74,9 +75,16 @@ export function HistoryPage({
     exercise: Exercise;
     date: Date;
   } | null>(null);
+
   const hasSkippedInitialFetchRef = useRef(false);
   const hasLoadedInitialSessionRef = useRef(false);
   const { userId } = useAuthSession();
+
+  // ★ ここに追加（正しい位置）
+  const loadExercises = useCallback(async () => {
+    const items = await loadExercisesWithFallback(undefined, userId);
+    setExercises(items);
+  }, [userId]);
 
   // 最大重量を管理するカスタムフック
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
@@ -93,16 +101,38 @@ export function HistoryPage({
     initialSessionDetails: initialSessionDetailsValue,
   });
 
-  // 種目一覧を取得
-  const loadExercises = useCallback(async () => {
-    const exercises = await loadExercisesWithFallback(undefined, userId);
-    setExercises(exercises);
-  }, [userId]);
-
-  // 初回マウント時に種目一覧を取得
+  // 初回マウント時に種目一覧を「アイドル時」に取得
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    loadExercises();
-  }, [loadExercises]);
+    if (typeof window === "undefined") return;
+
+    let handle: number | null = null;
+
+    if (typeof window.requestIdleCallback === "function") {
+      handle = window.requestIdleCallback(
+        () => {
+          loadExercises();
+        },
+        { timeout: 2000 }
+      );
+    } else {
+      // Fallback: 少し遅らせて実行（blocking を避ける）
+      handle = window.setTimeout(() => {
+        loadExercises();
+      }, 500);
+    }
+
+    return () => {
+      if (handle === null) return;
+
+      if (typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(handle);
+      } else {
+        window.clearTimeout(handle);
+      }
+    };
+  }, []);
+
   // 種目一覧が読み込まれた後、または月が変更されたときに部位一覧を取得
 
   useEffect(() => {

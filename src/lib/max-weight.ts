@@ -1,59 +1,92 @@
-"use client";
+// src/lib/max-weight.ts
 
-import type { SetRecord } from "@/types/workout";
+export type MaxWeightsMap = Record<string, number>;
 
-/**
- * ローカルストレージから各種目の全記録を取得し、MAX重量を計算する
- * @returns 種目IDをキーとするMAX重量のマップ（実際に挙げた重量の最大値）
- */
-export function calculateMaxWeights(): Record<string, number> {
+const CACHE_KEY = "max_weights_cache_v1";
+const CACHE_VERSION_KEY = "max_weights_version_v1";
+const CURRENT_VERSION = 1;
+
+/** localStorage から最大重量キャッシュをロード */
+export function loadMaxWeightsCache(): MaxWeightsMap {
   if (typeof window === "undefined") return {};
 
-  const maxWeights: Record<string, number> = {};
+  try {
+    const versionRaw = window.localStorage.getItem(CACHE_VERSION_KEY);
+    if (!versionRaw || Number(versionRaw) !== CURRENT_VERSION) {
+      return {};
+    }
+
+    const raw = window.localStorage.getItem(CACHE_KEY);
+    if (!raw) return {};
+
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return {};
+
+    return parsed as MaxWeightsMap;
+  } catch {
+    return {};
+  }
+}
+
+/** 最大重量キャッシュを保存 */
+export function saveMaxWeightsCache(maxWeights: MaxWeightsMap): void {
+  if (typeof window === "undefined") return;
 
   try {
-    // ローカルストレージの全てのキーを走査
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key || !key.startsWith("workout_")) continue;
+    window.localStorage.setItem(CACHE_KEY, JSON.stringify(maxWeights));
+    window.localStorage.setItem(CACHE_VERSION_KEY, String(CURRENT_VERSION));
+  } catch {
+    /* noop */
+  }
+}
 
-      // キー形式: workout_YYYY-MM-DD_exerciseId
-      const parts = key.split("_");
-      if (parts.length < 3) continue;
+/** localStorage をスキャンして最大重量を計算（重い処理） */
+export function calculateMaxWeightsFromStorage(): MaxWeightsMap {
+  if (typeof window === "undefined") return {};
 
-      const exerciseId = parts.slice(2).join("_"); // exerciseIdにアンダースコアが含まれる可能性があるため
-      const stored = localStorage.getItem(key);
-      if (!stored) continue;
+  const result: MaxWeightsMap = {};
 
-      try {
-        const sets = JSON.parse(stored) as SetRecord[];
+  for (let i = 0; i < window.localStorage.length; i++) {
+    const key = window.localStorage.key(i);
+    if (!key) continue;
 
-        // 各セットから実際の重量の最大値を取得
-        for (const set of sets) {
-          // 重量が有効な場合のみ計算
-          if (
-            set.weight !== undefined &&
-            set.weight !== null &&
-            set.weight > 0
-          ) {
-            // 既存のMAX重量と比較して、大きい方を保持
-            if (
-              !maxWeights[exerciseId] ||
-              set.weight > maxWeights[exerciseId]
-            ) {
-              maxWeights[exerciseId] = set.weight;
-            }
-          }
-        }
-      } catch (error) {
-        // 個別のキーのパースエラーは無視して続行
-        console.warn(`Failed to parse sets for key ${key}:`, error);
-        continue;
+    if (!key.startsWith("workout_") && !key.startsWith("cardio_")) continue;
+
+    const raw = window.localStorage.getItem(key);
+    if (!raw) continue;
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        exerciseId?: string;
+        weight?: number;
+        sets?: { weight?: number }[];
+      };
+
+      const exerciseId = parsed.exerciseId;
+      if (!exerciseId) continue;
+
+      const weights: number[] = [];
+
+      if (typeof parsed.weight === "number") {
+        weights.push(parsed.weight);
       }
+
+      if (Array.isArray(parsed.sets)) {
+        parsed.sets.forEach((set) => {
+          if (typeof set.weight === "number") {
+            weights.push(set.weight);
+          }
+        });
+      }
+
+      if (weights.length === 0) continue;
+
+      const max = Math.max(...weights);
+      result[exerciseId] = Math.max(result[exerciseId] ?? 0, max);
+    } catch {
+      continue;
     }
-  } catch (error) {
-    console.error("Failed to calculate max weights:", error);
   }
 
-  return maxWeights;
+  return result;
 }
