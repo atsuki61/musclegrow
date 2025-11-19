@@ -33,6 +33,7 @@ export function FooterNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false} // ← これが重要！！！
               aria-label={item.label}
               className={`
                 relative flex flex-col items-center gap-1.5 px-4 py-2
@@ -42,7 +43,7 @@ export function FooterNav() {
                 ${isActive ? "text-primary" : "text-muted-foreground"}
                 ${isActive && !isSpecial ? "bg-primary/5" : ""}
                 ${!isActive ? "hover:text-foreground hover:bg-accent/50" : ""}
-                `}
+              `}
             >
               {isSpecial ? (
                 <div className="bg-primary text-primary-foreground rounded-full p-2 shadow-lg">
