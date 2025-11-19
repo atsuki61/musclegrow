@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { AuthSessionProvider } from "@/lib/auth-session-context";
+import { GuestDataMigrator } from "@/components/features/guest-data-migrator";
 
 interface ProtectedLayoutProps {
   children: ReactNode;
@@ -25,5 +26,10 @@ export default async function ProtectedLayout({
 
   const userId = session.user.id;
 
-  return <AuthSessionProvider userId={userId}>{children}</AuthSessionProvider>;
+  return (
+    <AuthSessionProvider userId={userId}>
+      <GuestDataMigrator />
+      {children}
+    </AuthSessionProvider>
+  );
 }
