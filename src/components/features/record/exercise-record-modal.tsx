@@ -49,7 +49,7 @@ interface ExerciseRecordModalProps {
  *
  * 有酸素種目と筋トレ種目で異なる入力フォームを表示（isCardioフラグで分岐）
  */
-export function ExerciseRecordModal({
+export default function ExerciseRecordModal({
   exercise,
   isOpen,
   onClose,
@@ -284,7 +284,9 @@ export function ExerciseRecordModal({
                 </Button>
               </div>
               <DialogDescription className="sr-only">
-                {isCardio ? "有酸素種目の記録を入力します" : "筋トレ種目のセット記録を入力します"}
+                {isCardio
+                  ? "有酸素種目の記録を入力します"
+                  : "筋トレ種目のセット記録を入力します"}
               </DialogDescription>
             </DialogHeader>
 

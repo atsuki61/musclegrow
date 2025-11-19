@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { format, isSameMonth, parseISO, startOfMonth } from "date-fns";
+import { format, parseISO, startOfMonth } from "date-fns";
 import { deleteExerciseSets, deleteCardioRecords } from "@/lib/api";
 import { getWorkoutSession } from "@/lib/api";
 import { loadExercisesWithFallback } from "@/lib/local-storage-exercises";
@@ -9,7 +9,6 @@ import { useMaxWeights } from "@/hooks/use-max-weights";
 import { BodyPartFilter } from "./body-part-filter";
 import { HistoryCalendar } from "./history-calendar";
 import { SessionHistoryCard } from "./session-history-card";
-import { ExerciseRecordModal } from "../record/exercise-record-modal";
 import { useHistoryData } from "./hooks/use-history-data";
 import {
   deserializeSessionDetails,
@@ -17,13 +16,18 @@ import {
 } from "./types";
 import type { Exercise, BodyPart } from "@/types/workout";
 import { useAuthSession } from "@/lib/auth-session-context";
+import dynamic from "next/dynamic";
+
+const ExerciseRecordModal = dynamic(
+  () => import("../record/exercise-record-modal"),
+  { ssr: false }
+);
 
 interface HistoryPageProps {
   initialMonthDate: string;
   initialBodyPartsByDate: Record<string, BodyPart[]>;
   initialSelectedDate?: string | null;
   initialSessionDetails?: SerializedSessionDetails | null;
-  hasInitialMonthData?: boolean;
 }
 
 /**
@@ -35,7 +39,6 @@ export function HistoryPage({
   initialBodyPartsByDate,
   initialSelectedDate,
   initialSessionDetails,
-  hasInitialMonthData = false,
 }: HistoryPageProps) {
   const initialMonth = useMemo(
     () => parseISO(initialMonthDate),
@@ -94,37 +97,18 @@ export function HistoryPage({
   useEffect(() => {
     loadExercises();
   }, [loadExercises]);
-
   // 種目一覧が読み込まれた後、または月が変更されたときに部位一覧を取得
+
   useEffect(() => {
-    const shouldSkipInitialFetch =
-      !hasSkippedInitialFetchRef.current &&
-      hasInitialMonthData &&
-      isSameMonth(currentMonth, initialMonth);
-
-    if (shouldSkipInitialFetch) {
-      hasSkippedInitialFetchRef.current = true;
-      return;
-    }
-    hasSkippedInitialFetchRef.current = true;
-    loadBodyPartsByDate(currentMonth);
-  }, [currentMonth, hasInitialMonthData, initialMonth, loadBodyPartsByDate]);
-
-  // 種目一覧が読み込まれた後、または月が変更されたときに部位一覧を取得
-  useEffect(() => {
-    const shouldSkipInitialFetch =
-      !hasSkippedInitialFetchRef.current &&
-      hasInitialMonthData &&
-      isSameMonth(currentMonth, initialMonth);
-
-    if (shouldSkipInitialFetch) {
+    // 初回レンダリング時は fetch しない
+    if (!hasSkippedInitialFetchRef.current) {
       hasSkippedInitialFetchRef.current = true;
       return;
     }
 
-    hasSkippedInitialFetchRef.current = true;
+    // 2回目以降の月変更だけ fetch
     loadBodyPartsByDate(currentMonth);
-  }, [currentMonth, hasInitialMonthData, initialMonth, loadBodyPartsByDate]);
+  }, [currentMonth, loadBodyPartsByDate]);
 
   // 初期選択日がある場合、マウント時に一度だけセッション詳細を読み込む
   useEffect(() => {
