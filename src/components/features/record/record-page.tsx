@@ -6,7 +6,7 @@ import { parse } from "date-fns";
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
-import { ExerciseRecordModal } from "./exercise-record-modal";
+import ExerciseRecordModal from "./exercise-record-modal";
 import { AddExerciseModal } from "./add-exercise-modal";
 import { saveExercise } from "@/lib/api";
 import { BODY_PART_LABELS } from "@/lib/utils";
@@ -55,7 +55,8 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   };
 
   const [selectedDate, setSelectedDate] = useState<Date>(getInitialDate());
-  const [selectedPart, setSelectedPart] = useState<Exclude<BodyPart, "all">>("chest");
+  const [selectedPart, setSelectedPart] =
+    useState<Exclude<BodyPart, "all">>("chest");
   const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
     null
@@ -73,7 +74,10 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
 
   useEffect(() => {
     const loadExercises = async () => {
-      const exercisesList = await loadExercisesWithFallback(initialExercises, userId);
+      const exercisesList = await loadExercisesWithFallback(
+        initialExercises,
+        userId
+      );
       setExercises(exercisesList);
     };
     loadExercises();
