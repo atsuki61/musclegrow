@@ -10,4 +10,4 @@ export const authClient = createAuthClient({
 });
 
 // 必要に応じて個別にエクスポート
-export const { signIn, signOut, signUp, useSession } = authClient;
+export const { signIn, signOut, signUp } = authClient;
