@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { getAuthSession } from "@/lib/auth-session-server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { AuthSessionProvider } from "@/lib/auth-session-context";
 
 interface ProtectedLayoutProps {
@@ -10,7 +11,13 @@ interface ProtectedLayoutProps {
 export default async function ProtectedLayout({
   children,
 }: ProtectedLayoutProps) {
-  const session = await getAuthSession();
+  // Next.js 15 の headers() は Promise
+  const h = await headers();
+
+  // BetterAuth 公式のセッション取得
+  const session = await auth.api.getSession({
+    headers: h,
+  });
 
   if (!session) {
     redirect("/login");
@@ -20,4 +27,3 @@ export default async function ProtectedLayout({
 
   return <AuthSessionProvider userId={userId}>{children}</AuthSessionProvider>;
 }
-
