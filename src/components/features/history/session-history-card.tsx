@@ -42,7 +42,7 @@ interface SessionHistoryCardProps {
  * セッション履歴カードコンポーネント
  * 日付、時間、メモ、種目記録を表示
  */
-export function SessionHistoryCard({
+export default function SessionHistoryCard({
   date,
   durationMinutes,
   note,
