@@ -1,13 +1,16 @@
 import { format, endOfMonth, startOfMonth } from "date-fns";
 import { HistoryPage } from "@/components/features/history";
-import { getBodyPartsByDateRange } from "@/lib/actions/history";
+import {
+  getBodyPartsByDateRange,
+  getSessionDetails,
+} from "@/lib/actions/history";
+import { getWorkoutSession } from "@/lib/actions/workout-sessions";
+import { serializeSessionDetails } from "@/components/features/history/types";
 import { getAuthUserId } from "@/lib/auth-session-server";
 
 export default async function Page() {
   const userId = await getAuthUserId();
-  if (!userId) {
-    throw new Error("認証が必要です");
-  }
+  if (!userId) throw new Error("認証が必要です");
 
   const today = new Date();
   const monthStart = startOfMonth(today);
@@ -17,22 +20,33 @@ export default async function Page() {
     endDate: format(endOfMonth(today), "yyyy-MM-dd"),
   };
 
-  // 👍 SSR では「今月の bodyPartsByDate」だけ取得する
-  const bodyPartsResult = await getBodyPartsByDateRange(userId, monthRange);
+  //  すべてを並列化
+  const [bodyPartsResult, todaySession] = await Promise.all([
+    getBodyPartsByDateRange(userId, monthRange),
+    getWorkoutSession(userId, format(today, "yyyy-MM-dd")),
+  ]);
 
-  const hasInitialMonthData =
-    !!bodyPartsResult.success && !!bodyPartsResult.data;
+  let initialSessionDetails = null;
 
-  const initialBodyParts =
-    bodyPartsResult.success && bodyPartsResult.data ? bodyPartsResult.data : {};
+  //  セッション詳細を同時取得
+  if (todaySession.success && todaySession.data) {
+    const detailsResult = await getSessionDetails(userId, todaySession.data.id);
+    if (detailsResult.success && detailsResult.data) {
+      initialSessionDetails = serializeSessionDetails({
+        ...detailsResult.data,
+        date: today,
+        durationMinutes: todaySession.data.durationMinutes ?? null,
+        note: todaySession.data.note ?? null,
+      });
+    }
+  }
 
   return (
     <HistoryPage
       initialMonthDate={monthStart.toISOString()}
-      initialBodyPartsByDate={initialBodyParts}
+      initialBodyPartsByDate={bodyPartsResult.data ?? {}}
       initialSelectedDate={today.toISOString()}
-      initialSessionDetails={null} // ← SSR では null 固定
-      hasInitialMonthData={hasInitialMonthData}
+      initialSessionDetails={initialSessionDetails}
     />
   );
 }
