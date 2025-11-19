@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { format } from "date-fns";
-import { useSession } from "@/lib/auth-client";
+import { useAuthSession } from "@/lib/auth-session-context";
 import { parseStorageKey } from "@/lib/local-storage-history";
 import { getSessionDetailsFromStorage } from "@/lib/local-storage-session-details";
 import { loadExercisesFromStorage } from "@/lib/local-storage-exercises";
@@ -15,34 +15,17 @@ import {
 } from "@/lib/api";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 
-// ゲストデータ移行済みかどうかを判定するローカルストレージキー
 const GUEST_DATA_MIGRATED_KEY = "guest_data_migrated";
 
-/**
- * ゲストモードのローカル記録を、初回ログイン時にデータベースへ移行するコンポーネント
- *
- * - 初めてログインしたタイミングで自動実行
- * - 同じ日付・種目の記録が既にDBに存在する場合はDBを優先し、ローカル側は無視
- */
 export function GuestDataMigrator() {
-  const { data: session, isPending } = useSession();
+  const { userId } = useAuthSession(); // 🔥 ここを変更
   const hasStartedRef = useRef(false);
 
   useEffect(() => {
-    // セッション状態とローカルストレージのフラグに基づいて
-    // ゲストデータ移行処理を開始するかどうかを判定する
-    // セッション取得中は何もしない
-    if (isPending) return;
-    // 未ログインの場合は何もしない
-    if (!session) return;
-    // userIdが取得できない場合は何もしない
-    const userId = session.user.id;
-    if (!userId) return;
-    // すでに移行処理を開始している場合は二重実行を防止
+    if (!userId) return; // 🔥 userId がない = 未ログイン
     if (hasStartedRef.current) return;
     if (typeof window === "undefined") return;
 
-    // 既に移行済みなら何もしない
     const migratedFlag = window.localStorage.getItem(GUEST_DATA_MIGRATED_KEY);
     if (migratedFlag === "true") {
       hasStartedRef.current = true;
@@ -54,11 +37,9 @@ export function GuestDataMigrator() {
     (async () => {
       await migrateGuestData(userId);
     })().catch((error) => {
-      // ここで例外が出てもアプリ全体には影響させない
-      // 詳細はコンソールで確認できるようにしておく
-      console.error("ゲストデータ移行中に予期せぬエラーが発生しました:", error);
+      console.error("ゲストデータ移行中にエラー:", error);
     });
-  }, [session, isPending]);
+  }, [userId]);
 
   return null;
 }
