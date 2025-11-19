@@ -1,9 +1,9 @@
 import { format, endOfMonth, startOfMonth } from "date-fns";
 import { HistoryPage } from "@/components/features/history";
 import {
-  getBodyPartsByDateRange,
-  getSessionDetails,
-} from "@/lib/actions/history";
+  cachedGetBodyPartsByDateRange,
+  cachedGetSessionDetails,
+} from "@/lib/actions/history"; // ←★ 修正済み import
 import { getWorkoutSession } from "@/lib/actions/workout-sessions";
 import { serializeSessionDetails } from "@/components/features/history/types";
 import { getAuthUserId } from "@/lib/auth-session-server";
@@ -20,17 +20,21 @@ export default async function Page() {
     endDate: format(endOfMonth(today), "yyyy-MM-dd"),
   };
 
-  //  すべてを並列化
+  // すべてを並列化（cached 版に差し替え）
   const [bodyPartsResult, todaySession] = await Promise.all([
-    getBodyPartsByDateRange(userId, monthRange),
+    cachedGetBodyPartsByDateRange(userId, monthRange),
     getWorkoutSession(userId, format(today, "yyyy-MM-dd")),
   ]);
 
   let initialSessionDetails = null;
 
-  //  セッション詳細を同時取得
+  // セッション詳細取得（cached に置換）
   if (todaySession.success && todaySession.data) {
-    const detailsResult = await getSessionDetails(userId, todaySession.data.id);
+    const detailsResult = await cachedGetSessionDetails(
+      userId,
+      todaySession.data.id
+    );
+
     if (detailsResult.success && detailsResult.data) {
       initialSessionDetails = serializeSessionDetails({
         ...detailsResult.data,
