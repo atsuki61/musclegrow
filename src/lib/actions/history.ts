@@ -10,7 +10,30 @@ import {
 import { eq, and, gte, lte } from "drizzle-orm";
 import type { SetRecord, CardioRecord } from "@/types/workout";
 import type { BodyPart } from "@/types/workout";
+import { unstable_cache } from "next/cache";
 
+// 月ごとの部位一覧（ユーザー別キャッシュ）
+export const cachedGetBodyPartsByDateRange = unstable_cache(
+  async (userId: string, range: { startDate: string; endDate: string }) => {
+    return await getBodyPartsByDateRange(userId, range);
+  },
+  // cacheKey（ユーザー別に分ける必要がある）
+  ["history-bodyparts"],
+  {
+    tags: ["history-bodyparts"], // ← 関数は使えない。固定配列のみ
+  }
+);
+
+// セッション詳細（ユーザー別キャッシュ）
+export const cachedGetSessionDetails = unstable_cache(
+  async (userId: string, sessionId: string) => {
+    return await getSessionDetails(userId, sessionId);
+  },
+  ["history-session"],
+  {
+    tags: ["history-session"], // ← 関数 NG。固定配列のみ
+  }
+);
 /**
  * テーブルが存在しない場合のエラーハンドリングを行う共通関数
  * @param queryFn 実行するクエリ関数
