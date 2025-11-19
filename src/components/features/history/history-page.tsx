@@ -8,7 +8,6 @@ import { loadExercisesWithFallback } from "@/lib/local-storage-exercises";
 import { useMaxWeights } from "@/hooks/use-max-weights";
 import { BodyPartFilter } from "./body-part-filter";
 import { HistoryCalendar } from "./history-calendar";
-import { SessionHistoryCard } from "./session-history-card";
 import { useHistoryData } from "./hooks/use-history-data";
 import {
   deserializeSessionDetails,
@@ -17,6 +16,13 @@ import {
 import type { Exercise, BodyPart } from "@/types/workout";
 import { useAuthSession } from "@/lib/auth-session-context";
 import dynamic from "next/dynamic";
+
+const SessionHistoryCard = dynamic(() => import("./session-history-card"), {
+  ssr: false,
+  loading: () => (
+    <div className="text-center py-8 text-muted-foreground">読み込み中...</div>
+  ),
+});
 
 const ExerciseRecordModal = dynamic(
   () => import("../record/exercise-record-modal"),
