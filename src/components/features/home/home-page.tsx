@@ -1,9 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Big3Progress } from "./big3-progress";
-import { RecordButton } from "./record-button";
+import dynamic from "next/dynamic";
 import { calculateMaxWeightsFromStorage } from "@/lib/max-weight";
+
+const Big3Progress = dynamic(() =>
+  import("./big3-progress").then((mod) => mod.Big3Progress)
+);
+const RecordButton = dynamic(() =>
+  import("./record-button").then((mod) => mod.RecordButton)
+);
 
 import {
   createBig3Data,
@@ -50,26 +56,34 @@ export function HomePage({ dbWeights, targets, exerciseIds }: HomePageProps) {
   }, [dbWeights, targets, exerciseIds]);
 
   const mergeWithLocalData = useCallback(() => {
-    const localMaxWeights = calculateMaxWeightsFromStorage();
-    const currentExerciseIds = exerciseIdsRef.current;
+    const task = () => {
+      const localMaxWeights = calculateMaxWeightsFromStorage();
+      const currentExerciseIds = exerciseIdsRef.current;
 
-    const finalWeights: Big3Weights = {
-      benchPress: Math.max(
-        dbWeightsRef.current.benchPress,
-        getLocalMaxWeight(currentExerciseIds.benchPress, localMaxWeights)
-      ),
-      squat: Math.max(
-        dbWeightsRef.current.squat,
-        getLocalMaxWeight(currentExerciseIds.squat, localMaxWeights)
-      ),
-      deadlift: Math.max(
-        dbWeightsRef.current.deadlift,
-        getLocalMaxWeight(currentExerciseIds.deadlift, localMaxWeights)
-      ),
+      const finalWeights: Big3Weights = {
+        benchPress: Math.max(
+          dbWeightsRef.current.benchPress,
+          getLocalMaxWeight(currentExerciseIds.benchPress, localMaxWeights)
+        ),
+        squat: Math.max(
+          dbWeightsRef.current.squat,
+          getLocalMaxWeight(currentExerciseIds.squat, localMaxWeights)
+        ),
+        deadlift: Math.max(
+          dbWeightsRef.current.deadlift,
+          getLocalMaxWeight(currentExerciseIds.deadlift, localMaxWeights)
+        ),
+      };
+
+      dbWeightsRef.current = finalWeights;
+      setBig3Data(createBig3Data(finalWeights, targetsRef.current));
     };
 
-    dbWeightsRef.current = finalWeights;
-    setBig3Data(createBig3Data(finalWeights, targetsRef.current));
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(task);
+    } else {
+      setTimeout(task, 1);
+    }
   }, []);
 
   useEffect(() => {

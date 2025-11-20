@@ -5,8 +5,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DateRangeSelector } from "./date-range-selector";
 import { BodyPartSelector } from "./body-part-selector";
 import { ExerciseSelector } from "./exercise-selector";
-import { ProfileChart } from "./profile-chart";
-import { ExerciseChart } from "./exercise-chart";
 import { HorizontalNav } from "./horizontal-nav";
 import { ChartLoading } from "./chart-loading";
 import { getProfileHistory } from "@/lib/actions/stats";
@@ -19,6 +17,7 @@ import type {
   ProfileHistoryData,
 } from "@/types/stats";
 import type { Exercise, BodyPart } from "@/types/workout";
+import dynamic from "next/dynamic"; // 追加
 
 const PROFILE_CHART_TYPES: { value: ProfileChartType; label: string }[] = [
   { value: "weight", label: "体重" },
@@ -144,7 +143,9 @@ export function StatsPage({
 
     async function fetchProfileHistory() {
       setProfileLoading(true);
-      const result = await getProfileHistory(userId, { preset: profileDateRange });
+      const result = await getProfileHistory(userId, {
+        preset: profileDateRange,
+      });
       if (result.success && result.data) {
         setProfileHistory(result.data);
       }
@@ -158,6 +159,24 @@ export function StatsPage({
 
   // データの有無をチェック
   const hasExerciseData = exerciseData.length > 0;
+
+  // 通常のimportを削除し、dynamic importに変更
+  // import { ProfileChart } from "./profile-chart";
+  // import { ExerciseChart } from "./exercise-chart";
+
+  const ProfileChart = dynamic(
+    () => import("./profile-chart").then((mod) => mod.ProfileChart),
+    {
+      loading: () => <ChartLoading />,
+    }
+  );
+
+  const ExerciseChart = dynamic(
+    () => import("./exercise-chart").then((mod) => mod.ExerciseChart),
+    {
+      loading: () => <ChartLoading />,
+    }
+  );
 
   return (
     <div className="container mx-auto px-4 py-4 space-y-4 pb-20">
