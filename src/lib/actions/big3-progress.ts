@@ -3,6 +3,7 @@
 import { db } from "../../../db";
 import { sets, exercises, workoutSessions } from "../../../db/schemas/app";
 import { eq, and, sql, isNull, or, inArray } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 
 type Big3MaxWeightsResult = {
   success: boolean;
@@ -37,7 +38,7 @@ function createEmptyBig3Data(
  * @param userId ユーザーID
  * @returns Big3種目（ベンチプレス、スクワット、デッドリフト）の最大重量
  */
-export async function getBig3MaxWeights(
+async function getBig3MaxWeightsInternal(
   userId: string | null
 ): Promise<Big3MaxWeightsResult> {
   try {
@@ -181,3 +182,14 @@ export async function getBig3MaxWeights(
     return createEmptyBig3Data();
   }
 }
+
+export const getBig3MaxWeights = unstable_cache(
+  async (userId: string | null) => {
+    return await getBig3MaxWeightsInternal(userId);
+  },
+  ["big3-max-weights"],
+  {
+    tags: ["big3-max-weights"],
+    revalidate: 3600,
+  }
+);
