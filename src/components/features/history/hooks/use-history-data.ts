@@ -15,8 +15,6 @@ import type {
 } from "@/types/workout";
 import type { SessionDetails } from "../types";
 
-export type { SessionDetails } from "../types";
-
 interface UseHistoryDataOptions {
   initialBodyPartsByDate?: Record<string, BodyPart[]>;
   initialSessionDetails?: SessionDetails | null;
