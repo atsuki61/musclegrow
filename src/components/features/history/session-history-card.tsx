@@ -10,6 +10,7 @@ import { Plus } from "lucide-react";
 import { SwipeableExerciseCard } from "./swipeable-exercise-card";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { getExerciseById } from "@/lib/local-storage-exercises";
+import { memo } from "react";
 
 interface SessionHistoryCardProps {
   /** セッション日付 */
@@ -42,7 +43,7 @@ interface SessionHistoryCardProps {
  * セッション履歴カードコンポーネント
  * 日付、時間、メモ、種目記録を表示
  */
-export default function SessionHistoryCard({
+const SessionHistoryCard = memo(function SessionHistoryCard({
   date,
   durationMinutes,
   note,
@@ -158,4 +159,6 @@ export default function SessionHistoryCard({
       </CardContent>
     </Card>
   );
-}
+});
+
+export default SessionHistoryCard;

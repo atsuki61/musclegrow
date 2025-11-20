@@ -15,7 +15,7 @@ import {
 import type { Exercise, BodyPart } from "@/types/workout";
 import { useAuthSession } from "@/lib/auth-session-context";
 import dynamic from "next/dynamic";
-
+import { HistoryCalendarSkeleton } from "./history-calendar-skeleton";
 const SessionHistoryCard = dynamic(() => import("./session-history-card"), {
   ssr: false,
   loading: () => (
@@ -30,9 +30,7 @@ const ExerciseRecordModal = dynamic(
 
 const HistoryCalendar = dynamic(() => import("./history-calendar"), {
   ssr: false,
-  loading: () => (
-    <div className="animate-pulse h-[300px] w-full rounded-lg bg-muted" />
-  ),
+  loading: () => <HistoryCalendarSkeleton />,
 });
 
 interface HistoryPageProps {
