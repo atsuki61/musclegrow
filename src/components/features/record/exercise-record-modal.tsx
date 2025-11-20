@@ -43,12 +43,6 @@ interface ExerciseRecordModalProps {
   date: Date;
 }
 
-/**
- * 種目記録モーダルコンポーネント
- * 種目をタップした際に表示される、セット記録の入力モーダル
- *
- * 有酸素種目と筋トレ種目で異なる入力フォームを表示（isCardioフラグで分岐）
- */
 export default function ExerciseRecordModal({
   exercise,
   isOpen,
