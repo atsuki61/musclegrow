@@ -43,6 +43,18 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-150%) skewX(-15deg);
+  }
+  50% {
+    transform: translateX(150%) skewX(-15deg);
+  }
+  100% {
+    transform: translateX(150%) skewX(-15deg);
+  }
+}
+
 :root {
   --radius: 0.5rem;
   --background: oklch(1 0 0);
@@ -118,5 +130,26 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Big3 のシマー用アニメーションクラス */
+  .animate-shimmer {
+    animation: shimmer 2.5s infinite;
+  }
+
+  /* タッチデバイスでも hover 風の効果を有効にする */
+  @media (hover: none) {
+    .hover\:shadow-xl:hover {
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1),
+        0 8px 10px -6px rgb(0 0 0 / 0.1);
+    }
+    .group:hover .group-hover\:bg-\[position\:100\%_0\%\] {
+      background-position: 100% 0%;
+    }
+    .group:hover .group-hover\:rotate-90 {
+      transform: rotate(90deg);
+    }
   }
 }
