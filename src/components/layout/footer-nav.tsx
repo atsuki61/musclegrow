@@ -1,121 +1,132 @@
 "use client";
 
 import Link from "next/link";
-import { Home, History, Plus, LineChart, User } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { Home, CalendarDays, Plus, BarChart3, User } from "lucide-react";
 import { isAuthPage } from "@/lib/utils";
 
 export function FooterNav() {
   const pathname = usePathname();
 
+  // ログインページ等では表示しない
   if (isAuthPage(pathname)) return null;
 
   const navItems = [
-    { href: "/", icon: Home },
-    { href: "/history", icon: History },
-    { href: "/record", icon: Plus, isSpecial: true },
-    { href: "/stats", icon: LineChart },
-    { href: "/profile", icon: User },
+    { href: "/", icon: Home, label: "ホーム" },
+    { href: "/history", icon: CalendarDays, label: "履歴" },
+    { href: "/record", icon: Plus, label: "記録", isSpecial: true },
+    { href: "/stats", icon: BarChart3, label: "分析" },
+    { href: "/profile", icon: User, label: "設定" },
   ];
 
   return (
-    <nav className="fixed bottom-6 left-4 right-4 z-50 md:left-0 md:right-0 md:max-w-md md:mx-auto">
-      <div
-        className="
-          flex justify-around items-center
-          py-3 px-3
-          bg-background/80 backdrop-blur-xl
-          rounded-full shadow-2xl border
-          ring-1 ring-black/5
-        "
-      >
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
-          const isSpecial = item.isSpecial;
+    <div className="fixed bottom-6 inset-x-0 z-50 flex justify-center pointer-events-none px-4">
+      {/* ナビゲーションコンテナ */}
+      <nav className="pointer-events-auto relative w-full max-w-[380px] bg-background/90 backdrop-blur-xl border border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] rounded-3xl px-2 py-3 transition-all duration-300">
+        <ul className="flex justify-between items-end w-full px-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch={true}
-              aria-label={item.href}
-              className="relative flex items-center justify-center w-12 h-12"
-            >
-              {/* ▼ Glow（通常アイコン） */}
-              {!isSpecial && (
-                <div
-                  className={`
-                    absolute inset-0 rounded-full
-                    transition-all duration-300
-                    ${
-                      isActive
-                        ? "scale-150 bg-primary/15 blur-xl opacity-80"
-                        : "scale-0"
-                    }
-                  `}
-                />
-              )}
-
-              {/* ▼ Glow（中央ボタン） */}
-              {isSpecial && (
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <div
-                    className="
-        relative w-full h-full
-        after:content-['']
-        after:absolute
-        after:inset-0
-        after:rounded-full
-        after:bg-[radial-gradient(ellipse_at_center,rgba(var(--primary-rgb),0.35)_0%,rgba(var(--primary-rgb),0)_70%)]
-        after:scale-[2.2]
-        after:translate-y-[12%]
-        after:blur-2xl
-        after:opacity-90
-        after:transition-all after:duration-300
-      "
-                  />
-                </div>
-              )}
-
-              {isSpecial ? (
-                <div
-                  className="
-                    relative
-                    bg-primary text-primary-foreground
-                    rounded-full
-                    p-3 shadow-xl
-                    -translate-y-4
-                    border-4 border-background
-                    transition-all duration-300
-                    active:scale-95 active:brightness-95
-                  "
+            // ▼ 中央の特別な「記録」ボタン
+            if (item.isSpecial) {
+              return (
+                <li
+                  key={item.href}
+                  className="relative -mt-10 flex justify-center z-10"
                 >
-                  <Icon className="h-7 w-7" />
-                </div>
-              ) : (
-                <>
-                  <Icon
+                  <Link
+                    href={item.href}
+                    aria-label={item.label}
+                    className="group relative flex items-center justify-center w-16 h-16 rounded-full transition-transform active:scale-95 focus:outline-none"
+                  >
+                    {/* 光るエフェクト */}
+                    <div
+                      className={`absolute inset-0 rounded-full bg-primary/40 blur-xl transition-opacity duration-500 ${
+                        isActive
+                          ? "opacity-100"
+                          : "opacity-40 group-hover:opacity-70"
+                      }`}
+                    />
+
+                    {/* ボタン本体 */}
+                    <div className="relative flex items-center justify-center w-full h-full rounded-full bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/30 border-[4px] border-background group-hover:scale-105 transition-all duration-300">
+                      <Plus
+                        className={`w-8 h-8 stroke-[3px] transition-transform duration-300 ${
+                          isActive ? "rotate-180" : "group-hover:rotate-90"
+                        }`}
+                      />
+                    </div>
+                  </Link>
+                </li>
+              );
+            }
+
+            // ▼ 通常のメニュー項目
+            return (
+              <li
+                key={item.href}
+                className="relative flex flex-1 justify-center"
+              >
+                <Link
+                  href={item.href}
+                  aria-label={item.label}
+                  className="group flex flex-col items-center justify-end w-full h-12 outline-none touch-manipulation"
+                >
+                  {/* アイコンラッパー */}
+                  <div
                     className={`
-                      relative z-1
+                      relative flex items-center justify-center transition-all duration-300 ease-out
                       ${
                         isActive
-                          ? "h-7 w-7 text-primary"
-                          : "h-6 w-6 text-muted-foreground"
+                          ? "-translate-y-2"
+                          : "translate-y-1 group-hover:translate-y-0"
                       }
-                      transition-all duration-200
                     `}
-                  />
+                  >
+                    {/* 背景のハロー効果 */}
+                    <div
+                      className={`
+                        absolute inset-0 rounded-full bg-primary/10 scale-0 transition-transform duration-300
+                        ${isActive ? "scale-150" : ""}
+                      `}
+                    />
+                    <Icon
+                      className={`
+                        relative w-6 h-6 transition-all duration-300 z-10
+                        ${
+                          isActive
+                            ? "text-primary stroke-[2.5px]"
+                            : "text-muted-foreground stroke-2 group-hover:text-foreground"
+                        }
+                      `}
+                    />
+                  </div>
 
-                  {isActive && (
-                    <div className="absolute -bottom-1 w-1.5 h-1.5 bg-primary rounded-full" />
+                  {/* ラベルテキスト */}
+                  <span
+                    className={`
+                      text-[10px] font-bold tracking-wide mt-1 transition-all duration-300 origin-bottom
+                      ${
+                        isActive
+                          ? "text-primary opacity-100 scale-100 translate-y-0"
+                          : "text-muted-foreground opacity-0 scale-75 translate-y-2"
+                      }
+                    `}
+                  >
+                    {item.label}
+                  </span>
+
+                  {/* ホバー時のドットインジケーター */}
+                  {!isActive && (
+                    <span className="absolute bottom-1 w-1 h-1 rounded-full bg-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   )}
-                </>
-              )}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </div>
   );
 }
