@@ -1,3 +1,5 @@
+//トレーニングを登録した日数の合計を表示するコンポーネント
+
 import { Badge } from "@/components/ui/badge";
 
 interface TotalDaysBadgeProps {
