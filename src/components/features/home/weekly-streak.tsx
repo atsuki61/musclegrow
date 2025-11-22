@@ -31,7 +31,7 @@ export function WeeklyStreak() {
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
                   done
-                    ? "bg-gradient-to-br from-primary to-orange-600 text-white shadow-lg shadow-primary/25 scale-110"
+                    ? "bg-linear-to-br from-primary to-orange-600 text-white shadow-lg shadow-primary/25 scale-110"
                     : "bg-muted/50 text-muted-foreground/20"
                 } ${
                   isToday && !done
