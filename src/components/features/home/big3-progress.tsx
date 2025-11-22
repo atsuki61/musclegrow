@@ -72,7 +72,7 @@ export function Big3Progress({
           <div>
             <h2 className="font-bold text-sm leading-none">BIG 3 TOTAL</h2>
             <span className="text-[10px] text-muted-foreground">
-              Powerlifting Score
+              目標まであと {totalTarget - totalCurrent}kg
             </span>
           </div>
         </div>
