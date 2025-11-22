@@ -1,20 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { parse } from "date-fns";
+import { Search, Filter } from "lucide-react"; // アイコン追加
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
 import ExerciseRecordModal from "./exercise-record-modal";
 import { AddExerciseModal } from "./add-exercise-modal";
+import { Input } from "@/components/ui/input"; // Input追加
+import { Button } from "@/components/ui/button"; // Button追加
 import { saveExercise } from "@/lib/api";
-import { BODY_PART_LABELS } from "@/lib/utils";
 import { useMaxWeights } from "@/hooks/use-max-weights";
-import {
-  getLastTrainedDates,
-  getLastTrainedDatesByBodyPart,
-} from "@/lib/last-trained";
 import {
   loadExercisesWithFallback,
   addExerciseToStorage,
@@ -26,29 +24,19 @@ interface RecordPageProps {
   initialExercises?: Exercise[];
 }
 
-function getBodyPartsToShow(
-  selectedPart: Exclude<BodyPart, "all">
-): Exclude<BodyPart, "all">[] {
-  return [selectedPart];
-}
-
 export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const searchParams = useSearchParams();
   const { userId } = useAuthSession();
 
-  // クエリパラメータから日付を取得（例: /record?date=2024-11-13）
+  // --- Date Logic ---
   const getInitialDate = (): Date => {
     const dateParam = searchParams.get("date");
     if (dateParam) {
       try {
-        // yyyy-MM-dd 形式の日付をパース
         const parsedDate = parse(dateParam, "yyyy-MM-dd", new Date());
-        // 有効な日付かチェック
-        if (!isNaN(parsedDate.getTime())) {
-          return parsedDate;
-        }
+        if (!isNaN(parsedDate.getTime())) return parsedDate;
       } catch {
-        // パースエラー時は今日の日付を使用
+        /* ignore */
       }
     }
     return new Date();
@@ -58,6 +46,9 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const [selectedPart, setSelectedPart] =
     useState<Exclude<BodyPart, "all">>("chest");
   const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
+  const [searchQuery, setSearchQuery] = useState(""); // 検索用ステート
+
+  // Modals & Selection
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
     null
   );
@@ -65,11 +56,7 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
   const [addExerciseBodyPart, setAddExerciseBodyPart] =
     useState<Exclude<BodyPart, "all">>("chest");
-  const [lastTrainedDatesByBodyPart, setLastTrainedDatesByBodyPart] = useState<
-    Record<BodyPart, Date | undefined>
-  >({} as Record<BodyPart, Date | undefined>);
 
-  // 最大重量を管理するカスタムフック
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
 
   useEffect(() => {
@@ -84,24 +71,35 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   }, [initialExercises, userId]);
 
   const recalculateStats = useCallback(() => {
-    // 最大重量はカスタムフックで管理されるため、ここでは再計算のみ呼び出す
     recalculateMaxWeights();
-    const lastTrainedDates = getLastTrainedDates();
-    setLastTrainedDatesByBodyPart(
-      getLastTrainedDatesByBodyPart(exercises, lastTrainedDates)
-    );
-  }, [exercises, recalculateMaxWeights]);
+  }, [recalculateMaxWeights]);
 
   useEffect(() => {
     recalculateStats();
   }, [recalculateStats]);
 
-  const handleDateChange = (date: Date) => {
-    setSelectedDate(date);
-  };
+  // --- Filtering Logic ---
+  // 選択中の部位 かつ 検索ワードに一致する種目を抽出
+  const filteredExercises = useMemo(() => {
+    let result = exercises.filter((e) => e.bodyPart === selectedPart);
 
+    if (searchQuery.trim()) {
+      const lowerQuery = searchQuery.toLowerCase();
+      result = result.filter(
+        (e) =>
+          e.name.toLowerCase().includes(lowerQuery) ||
+          (e.muscleSubGroup &&
+            e.muscleSubGroup.toLowerCase().includes(lowerQuery))
+      );
+    }
+    return result;
+  }, [exercises, selectedPart, searchQuery]);
+
+  // --- Handlers ---
+  const handleDateChange = (date: Date) => setSelectedDate(date);
   const handlePartChange = (part: Exclude<BodyPart, "all">) => {
     setSelectedPart(part);
+    setSearchQuery(""); // 部位変更時に検索リセット
   };
 
   const handleExerciseSelect = (exercise: Exercise) => {
@@ -115,85 +113,72 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
     recalculateStats();
   };
 
-  const handleAddExerciseClick = (bodyPart: Exclude<BodyPart, "all">) => {
-    setAddExerciseBodyPart(bodyPart);
+  const handleAddExerciseClick = () => {
+    setAddExerciseBodyPart(selectedPart);
     setIsAddExerciseModalOpen(true);
-  };
-
-  const addExerciseToState = (exercise: Exercise) => {
-    setExercises((prev) => [...prev, exercise]);
-  };
-
-  const saveCustomExercise = async (exercise: Exercise) => {
-    const result = await saveExercise(userId, exercise);
-    if (result.success && result.data) {
-      addExerciseToState(result.data);
-    } else {
-      console.error("種目保存エラー:", result.error);
-      addExerciseToState(exercise);
-    }
   };
 
   const handleAddExercise = async (exercise: Exercise) => {
     addExerciseToStorage(exercise);
-
     if (exercise.tier === "custom") {
-      await saveCustomExercise(exercise);
-    } else {
-      addExerciseToState(exercise);
+      const result = await saveExercise(userId, exercise);
+      if (!result.success) console.error("種目保存エラー:", result.error);
     }
+    setExercises((prev) => [...prev, exercise]);
     recalculateStats();
   };
 
-  const handleAddExerciseModalClose = () => {
-    setIsAddExerciseModalOpen(false);
-  };
-
-  const bodyPartsToShow = getBodyPartsToShow(selectedPart);
-
   return (
-    <div className="flex flex-col min-h-screen -mt-14">
-      {/* Headerエリア */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background">
+    <div className="flex flex-col min-h-screen pb-20 bg-background">
+      {/* Header (Sticky) */}
+      <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="flex h-14 items-center justify-center px-4">
-          {/* 日付選択を中央配置 */}
           <DateSelector date={selectedDate} onDateChange={handleDateChange} />
         </div>
-      </header>
 
-      {/* 部位ナビゲーションエリア */}
-      <nav className="sticky top-14 z-40 w-full border-b bg-background">
-        <div className="px-4">
+        {/* Navigation */}
+        <div className="px-2 pb-1">
           <BodyPartNavigation
             selectedPart={selectedPart}
             onPartChange={handlePartChange}
           />
         </div>
-      </nav>
+      </header>
 
-      {/* メインコンテンツエリア */}
-      <main className="flex-1 container mx-auto px-3 py-2">
-        <div className="space-y-2">
-          {bodyPartsToShow.map((bodyPart) => {
-            const bodyPartExercises = exercises.filter(
-              (e) => e.bodyPart === bodyPart
-            );
-            return (
-              <BodyPartCard
-                key={bodyPart}
-                bodyPart={BODY_PART_LABELS[bodyPart]}
-                exercises={bodyPartExercises}
-                maxWeights={maxWeights}
-                lastTrainedAt={lastTrainedDatesByBodyPart[bodyPart]}
-                onExerciseSelect={handleExerciseSelect}
-                onAddExerciseClick={() => handleAddExerciseClick(bodyPart)}
-              />
-            );
-          })}
+      {/* Main Content */}
+      <main className="flex-1 container mx-auto px-4 py-4 space-y-4">
+        {/* 検索バー */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="種目を検索..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-muted/40 border-border/50 rounded-xl focus-visible:ring-orange-500"
+          />
         </div>
+
+        {/* 種目カード一覧 */}
+        <BodyPartCard
+          bodyPart={selectedPart} // ラベル表示用には使っていませんが一応渡す
+          exercises={filteredExercises}
+          maxWeights={maxWeights}
+          onExerciseSelect={handleExerciseSelect}
+          onAddExerciseClick={handleAddExerciseClick}
+        />
       </main>
 
-      {/* 種目記録モーダル */}
+      {/* フィルターボタン (Floating Action Button) */}
+      <div className="fixed bottom-24 right-5 z-40">
+        <Button
+          size="icon"
+          className="h-12 w-12 rounded-full bg-black text-white shadow-lg hover:bg-black/90 active:scale-95 transition-all"
+        >
+          <Filter className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* Modals */}
       <ExerciseRecordModal
         exercise={selectedExercise}
         isOpen={isModalOpen}
@@ -201,10 +186,9 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
         date={selectedDate}
       />
 
-      {/* 種目追加モーダル */}
       <AddExerciseModal
         isOpen={isAddExerciseModalOpen}
-        onClose={handleAddExerciseModalClose}
+        onClose={() => setIsAddExerciseModalOpen(false)}
         onAddExercise={handleAddExercise}
         allExercises={exercises}
         initialBodyPart={addExerciseBodyPart}
