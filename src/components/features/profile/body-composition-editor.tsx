@@ -46,6 +46,45 @@ export function BodyCompositionEditor({
     return null;
   }, [height, weight]);
 
+  // ▼ 修正: BMIに応じたカラースタイルを決定 ▼
+  const bmiColorStyles = useMemo(() => {
+    if (!bmiData) return null;
+
+    // 修正: 型エラー回避のため Number() で変換（元がnumberでもstringでも動作します）
+    const bmi = Number(bmiData.bmi);
+
+    // 18.5未満 (低体重): シアン〜ブルー (冷たい色)
+    if (bmi < 18.5) {
+      return {
+        bg: "from-cyan-500 to-blue-600",
+        shadow: "shadow-cyan-500/20",
+        indicator: "text-cyan-100",
+      };
+    }
+    // 18.5 - 25 (普通): ブルー〜インディゴ (知性的・清潔・安定)
+    if (bmi < 25.0) {
+      return {
+        bg: "from-blue-600 to-indigo-700",
+        shadow: "shadow-blue-500/20",
+        indicator: "text-blue-100",
+      };
+    }
+    // 25 - 30 (肥満1度): オレンジ〜アンバー (注意・ブランドカラー)
+    if (bmi < 30.0) {
+      return {
+        bg: "from-orange-500 to-amber-600",
+        shadow: "shadow-orange-500/20",
+        indicator: "text-orange-100",
+      };
+    }
+    // 30以上 (肥満2度以上): ローズ〜レッド (警告)
+    return {
+      bg: "from-rose-500 to-red-600",
+      shadow: "shadow-rose-500/20",
+      indicator: "text-rose-100",
+    };
+  }, [bmiData]);
+
   const composition = useMemo(() => {
     if (isBodyCompositionValid(weight, bodyFat, muscleMass)) {
       return calculateBodyComposition(weight, bodyFat, muscleMass);
@@ -74,9 +113,11 @@ export function BodyCompositionEditor({
       </div>
 
       <div className="px-4 space-y-5">
-        {/* 2. BMI ビジュアルカード (適正体重削除版) */}
-        {bmiData && (
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-5 text-white shadow-lg shadow-blue-500/20">
+        {/* 2. BMI ビジュアルカード (動的カラー版) */}
+        {bmiData && bmiColorStyles && (
+          <div
+            className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${bmiColorStyles.bg} p-5 text-white shadow-lg ${bmiColorStyles.shadow} transition-colors duration-500`}
+          >
             {/* 背景装飾 */}
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -100,19 +141,22 @@ export function BodyCompositionEditor({
                 className="absolute top-0 left-0 h-full bg-white/90 shadow-[0_0_10px_rgba(255,255,255,0.5)] transition-all duration-700 ease-out rounded-full overflow-hidden"
                 style={{ width: `${bmiData.percentage}%` }}
               >
-                {/* シマー効果（光沢アニメーション） */}
+                {/* シマー効果 */}
                 <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white to-transparent -skew-x-12 animate-shimmer opacity-70" />
               </div>
             </div>
 
             {/* 目盛り数値 */}
-            <div className="flex justify-between text-[9px] font-medium opacity-60 mt-1 font-mono">
+            <div
+              className={`flex justify-between text-[9px] font-medium mt-1 font-mono ${bmiColorStyles.indicator} opacity-80`}
+            >
               <span>18.5</span>
               <span>22.0</span>
               <span>25.0</span>
             </div>
           </div>
         )}
+
         {/* 3. 体組成チャート */}
         {composition && (
           <Card className="p-4 border-border/60 shadow-sm rounded-xl space-y-4">
@@ -122,8 +166,6 @@ export function BodyCompositionEditor({
                 構成比率
               </span>
             </div>
-
-            {/* 共通のバー描画ロジックとして適用 */}
 
             {/* 筋肉 */}
             <div className="space-y-1.5">
@@ -143,7 +185,6 @@ export function BodyCompositionEditor({
                   className="h-full bg-emerald-500 rounded-full transition-all duration-700 ease-out relative overflow-hidden"
                   style={{ width: `${composition.muscleMassPercentage}%` }}
                 >
-                  {/* 光沢アニメーションの追加 */}
                   <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-shimmer" />
                 </div>
               </div>
