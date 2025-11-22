@@ -4,9 +4,9 @@ import { useRef, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Copy, Trash2 } from "lucide-react";
+import { Plus, Trash2, Dumbbell } from "lucide-react";
 import {
   calculate1RM,
   requiresWeightInput,
@@ -16,95 +16,27 @@ import {
 import type { Exercise, SetRecord } from "@/types/workout";
 
 interface SetRecordFormProps {
-  /** 種目情報 */
   exercise: Exercise;
-  /** セット記録のリスト */
   sets: SetRecord[];
-  /** セット記録のリストを更新するコールバック */
   onSetsChange: (sets: SetRecord[]) => void;
 }
 
 interface SetRowProps {
-  /** 種目情報 */
   exercise: Exercise;
-  /** セット記録 */
   set: SetRecord;
-  /** セットのインデックス */
   index: number;
-  /** 最後のセットかどうか */
   isLast: boolean;
-  /** 前のセットが存在するかどうか */
   hasPreviousSet: boolean;
-  /** セットの値を更新するコールバック */
   onSetChange: (
     setId: string,
     field: keyof SetRecord,
     value: number | string | boolean
   ) => void;
-  /** 前のセットをコピーするコールバック */
   onCopyPrevious: (index: number) => void;
-  /** セットを削除するコールバック */
   onDelete: (setId: string) => void;
-  /** セット行のref（自動スクロール用） */
   setRowRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-/**
- * 入力値を数値に変換する（重量用）
- * NaN、無限大、負の値を0に変換して安全性を確保
- */
-const parseWeight = (value: string): number => {
-  const parsed = parseFloat(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-};
-
-/**
- * 入力値を数値に変換する（回数用）
- * NaN、無限大、負の値を0に変換して安全性を確保
- */
-const parseReps = (value: string): number => {
-  const parsed = parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-};
-
-/**
- * 入力値を数値に変換する（時間用）
- * NaN、無限大、負の値を0に変換して安全性を確保
- */
-const parseDuration = (value: string): number => {
-  const parsed = parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-};
-
-/**
- * 入力値の長さに応じてフォントサイズのクラスを返す
- * 画面サイズと値の長さの両方を考慮して動的に調整
- * - 小さい画面（モバイル）: 値の長さに応じて小さく調整（見切れ防止）
- * - 大きい画面（デスクトップ）: より大きなフォントサイズを使用（可読性向上）
- */
-const getFontSizeClass = (value: number | string | undefined): string => {
-  const valueStr = value?.toString() || "";
-  const length = valueStr.length;
-
-  // 空欄または短い値（1-3文字）
-  if (length === 0 || length <= 3) {
-    // モバイル: text-base, デスクトップ: text-lg
-    return "text-base sm:text-lg";
-  }
-  // 中程度の値（4-5文字）
-  if (length <= 5) {
-    // モバイル: text-sm, デスクトップ: text-base
-    return "text-sm sm:text-base";
-  }
-  // 長い値（6文字以上）
-  // モバイル: text-xs, デスクトップ: text-sm
-  return "text-xs sm:text-sm";
-};
-
-/**
- * セット行コンポーネント
- * 1つのセットの入力フィールドとアクションボタンを表示
- */
 function SetRow({
   exercise,
   set,
@@ -119,204 +51,126 @@ function SetRow({
   const needsWeight = requiresWeightInput(exercise);
   const isTimeBased = isTimeBasedExercise(exercise);
   const isBodyweight = isBodyweightExercise(exercise);
-  // 重量が入力されている場合のみ1RMを計算
   const oneRM =
     set.weight && set.weight > 0 ? calculate1RM(set.weight, set.reps) : null;
 
   return (
-    <div ref={setRowRef}>
-      {/* セット行 */}
-      <div className="flex items-start sm:items-end gap-1.5">
-        {/* コピーと番号をまとめたカラム（1セット目でも同じ幅を確保） */}
-        <div className="w-10 shrink-0 flex flex-col items-center">
-          {/* コピーボタン（最初のセット以外）または透明なプレースホルダー */}
-          {hasPreviousSet ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onCopyPrevious(index)}
-              className="h-7 w-7 p-0 mb-1"
-              aria-label="前のセットをコピー"
-            >
-              <Copy className="h-3.5 w-3.5" />
-            </Button>
-          ) : (
-            <div
-              className="h-[28px] w-7 flex items-center justify-center mb-1"
-              aria-hidden="true"
-            />
-          )}
-          {/* セット番号 */}
-          <span className="text-sm font-medium text-muted-foreground">
+    <div
+      ref={setRowRef}
+      className="group relative animate-in fade-in slide-in-from-bottom-2 duration-300"
+    >
+      <div className="flex items-center gap-2 py-1">
+        {/* 1. セット番号とコピーボタン */}
+        <div className="w-10 flex flex-col items-center gap-1 shrink-0">
+          <span className="text-xs font-bold text-muted-foreground bg-muted/40 w-6 h-6 flex items-center justify-center rounded-full">
             {index + 1}
           </span>
-        </div>
-
-        {/* 時間ベース種目の場合: 時間入力 */}
-        {isTimeBased ? (
-          <div className="flex-1">
-            <Input
-              type="number"
-              placeholder="時間"
-              value={set.duration || ""}
-              onChange={(e) => {
-                const value = parseDuration(e.target.value);
-                onSetChange(set.id, "duration", value);
-              }}
-              min="0"
-              step="1"
-              className={`${getFontSizeClass(
-                set.duration ?? undefined
-              )} placeholder:text-xs sm:placeholder:text-sm h-9 text-center`}
-            />
-            <span className="text-xs text-muted-foreground mt-0.5 block text-right">
-              秒
-            </span>
-          </div>
-        ) : (
-          <>
-            {/* 重量入力（時間ベース種目以外は常に表示、自重種目は任意） */}
-            {needsWeight && (
-              <>
-                <div className="flex-1">
-                  <Input
-                    type="number"
-                    placeholder={isBodyweight ? "重量（任意）" : "重量"}
-                    value={set.weight || ""}
-                    onChange={(e) => {
-                      const value = parseWeight(e.target.value);
-                      onSetChange(set.id, "weight", value);
-                    }}
-                    min="0"
-                    step="0.5"
-                    className={`${getFontSizeClass(
-                      set.weight
-                    )} placeholder:text-xs sm:placeholder:text-sm h-9 text-center`}
-                  />
-                  <span className="text-xs text-muted-foreground mt-0.5 block text-right">
-                    kg
-                  </span>
-                </div>
-
-                {/* ×記号 */}
-                <span className="text-lg font-bold text-muted-foreground pb-1">
-                  ×
-                </span>
-              </>
-            )}
-
-            {/* 回数入力 */}
-            <div className="flex-1">
-              <Input
-                type="number"
-                placeholder="回数"
-                value={set.reps || ""}
-                onChange={(e) => {
-                  const value = parseReps(e.target.value);
-                  onSetChange(set.id, "reps", value);
-                }}
-                min="0"
-                step="1"
-                className={`${getFontSizeClass(
-                  set.reps
-                )} placeholder:text-xs sm:placeholder:text-sm h-9 text-center`}
-              />
-              <span className="text-xs text-muted-foreground mt-0.5 block text-right">
-                回
-              </span>
-            </div>
-          </>
-        )}
-
-        {/* 1RM表示 */}
-        <div className="w-20 shrink-0 text-center pb-1">
-          {oneRM ? (
-            <div>
-              <div className="text-base font-semibold">{oneRM}kg</div>
-              <span className="text-xs text-muted-foreground">1RM</span>
-            </div>
-          ) : (
-            <div className="text-xs text-muted-foreground">--</div>
+          {hasPreviousSet && (
+            <button
+              onClick={() => onCopyPrevious(index)}
+              className="text-[10px] text-primary font-bold hover:bg-primary/10 px-1.5 py-0.5 rounded transition-colors"
+            >
+              COPY
+            </button>
           )}
         </div>
 
-        {/* 削除ボタン（右端） */}
-        <div className="shrink-0">
+        {/* 2. 入力フィールド群 */}
+        <div className="flex-1 grid grid-cols-2 gap-3">
+          {/* 重量 */}
+          {needsWeight && (
+            <div className="relative">
+              <Input
+                type="number"
+                value={set.weight || ""}
+                onChange={(e) =>
+                  onSetChange(set.id, "weight", parseFloat(e.target.value))
+                }
+                className="h-12 text-center text-lg font-bold bg-muted/30 border-transparent focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all rounded-xl pr-8"
+                placeholder={isBodyweight ? "-" : "0"}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium pointer-events-none">
+                kg
+              </span>
+            </div>
+          )}
+
+          {/* 回数 / 時間 */}
+          <div className="relative">
+            <Input
+              type="number"
+              value={isTimeBased ? set.duration || "" : set.reps || ""}
+              onChange={(e) =>
+                onSetChange(
+                  set.id,
+                  isTimeBased ? "duration" : "reps",
+                  parseFloat(e.target.value)
+                )
+              }
+              className="h-12 text-center text-lg font-bold bg-muted/30 border-transparent focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all rounded-xl pr-8"
+              placeholder="0"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium pointer-events-none">
+              {isTimeBased ? "秒" : "回"}
+            </span>
+          </div>
+        </div>
+
+        {/* 3. 削除アクション */}
+        <div className="shrink-0 flex items-center">
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={() => onDelete(set.id)}
-            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-            aria-label="セットを削除"
+            className="h-10 w-10 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-5 w-5" />
           </Button>
         </div>
       </div>
 
-      {/* セット間の区切り線（最後のセット以外） */}
-      {!isLast && <Separator className="mt-3" />}
+      {/* 1RMなどの補足情報 */}
+      {oneRM && (
+        <div className="ml-12 mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+          <span className="bg-muted/50 px-1.5 py-0.5 rounded">
+            1RM: {oneRM}kg
+          </span>
+        </div>
+      )}
+
+      {!isLast && <Separator className="my-3 opacity-50" />}
     </div>
   );
 }
 
-/**
- * セット記録フォームコンポーネント
- * 筋トレ種目用の重量×回数入力フォーム
- * 種目のタイプに応じて、重量入力、回数入力、時間入力を切り替える
- */
 export function SetRecordForm({
   exercise,
   sets,
   onSetsChange,
 }: SetRecordFormProps) {
-  // 最後のセットへのref（自動スクロール用）
   const lastSetRef = useRef<HTMLDivElement>(null);
-  // 前回のセット数を追跡（セット追加を検知するため）
   const previousSetsLengthRef = useRef<number>(sets.length);
 
-  /**
-   * 新しいセットを作成する
-   */
   const createNewSet = (setOrder: number): SetRecord => {
     const isTimeBased = isTimeBasedExercise(exercise);
     return {
       id: nanoid(),
       setOrder,
-      // 時間ベース種目以外は重量入力欄を表示（自重種目は任意なのでundefinedで初期化）
       weight: isTimeBased ? undefined : undefined,
-      reps: isTimeBased ? 0 : 0, // 時間ベースでもrepsは0で初期化（表示はしない）
+      reps: isTimeBased ? 0 : 0,
       duration: isTimeBased ? 0 : undefined,
       isWarmup: false,
       failure: false,
     };
   };
 
-  /**
-   * セット順序を再計算する
-   */
-  const reorderSets = (setsToReorder: SetRecord[]): SetRecord[] => {
-    return setsToReorder.map((set, index) => ({
-      ...set,
-      setOrder: index + 1,
-    }));
-  };
-
-  /**
-   * セットを追加する
-   */
   const handleAddSet = () => {
     const newSet = createNewSet(sets.length + 1);
     onSetsChange([...sets, newSet]);
   };
 
-  /**
-   * セットが追加された際に、最後のセットまで自動スクロール
-   */
   useEffect(() => {
-    // セット数が増えた場合のみスクロール（削除時はスクロールしない）
     if (sets.length > previousSetsLengthRef.current && lastSetRef.current) {
-      // 少し遅延を入れて、DOMの更新を待つ
       setTimeout(() => {
         lastSetRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -324,21 +178,18 @@ export function SetRecordForm({
         });
       }, 100);
     }
-    // 前回のセット数を更新
     previousSetsLengthRef.current = sets.length;
   }, [sets.length]);
 
-  /**
-   * セットを削除する
-   */
   const handleDeleteSet = (setId: string) => {
     const filteredSets = sets.filter((set) => set.id !== setId);
-    onSetsChange(reorderSets(filteredSets));
+    const reordered = filteredSets.map((set, idx) => ({
+      ...set,
+      setOrder: idx + 1,
+    }));
+    onSetsChange(reordered);
   };
 
-  /**
-   * セットの値を更新する
-   */
   const handleSetChange = (
     setId: string,
     field: keyof SetRecord,
@@ -350,24 +201,18 @@ export function SetRecordForm({
     onSetsChange(updatedSets);
   };
 
-  /**
-   * 前のセットの値をコピーする
-   */
   const handleCopyPreviousSet = (index: number) => {
-    if (index === 0) return; // 最初のセットはコピー元がない
-
+    if (index === 0) return;
     const previousSet = sets[index - 1];
     const currentSet = sets[index];
     const isTimeBased = isTimeBasedExercise(exercise);
 
-    // 1回の更新で複数フィールドを変更
     const updatedSets = sets.map((set) => {
       if (set.id === currentSet.id) {
         const updated: SetRecord = { ...set };
         if (isTimeBased) {
           updated.duration = previousSet.duration;
         } else {
-          // 時間ベース種目以外は重量と回数をコピー（重量が入力されている場合のみ）
           updated.weight = previousSet.weight;
           updated.reps = previousSet.reps;
         }
@@ -380,23 +225,17 @@ export function SetRecordForm({
 
   return (
     <div className="space-y-4">
-      {/* セクションタイトル */}
-      <div className="flex items-center gap-2">
-        <span className="text-2xl">✨</span>
-        <h3 className="font-semibold text-lg">今日の記録</h3>
-      </div>
-
-      {/* セット記録カード（1枚） */}
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-3">
+      <Card className="border-none shadow-none sm:border sm:shadow-sm bg-transparent sm:bg-card">
+        <div className="p-0 sm:p-4 space-y-2">
           {sets.length === 0 ? (
-            /* セットが0件の場合 */
-            <div className="text-center py-8 text-muted-foreground">
-              <p className="text-sm">セットを追加してください</p>
+            <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-muted rounded-xl bg-muted/10">
+              <Dumbbell className="w-10 h-10 text-muted-foreground/20 mb-2" />
+              <p className="text-sm font-medium text-muted-foreground">
+                最初のセットを追加しよう
+              </p>
             </div>
           ) : (
-            /* セットリスト */
-            <div className="space-y-[10px]">
+            <div className="bg-card border rounded-2xl p-4 shadow-sm space-y-1">
               {sets.map((set, index) => {
                 const isLast = index === sets.length - 1;
                 return (
@@ -417,26 +256,16 @@ export function SetRecordForm({
             </div>
           )}
 
-          {/* セット追加ボタン（カード内） */}
-          <div className="mt-4 pt-3 border-t">
-            <Button
-              variant="outline"
-              onClick={handleAddSet}
-              className="w-full"
-              disabled={sets.length >= 50} // 最大50セットまで
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              セットを追加
-            </Button>
-
-            {/* 最大セット数に達した場合のメッセージ */}
-            {sets.length >= 50 && (
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                最大50セットまで追加できます
-              </p>
-            )}
-          </div>
-        </CardContent>
+          <Button
+            onClick={handleAddSet}
+            className="w-full h-12 mt-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-bold shadow-none"
+            variant="outline"
+            disabled={sets.length >= 50}
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            セットを追加
+          </Button>
+        </div>
       </Card>
     </div>
   );
