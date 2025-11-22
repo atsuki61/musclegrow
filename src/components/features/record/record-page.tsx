@@ -3,14 +3,14 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { parse } from "date-fns";
-import { Search, Filter } from "lucide-react"; // アイコン追加
+import { Search, Filter } from "lucide-react";
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
 import ExerciseRecordModal from "./exercise-record-modal";
 import { AddExerciseModal } from "./add-exercise-modal";
-import { Input } from "@/components/ui/input"; // Input追加
-import { Button } from "@/components/ui/button"; // Button追加
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { saveExercise } from "@/lib/api";
 import { useMaxWeights } from "@/hooks/use-max-weights";
 import {
@@ -46,7 +46,7 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const [selectedPart, setSelectedPart] =
     useState<Exclude<BodyPart, "all">>("chest");
   const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
-  const [searchQuery, setSearchQuery] = useState(""); // 検索用ステート
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Modals & Selection
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
@@ -79,7 +79,6 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   }, [recalculateStats]);
 
   // --- Filtering Logic ---
-  // 選択中の部位 かつ 検索ワードに一致する種目を抽出
   const filteredExercises = useMemo(() => {
     let result = exercises.filter((e) => e.bodyPart === selectedPart);
 
@@ -160,7 +159,7 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
 
         {/* 種目カード一覧 */}
         <BodyPartCard
-          bodyPart={selectedPart} // ラベル表示用には使っていませんが一応渡す
+          bodyPart={selectedPart}
           exercises={filteredExercises}
           maxWeights={maxWeights}
           onExerciseSelect={handleExerciseSelect}
