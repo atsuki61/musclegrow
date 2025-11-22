@@ -35,7 +35,7 @@ export function BodyPartCard({
         {initialExercises.map((exercise) => {
           const maxWeight = maxWeights[exercise.id];
           const isCardio = isCardioExercise(exercise);
-          // サブ部位ラベル（例: 上部, 下部）
+          // サブ部位ラベル
           const subGroupLabel = exercise.muscleSubGroup
             ? MUSCLE_SUB_GROUP_LABELS[exercise.muscleSubGroup as MuscleSubGroup]
             : "全体";
@@ -44,20 +44,18 @@ export function BodyPartCard({
             <button
               key={exercise.id}
               onClick={() => onExerciseSelect?.(exercise)}
-              // ▼▼▼ 変更点: hover時の scale, shadow, border を強化 ▼▼▼
               className="group relative flex flex-col items-center justify-between aspect-square rounded-2xl border border-border/60 bg-card p-2 shadow-sm 
                 transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)
                 hover:scale-[1.03] hover:-translate-y-1 hover:shadow-lg hover:shadow-orange-500/10 hover:border-orange-500/40 hover:bg-orange-50/10
                 active:scale-90 active:translate-y-0 active:shadow-none active:border-orange-500 active:bg-orange-50
                 cursor-pointer select-none overflow-hidden"
             >
-              {/* ホバー時の光沢エフェクト（背景） */}
+              {/* ホバー時の光沢エフェクト */}
               <div className="absolute inset-0 bg-gradient-to-br from-orange-50/0 via-orange-50/0 to-orange-100/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
               {/* MAX重量バッジ (右上) */}
               {!isCardio && (
                 <div className="relative z-10 w-full flex justify-end">
-                  {/* バッジ自体もホバーで少し強調 */}
                   <span
                     className={cn(
                       "inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-md shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-105",
@@ -71,7 +69,7 @@ export function BodyPartCard({
                 </div>
               )}
 
-              {/* スペーサー（レイアウト調整用） */}
+              {/* スペーサー */}
               {!isCardio ? null : <div className="h-4" />}
 
               {/* 種目名 */}
@@ -90,7 +88,6 @@ export function BodyPartCard({
         {/* 追加カード */}
         <button
           onClick={onAddExerciseClick}
-          // ▼▼▼ 変更点: 追加ボタンも同様に浮き上がるように変更 ▼▼▼
           className="group relative flex flex-col items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-orange-200 bg-orange-50/30 text-orange-500 
             transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)
             hover:scale-[1.03] hover:-translate-y-1 hover:bg-orange-50 hover:border-orange-400 hover:shadow-lg hover:shadow-orange-500/20

@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, BarChart3, Settings } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { X, History, Info, Dumbbell, Activity } from "lucide-react";
 import { isCardioExercise, isTimeBasedExercise } from "@/lib/utils";
 import { SetRecordForm } from "./set-record-form";
 import { CardioRecordForm } from "./cardio-record-form";
@@ -23,7 +25,6 @@ import {
   getPreviousCardioRecord,
 } from "@/lib/previous-record";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
-import { Separator } from "@/components/ui/separator";
 import { useWorkoutSession } from "@/hooks/use-workout-session";
 import { useCardioSession } from "@/hooks/use-cardio-session";
 import {
@@ -33,13 +34,9 @@ import {
 } from "@/lib/validations";
 
 interface ExerciseRecordModalProps {
-  /** 選択された種目 */
   exercise: Exercise | null;
-  /** モーダルの開閉状態 */
   isOpen: boolean;
-  /** モーダルを閉じる時のコールバック */
   onClose: () => void;
-  /** 記録する日付 */
   date: Date;
 }
 
@@ -49,16 +46,12 @@ export default function ExerciseRecordModal({
   onClose,
   date,
 }: ExerciseRecordModalProps) {
-  // exerciseが存在する場合のみisCardioを計算
   const isCardio = exercise ? isCardioExercise(exercise) : false;
-
-  // 前回記録の表示/非表示状態
-  const [showPreviousRecord, setShowPreviousRecord] = useState(false);
+  const [activeTab, setActiveTab] = useState("record");
 
   // 前回記録を取得
   const previousRecord = useMemo(() => {
     if (!exercise || !isOpen) return null;
-
     if (isCardio) {
       return getPreviousCardioRecord(date, exercise.id);
     } else {
@@ -66,28 +59,20 @@ export default function ExerciseRecordModal({
     }
   }, [exercise, date, isOpen, isCardio]);
 
-  /**
-   * 初期セットを作成する（筋トレ種目用）
-   */
+  // 初期セット作成ロジック
   const createInitialSet = (): SetRecord => {
     const isTimeBased = exercise ? isTimeBasedExercise(exercise) : false;
-
     return {
       id: nanoid(),
       setOrder: 1,
-      // 重量は任意（自重種目は任意なのでundefinedで初期化）
       weight: undefined,
       reps: 0,
-      // 時間ベース種目の場合のみdurationを設定
       duration: isTimeBased ? 0 : undefined,
       isWarmup: false,
       failure: false,
     };
   };
 
-  /**
-   * 初期記録を作成する（有酸素種目用）
-   */
   const createInitialCardioRecord = (): CardioRecord => ({
     id: nanoid(),
     duration: 0,
@@ -99,243 +84,226 @@ export default function ExerciseRecordModal({
     date: new Date(),
   });
 
-  // ローカルストレージを使用したセット記録管理（筋トレ種目用）
   const { sets, setSets, saveSets } = useWorkoutSession({
     date,
     exerciseId: exercise?.id || null,
     isOpen,
-    // 筋トレ種目の場合のみ初期セットを作成
     createInitialSet: isCardio ? undefined : createInitialSet,
   });
 
-  // ローカルストレージを使用した有酸素種目記録管理
   const { records, setRecords, saveRecords } = useCardioSession({
     date,
     exerciseId: exercise?.id || null,
     isOpen,
-    // 有酸素種目の場合のみ初期記録を作成
     createInitialRecord: isCardio ? createInitialCardioRecord : undefined,
   });
 
-  /**
-   * モーダルを閉じる時の処理
-   * セット記録または有酸素種目記録を自動保存（バリデーション付き）
-   */
   const handleClose = () => {
     if (!exercise) {
-      setShowPreviousRecord(false);
       onClose();
       return;
     }
 
     if (isCardio) {
-      // 有酸素種目の記録をバリデーションして保存
-      if (records.length > 0) {
-        // 有効な記録のみをフィルタリング（durationが0より大きい）
-        const validRecords = records.filter((record) => record.duration > 0);
-
-        if (validRecords.length > 0) {
-          const invalidRecords = validateItems(
-            validRecords,
-            cardioRecordSchema,
-            "有酸素記録"
-          );
-
-          if (invalidRecords.length === 0) {
-            saveRecords(validRecords).catch((error) => {
-              if (process.env.NODE_ENV === "development") {
-                console.warn("有酸素記録の保存に失敗しました:", error);
-              }
-            });
-          } else {
-            console.warn(
-              `有酸素記録の保存をスキップしました（エラー: ${invalidRecords.join(
-                ", "
-              )}）`
-            );
-          }
+      const validRecords = records.filter((record) => record.duration > 0);
+      if (validRecords.length > 0) {
+        const invalidRecords = validateItems(
+          validRecords,
+          cardioRecordSchema,
+          "有酸素記録"
+        );
+        if (invalidRecords.length === 0) {
+          saveRecords(validRecords).catch(console.error);
         }
       }
     } else {
-      // 筋トレ種目のセット記録をバリデーションして保存
-      if (sets.length > 0) {
-        // 有効なセットのみをフィルタリング（重量、回数、時間のいずれかが0より大きい）
-        const validSets = sets.filter(
-          (set) =>
-            (set.weight !== undefined &&
-              set.weight !== null &&
-              set.weight > 0) ||
-            (set.reps !== undefined && set.reps !== null && set.reps > 0) ||
-            (set.duration !== undefined &&
-              set.duration !== null &&
-              set.duration > 0)
-        );
-
-        if (validSets.length > 0) {
-          const invalidSets = validateItems(
-            validSets,
-            setRecordSchema,
-            "セット"
-          );
-
-          if (invalidSets.length === 0) {
-            saveSets(validSets).catch((error) => {
-              if (process.env.NODE_ENV === "development") {
-                console.warn("セット記録の保存に失敗しました:", error);
-              }
-            });
-          } else {
-            console.warn(
-              `セット記録の保存をスキップしました（エラー: ${invalidSets.join(
-                ", "
-              )}）`
-            );
-          }
+      const validSets = sets.filter(
+        (set) =>
+          (set.weight && set.weight > 0) ||
+          (set.reps && set.reps > 0) ||
+          (set.duration && set.duration > 0)
+      );
+      if (validSets.length > 0) {
+        const invalidSets = validateItems(validSets, setRecordSchema, "セット");
+        if (invalidSets.length === 0) {
+          saveSets(validSets).catch(console.error);
         }
       }
     }
-
-    // 前回記録の表示状態をリセット
-    setShowPreviousRecord(false);
+    setActiveTab("record");
     onClose();
   };
 
-  /**
-   * 前回記録をコピーする
-   */
   const handleCopyPreviousRecord = () => {
     if (!previousRecord) return;
-
     if (isCardio && "records" in previousRecord) {
-      // 有酸素種目の場合
       setRecords(previousRecord.records);
     } else if (!isCardio && "sets" in previousRecord) {
-      // 筋トレ種目の場合
       const copiedSets: SetRecord[] = previousRecord.sets.map((set) => ({
         ...set,
-        id: nanoid(), // 新しいIDを生成
+        id: nanoid(),
       }));
       setSets(copiedSets);
     }
   };
 
-  /**
-   * exerciseが変更されたときに前回記録の表示状態をリセット
-   */
-  useEffect(() => {
-    if (exercise) {
-      setShowPreviousRecord(false);
-    }
-  }, [exercise]);
+  if (!exercise) return null;
 
-  // exerciseがnullの場合はDialogを表示しない（早期リターンではなく、openプロップで制御）
   return (
-    <Dialog open={isOpen && !!exercise} onOpenChange={handleClose}>
-      <DialogContent
-        className="max-w-2xl h-[90vh] flex flex-col p-0"
-        showCloseButton={false}
-      >
-        {/* exerciseが存在する場合のみコンテンツを表示 */}
-        {exercise && (
-          <>
-            {/* ヘッダー */}
-            <DialogHeader className="px-6 pb-4 pt-6 border-b sticky top-0 bg-background z-10">
-              <div className="flex-row items-center gap-4 flex">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleClose}
-                  className="h-8 w-8"
-                  aria-label="戻る"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <DialogTitle className="flex-1 text-xl font-bold">
-                  {exercise.name}
-                </DialogTitle>
-                {/* グラフ・設定ボタン（後で実装） */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    // TODO: グラフ表示機能（後で実装）
-                  }}
-                  className="h-8 w-8"
-                  aria-label="グラフ表示"
-                >
-                  <BarChart3 className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    // TODO: 設定機能（後で実装）
-                  }}
-                  className="h-8 w-8"
-                  aria-label="設定"
-                >
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </div>
-              <DialogDescription className="sr-only">
-                {isCardio
-                  ? "有酸素種目の記録を入力します"
-                  : "筋トレ種目のセット記録を入力します"}
-              </DialogDescription>
-            </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="w-full max-w-lg h-[90vh] sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl border-0 sm:border">
+        {/* 1. ヘッダーエリア */}
+        <div className="bg-background border-b px-4 py-3 flex items-center justify-between shrink-0 z-10 shadow-sm">
+          <div className="flex flex-col gap-1 overflow-hidden pr-2">
+            <div className="flex items-center gap-2">
+              <DialogTitle className="text-lg font-bold truncate leading-tight">
+                {exercise.name}
+              </DialogTitle>
+              <Badge
+                variant="secondary"
+                className="text-[10px] px-1.5 h-5 shrink-0 font-medium"
+              >
+                {exercise.bodyPart}
+              </Badge>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground flex items-center gap-1">
+              {isCardio ? (
+                <Activity className="w-3 h-3" />
+              ) : (
+                <Dumbbell className="w-3 h-3" />
+              )}
+              {date.toLocaleDateString()} の記録
+            </DialogDescription>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleClose}
+            className="shrink-0 -mr-2 h-9 w-9 rounded-full hover:bg-muted active:scale-90 transition-transform"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
 
-            {/* コンテンツエリア */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-              {/* 前回記録セクション */}
-              {previousRecord && (
-                <div className="space-y-2">
-                  <button
-                    onClick={() => setShowPreviousRecord(!showPreviousRecord)}
-                    className="text-xs text-muted-foreground hover:text-foreground underline transition-colors"
-                  >
-                    前回の記録を表示する
-                  </button>
-                  {showPreviousRecord && (
-                    <>
+        {/* 2. タブ切り替え */}
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="flex-1 flex flex-col min-h-0"
+        >
+          <div className="px-4 py-2 border-b bg-muted/10">
+            <TabsList className="grid w-full grid-cols-3 h-9 bg-muted/50 p-1">
+              <TabsTrigger
+                value="record"
+                className="text-xs font-bold data-[state=active]:shadow-sm"
+              >
+                記録
+              </TabsTrigger>
+              <TabsTrigger
+                value="history"
+                className="text-xs font-bold gap-1.5 data-[state=active]:shadow-sm"
+              >
+                <History className="w-3.5 h-3.5" /> 履歴
+              </TabsTrigger>
+              <TabsTrigger
+                value="info"
+                className="text-xs font-bold gap-1.5 data-[state=active]:shadow-sm"
+              >
+                <Info className="w-3.5 h-3.5" /> 解説
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* 3. メインコンテンツ */}
+          <ScrollArea className="flex-1 bg-background/50">
+            <div className="p-4 pb-24">
+              <TabsContent
+                value="record"
+                className="mt-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300"
+              >
+                {/* 前回記録 */}
+                {previousRecord && (
+                  <div className="bg-orange-50/50 dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/20 rounded-xl p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1">
+                        <History className="w-3 h-3" />
+                        前回の記録 (
+                        {new Date(previousRecord.date).toLocaleDateString()})
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCopyPreviousRecord}
+                        className="h-6 text-[10px] px-2 text-orange-600 hover:text-orange-700 hover:bg-orange-100"
+                      >
+                        コピーする
+                      </Button>
+                    </div>
+                    <div className="opacity-80">
                       {isCardio && "records" in previousRecord ? (
                         <PreviousCardioRecordCard
                           records={previousRecord.records}
                           date={previousRecord.date}
-                          onCopy={handleCopyPreviousRecord}
+                          onCopy={() => {}}
                         />
                       ) : !isCardio && "sets" in previousRecord ? (
                         <PreviousWorkoutRecordCard
                           sets={previousRecord.sets}
                           date={previousRecord.date}
-                          onCopy={handleCopyPreviousRecord}
+                          onCopy={() => {}}
                         />
                       ) : null}
-                    </>
-                  )}
+                    </div>
+                  </div>
+                )}
+
+                {isCardio ? (
+                  <CardioRecordForm
+                    records={records}
+                    onRecordsChange={setRecords}
+                  />
+                ) : (
+                  <SetRecordForm
+                    exercise={exercise}
+                    sets={sets}
+                    onSetsChange={setSets}
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent
+                value="history"
+                className="mt-0 animate-in fade-in duration-300"
+              >
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <History className="w-12 h-12 opacity-20 mb-3" />
+                  <p className="text-sm">過去の履歴がここに表示されます</p>
                 </div>
-              )}
+              </TabsContent>
 
-              {/* セパレーター */}
-              <Separator className="bg-border/60" />
-
-              {/* 今日の記録セクション */}
-              {isCardio ? (
-                // 有酸素種目の場合: 有酸素種目記録フォームを表示
-                <CardioRecordForm
-                  records={records}
-                  onRecordsChange={setRecords}
-                />
-              ) : (
-                // 筋トレ種目の場合: セット記録フォームを表示
-                <SetRecordForm
-                  exercise={exercise}
-                  sets={sets}
-                  onSetsChange={setSets}
-                />
-              )}
+              <TabsContent
+                value="info"
+                className="mt-0 animate-in fade-in duration-300"
+              >
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Info className="w-12 h-12 opacity-20 mb-3" />
+                  <p className="text-sm">種目の解説・ポイント</p>
+                </div>
+              </TabsContent>
             </div>
-          </>
-        )}
+          </ScrollArea>
+
+          {/* 4. フッターアクション */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent pt-10">
+            <Button
+              onClick={handleClose}
+              className="w-full h-12 text-base font-bold shadow-lg shadow-primary/20 rounded-xl active:scale-[0.98] transition-all"
+              size="lg"
+            >
+              記録を完了する
+            </Button>
+          </div>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
