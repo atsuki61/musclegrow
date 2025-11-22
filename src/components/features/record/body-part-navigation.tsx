@@ -1,6 +1,7 @@
 "use client";
 
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { BODY_PART_LABELS } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
 
@@ -15,36 +16,63 @@ const BODY_PARTS: Exclude<BodyPart, "all">[] = [
 ];
 
 interface BodyPartNavigationProps {
-  /** 選択された部位 */
   selectedPart?: Exclude<BodyPart, "all">;
-  /** 部位変更時のコールバック */
   onPartChange?: (part: Exclude<BodyPart, "all">) => void;
 }
 
-/**
- * 部位ナビゲーションコンポーネント
- * ページ上部に固定表示され、部位タブをクリックで該当部位のカードにスクロール
- */
 export function BodyPartNavigation({
   selectedPart = "chest",
   onPartChange,
 }: BodyPartNavigationProps) {
-  const handlePartChange = (part: string) => {
-    onPartChange?.(part as Exclude<BodyPart, "all">);
-  };
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // 選択されたタブが画面外にある場合、自動スクロール
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      const selectedTab = scrollContainerRef.current.querySelector(
+        `[data-state="active"]`
+      ) as HTMLElement;
+
+      if (selectedTab) {
+        const container = scrollContainerRef.current;
+        const scrollLeft =
+          selectedTab.offsetLeft -
+          container.offsetWidth / 2 +
+          selectedTab.offsetWidth / 2;
+
+        container.scrollTo({
+          left: scrollLeft,
+          behavior: "smooth",
+        });
+      }
+    }
+  }, [selectedPart]);
 
   return (
-    <Tabs
-      value={selectedPart}
-      onValueChange={(value) => handlePartChange(value)}
+    <div
+      ref={scrollContainerRef}
+      className="w-full overflow-x-auto no-scrollbar py-2"
     >
-      <TabsList className="h-12 w-full justify-start overflow-x-auto">
-        {BODY_PARTS.map((part) => (
-          <TabsTrigger key={part} value={part} className="whitespace-nowrap">
-            {BODY_PART_LABELS[part]}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
+      <div className="flex gap-2 px-1 min-w-max">
+        {BODY_PARTS.map((part) => {
+          const isSelected = selectedPart === part;
+          return (
+            <button
+              key={part}
+              onClick={() => onPartChange?.(part)}
+              data-state={isSelected ? "active" : "inactive"}
+              className={cn(
+                "px-5 py-1.5 rounded-full text-sm font-bold transition-all duration-300 active:scale-95",
+                isSelected
+                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/25"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {BODY_PART_LABELS[part]}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
