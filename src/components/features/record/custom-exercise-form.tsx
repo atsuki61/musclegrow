@@ -22,9 +22,6 @@ import type {
 import { BODY_PART_LABELS } from "@/lib/utils";
 import { exerciseSchema, getValidationErrorDetails } from "@/lib/validations";
 
-/**
- * 部位ごとのサブ分類オプション
- */
 const SUB_GROUP_OPTIONS: Record<
   Exclude<BodyPart, "all">,
   { value: MuscleSubGroup; label: string }[]
@@ -39,13 +36,13 @@ const SUB_GROUP_OPTIONS: Record<
     { value: "back_overall", label: "全体" },
     { value: "back_width", label: "幅" },
     { value: "back_thickness", label: "厚み" },
-    { value: "back_traps", label: "僧帽筋・下部（首の付け根～肩）" },
+    { value: "back_traps", label: "僧帽筋・下部" },
   ],
   legs: [
-    { value: "legs_quads", label: "大腿四頭筋（太ももの前側）" },
-    { value: "legs_hamstrings", label: "ハムストリングス（太ももの後側）" },
-    { value: "legs_glutes", label: "臀筋（お尻）" },
-    { value: "legs_calves", label: "下腿（ふくらはぎ）" },
+    { value: "legs_quads", label: "大腿四頭筋" },
+    { value: "legs_hamstrings", label: "ハムストリングス" },
+    { value: "legs_glutes", label: "臀筋" },
+    { value: "legs_calves", label: "下腿" },
   ],
   shoulders: [
     { value: "shoulders_overall", label: "全体" },
@@ -54,20 +51,17 @@ const SUB_GROUP_OPTIONS: Record<
     { value: "shoulders_rear", label: "後部" },
   ],
   arms: [
-    { value: "arms_biceps", label: "上腕二頭筋（力こぶ）" },
-    { value: "arms_triceps", label: "上腕三頭筋（二の腕の後ろ）" },
+    { value: "arms_biceps", label: "上腕二頭筋" },
+    { value: "arms_triceps", label: "上腕三頭筋" },
   ],
   core: [
-    { value: "core_rectus", label: "腹直筋（お腹の前側）" },
-    { value: "core_transverse", label: "腹横筋（お腹の深い部分）" },
-    { value: "core_obliques", label: "腹斜筋（お腹の横側）" },
+    { value: "core_rectus", label: "腹直筋" },
+    { value: "core_transverse", label: "腹横筋" },
+    { value: "core_obliques", label: "腹斜筋" },
   ],
-  other: [], // その他はサブ分類なし
+  other: [],
 };
 
-/**
- * 機材タイプのオプション
- */
 const EQUIPMENT_OPTIONS: { value: EquipmentType; label: string }[] = [
   { value: "barbell", label: "バーベル" },
   { value: "dumbbell", label: "ダンベル" },
@@ -79,18 +73,11 @@ const EQUIPMENT_OPTIONS: { value: EquipmentType; label: string }[] = [
 ];
 
 interface CustomExerciseFormProps {
-  /** 初期の部位（親コンポーネントから渡される） */
   initialBodyPart?: Exclude<BodyPart, "all">;
-  /** カスタム種目を追加するコールバック */
   onAdd: (exercise: Exercise) => void;
-  /** キャンセル時のコールバック */
   onCancel?: () => void;
 }
 
-/**
- * カスタム種目追加フォームコンポーネント
- * 部位、サブ分類、種目名、機材タイプを入力してカスタム種目を作成
- */
 export function CustomExerciseForm({
   initialBodyPart,
   onAdd,
@@ -104,12 +91,8 @@ export function CustomExerciseForm({
   const [equipment, setEquipment] = useState<EquipmentType>("other");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // サブ分類オプションを取得
   const availableSubGroups = SUB_GROUP_OPTIONS[bodyPart] || [];
 
-  /**
-   * 指定されたフィールドのエラーをクリアする
-   */
   const clearFieldError = (fieldName: string) => {
     setErrors((prev) => {
       if (!prev[fieldName]) return prev;
@@ -119,14 +102,10 @@ export function CustomExerciseForm({
     });
   };
 
-  /**
-   * フォームを送信する
-   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors({}); // エラーをリセット
+    setErrors({});
 
-    // カスタム種目を作成
     const customExercise: Exercise = {
       id: nanoid(),
       name: exerciseName.trim(),
@@ -137,17 +116,14 @@ export function CustomExerciseForm({
       isBig3: false,
     };
 
-    // Zodスキーマでバリデーション
     const result = exerciseSchema.safeParse(customExercise);
 
     if (!result.success) {
-      // バリデーションエラーがある場合
       const errorDetails = getValidationErrorDetails(result.error);
       setErrors(errorDetails);
       return;
     }
 
-    // サブ分類が必須の部位で未選択の場合はエラー
     if (availableSubGroups.length > 0 && !subGroup) {
       setErrors({
         muscleSubGroup: "サブ分類を選択してください",
@@ -155,10 +131,8 @@ export function CustomExerciseForm({
       return;
     }
 
-    // バリデーション成功時は種目を追加
     onAdd(customExercise);
 
-    // フォームをリセット
     setExerciseName("");
     setSubGroup("");
     setEquipment("other");
@@ -166,73 +140,91 @@ export function CustomExerciseForm({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">カスタム種目を追加</CardTitle>
+    <Card className="border-none shadow-none">
+      <CardHeader className="px-0 pt-0">
+        <CardTitle className="text-lg">カスタム種目の詳細</CardTitle>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 部位選択 */}
-          <div className="space-y-2">
-            <Label htmlFor="body-part">部位</Label>
-            <Select
-              value={bodyPart}
-              onValueChange={(value) => {
-                setBodyPart(value as Exclude<BodyPart, "all">);
-                setSubGroup(""); // 部位変更時にサブ分類をリセット
-              }}
-            >
-              <SelectTrigger id="body-part">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(BODY_PART_LABELS)
-                  .filter(([key]) => key !== "all")
-                  .map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* サブ分類選択（該当する部位のみ） */}
-          {availableSubGroups.length > 0 && (
+      <CardContent className="px-0">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* 部位 & サブ分類 (2列) */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="sub-group">サブ分類</Label>
+              <Label
+                htmlFor="body-part"
+                className="text-xs font-bold text-muted-foreground"
+              >
+                部位
+              </Label>
               <Select
-                value={subGroup}
+                value={bodyPart}
                 onValueChange={(value) => {
-                  setSubGroup(value as MuscleSubGroup);
-                  clearFieldError("muscleSubGroup");
+                  setBodyPart(value as Exclude<BodyPart, "all">);
+                  setSubGroup("");
                 }}
               >
-                <SelectTrigger
-                  id="sub-group"
-                  aria-invalid={!!errors.muscleSubGroup}
-                >
-                  <SelectValue placeholder="サブ分類を選択" />
+                <SelectTrigger id="body-part" className="h-11">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableSubGroups.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
+                  {Object.entries(BODY_PART_LABELS)
+                    .filter(([key]) => key !== "all")
+                    .map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
-              {errors.muscleSubGroup && (
-                <p className="text-sm text-destructive">
-                  {errors.muscleSubGroup}
-                </p>
-              )}
             </div>
-          )}
 
-          {/* 種目名入力 */}
+            {availableSubGroups.length > 0 && (
+              <div className="space-y-2">
+                <Label
+                  htmlFor="sub-group"
+                  className="text-xs font-bold text-muted-foreground"
+                >
+                  サブ分類
+                </Label>
+                <Select
+                  value={subGroup}
+                  onValueChange={(value) => {
+                    setSubGroup(value as MuscleSubGroup);
+                    clearFieldError("muscleSubGroup");
+                  }}
+                >
+                  <SelectTrigger
+                    id="sub-group"
+                    className={`h-11 ${
+                      errors.muscleSubGroup ? "border-destructive" : ""
+                    }`}
+                  >
+                    <SelectValue placeholder="選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSubGroups.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.muscleSubGroup && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.muscleSubGroup}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 種目名 */}
           <div className="space-y-2">
-            <Label htmlFor="exercise-name">種目名</Label>
+            <Label
+              htmlFor="exercise-name"
+              className="text-xs font-bold text-muted-foreground"
+            >
+              種目名
+            </Label>
             <Input
               id="exercise-name"
               value={exerciseName}
@@ -240,23 +232,28 @@ export function CustomExerciseForm({
                 setExerciseName(e.target.value);
                 clearFieldError("name");
               }}
-              placeholder="例: カスタムベンチプレス"
+              placeholder="例: インクライン・ダンベルプレス"
               required
-              aria-invalid={!!errors.name}
+              className={`h-11 ${errors.name ? "border-destructive" : ""}`}
             />
             {errors.name && (
-              <p className="text-sm text-destructive">{errors.name}</p>
+              <p className="text-xs text-destructive mt-1">{errors.name}</p>
             )}
           </div>
 
-          {/* 機材タイプ選択（オプション） */}
+          {/* 機材タイプ */}
           <div className="space-y-2">
-            <Label htmlFor="equipment">機材タイプ（オプション）</Label>
+            <Label
+              htmlFor="equipment"
+              className="text-xs font-bold text-muted-foreground"
+            >
+              機材タイプ（任意）
+            </Label>
             <Select
               value={equipment}
               onValueChange={(value) => setEquipment(value as EquipmentType)}
             >
-              <SelectTrigger id="equipment">
+              <SelectTrigger id="equipment" className="h-11">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -270,15 +267,23 @@ export function CustomExerciseForm({
           </div>
 
           {/* ボタン */}
-          <div className="flex gap-2 pt-2">
-            <Button type="submit" className="flex-1">
-              追加
-            </Button>
+          <div className="flex gap-3 pt-4">
             {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                className="flex-1 h-12 rounded-xl"
+              >
                 キャンセル
               </Button>
             )}
+            <Button
+              type="submit"
+              className="flex-1 h-12 rounded-xl font-bold text-base shadow-lg shadow-primary/20"
+            >
+              追加する
+            </Button>
           </div>
         </form>
       </CardContent>

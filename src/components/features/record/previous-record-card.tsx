@@ -4,28 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { calculate1RM } from "@/lib/utils";
 import type { SetRecord, CardioRecord } from "@/types/workout";
+import { Copy } from "lucide-react";
 
 interface PreviousWorkoutRecordCardProps {
-  /** 前回のセット記録 */
   sets: SetRecord[];
-  /** 前回記録の日付 */
   date: Date;
-  /** 前回記録をコピーするコールバック */
   onCopy: () => void;
+  /** ヘッダー（タイトルとコピーボタン）を隠すかどうか */
+  hideHeader?: boolean;
 }
 
 interface PreviousCardioRecordCardProps {
-  /** 前回の有酸素種目記録 */
   records: CardioRecord[];
-  /** 前回記録の日付 */
   date: Date;
-  /** 前回記録をコピーするコールバック */
   onCopy: () => void;
+  hideHeader?: boolean;
 }
 
-/**
- * 日付をフォーマットする
- */
 const formatDate = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -33,147 +28,158 @@ const formatDate = (date: Date): string => {
   return `${year}/${month}/${day}`;
 };
 
-/**
- * 前回の筋トレ種目記録カードコンポーネント
- */
 export function PreviousWorkoutRecordCard({
   sets,
   date,
   onCopy,
+  hideHeader = false,
 }: PreviousWorkoutRecordCardProps) {
   return (
-    <Card className="bg-muted/50">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg">🔥</span>
-              <span className="text-sm font-semibold">前回記録</span>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {formatDate(date)}
+    <div className="space-y-1">
+      {/* ヘッダー表示（オプション） */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between mb-2 pb-2 border-b border-border/50">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-muted-foreground">
+              前回: {formatDate(date)}
             </span>
           </div>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={onCopy}
-            className="text-xs h-7"
+            className="h-6 text-xs gap-1 px-2"
           >
-            前回をコピー
+            <Copy className="w-3 h-3" /> コピー
           </Button>
         </div>
+      )}
 
-        <div className="space-y-2">
-          {sets.map((set, index) => {
-            const oneRM =
-              set.weight && set.weight > 0 && set.reps > 0
-                ? calculate1RM(set.weight, set.reps)
-                : null;
+      {/* 記録リスト */}
+      <div className="grid grid-cols-1 gap-1">
+        {sets.map((set, index) => {
+          const oneRM =
+            set.weight && set.weight > 0 && set.reps > 0
+              ? calculate1RM(set.weight, set.reps)
+              : null;
 
-            return (
-              <div
-                key={set.id || index}
-                className="flex items-center justify-between text-sm py-1"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground w-6">
-                    {set.setOrder || index + 1}
-                  </span>
+          return (
+            <div
+              key={set.id || index}
+              className="flex items-center justify-between text-xs py-0.5"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-muted-foreground/50 w-3 font-medium text-[10px]">
+                  {index + 1}
+                </span>
+                <div className="font-medium text-foreground/90">
                   {set.weight !== undefined && set.weight !== null ? (
                     <>
-                      <span className="font-medium">{set.weight}kg</span>
-                      <span className="text-muted-foreground">×</span>
-                      <span className="font-medium">{set.reps}回</span>
+                      {set.weight}
+                      <span className="text-[10px] text-muted-foreground ml-0.5">
+                        kg
+                      </span>
+                      <span className="mx-1 text-muted-foreground/50">×</span>
+                      {set.reps}
+                      <span className="text-[10px] text-muted-foreground ml-0.5">
+                        回
+                      </span>
                     </>
                   ) : set.duration !== undefined && set.duration !== null ? (
-                    <span className="font-medium">{set.duration}秒</span>
+                    <>
+                      {set.duration}
+                      <span className="text-[10px] text-muted-foreground ml-0.5">
+                        秒
+                      </span>
+                    </>
                   ) : (
-                    <span className="font-medium">{set.reps}回</span>
+                    <>
+                      {set.reps}
+                      <span className="text-[10px] text-muted-foreground ml-0.5">
+                        回
+                      </span>
+                    </>
                   )}
                 </div>
-                {oneRM && (
-                  <span className="text-xs text-muted-foreground">
-                    1RM: {oneRM}kg
-                  </span>
-                )}
               </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              {oneRM && (
+                <span className="text-[10px] text-muted-foreground/60 font-mono">
+                  1RM: {oneRM}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
-/**
- * 前回の有酸素種目記録カードコンポーネント
- */
 export function PreviousCardioRecordCard({
   records,
   date,
   onCopy,
+  hideHeader = false,
 }: PreviousCardioRecordCardProps) {
   return (
-    <Card className="bg-muted/50">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg">🔥</span>
-              <span className="text-sm font-semibold">前回記録</span>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {formatDate(date)}
-            </span>
-          </div>
+    <div className="space-y-1">
+      {!hideHeader && (
+        <div className="flex items-center justify-between mb-2 pb-2 border-b border-border/50">
+          <span className="text-xs font-bold text-muted-foreground">
+            前回: {formatDate(date)}
+          </span>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={onCopy}
-            className="text-xs h-7"
+            className="h-6 text-xs gap-1 px-2"
           >
-            前回をコピー
+            <Copy className="w-3 h-3" /> コピー
           </Button>
         </div>
+      )}
 
-        <div className="space-y-2">
-          {records.map((record, index) => {
-            const speed =
-              record.distance !== null &&
-              record.distance !== undefined &&
-              record.distance > 0 &&
-              record.duration > 0
-                ? Math.round((record.distance / (record.duration / 60)) * 10) /
-                  10
-                : null;
+      <div className="grid grid-cols-1 gap-1">
+        {records.map((record, index) => {
+          const speed =
+            record.distance && record.duration > 0
+              ? Math.round((record.distance / (record.duration / 60)) * 10) / 10
+              : null;
 
-            return (
-              <div
-                key={record.id || index}
-                className="flex items-center justify-between text-sm py-1"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground w-6">{index + 1}</span>
-                  <span className="font-medium">{record.duration}分</span>
-                  {record.distance !== null &&
-                    record.distance !== undefined && (
-                      <>
-                        <span className="text-muted-foreground">×</span>
-                        <span className="font-medium">{record.distance}km</span>
-                      </>
-                    )}
-                </div>
-                {speed && (
-                  <span className="text-xs text-muted-foreground">
-                    {speed}km/h
+          return (
+            <div
+              key={record.id || index}
+              className="flex items-center justify-between text-xs py-0.5"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-muted-foreground/50 w-3 font-medium text-[10px]">
+                  {index + 1}
+                </span>
+                <div className="font-medium text-foreground/90">
+                  {record.duration}
+                  <span className="text-[10px] text-muted-foreground ml-0.5">
+                    分
                   </span>
-                )}
+                  {record.distance && (
+                    <>
+                      <span className="mx-1 text-muted-foreground/50">×</span>
+                      {record.distance}
+                      <span className="text-[10px] text-muted-foreground ml-0.5">
+                        km
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              {speed && (
+                <span className="text-[10px] text-muted-foreground/60 font-mono">
+                  {speed}km/h
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
