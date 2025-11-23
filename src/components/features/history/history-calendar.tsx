@@ -61,15 +61,23 @@ function HistoryCalendar({
     const isCurrentMonth = isSameMonth(date, currentMonth);
     const isToday = modifiers?.today ?? false;
 
+    // 記録がない日のボタン描画
     const renderPlainDayButton = (onClick?: () => void) => (
       <Button
         variant="ghost"
         size="icon"
         onClick={onClick}
         className={cn(
-          "h-(--cell-size) w-full min-w-0",
-          isSelected && "ring-2 ring-primary",
-          isToday && "bg-transparent",
+          // h-(--cell-size) だと効かない場合があるため h-[var(--cell-size)] に修正
+          "h-[var(--cell-size)] w-full min-w-0 font-normal transition-all duration-200",
+          // ▼ 修正箇所: 選択時のスタイルを強化（背景色・文字色・影を追加）
+          isSelected
+            ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground opacity-100 shadow-md scale-105 font-bold ring-0"
+            : "hover:bg-muted/50",
+          // 今日のスタイル（未選択時）
+          !isSelected &&
+            isToday &&
+            "bg-muted/50 text-foreground font-bold border border-border",
           props.className
         )}
         {...props}
@@ -83,7 +91,10 @@ function HistoryCalendar({
         <Button
           variant="ghost"
           size="icon"
-          className={cn("h-(--cell-size) w-full min-w-0", props.className)}
+          className={cn(
+            "h-[var(--cell-size)] w-full min-w-0 opacity-30 cursor-default hover:bg-transparent",
+            props.className
+          )}
           {...props}
         >
           {date.getDate()}
@@ -139,9 +150,10 @@ function HistoryCalendar({
           DayButton: CustomDayButton,
         }}
         classNames={{
-          today: "",
+          today: "", // CustomDayButton側で制御するためリセット
         }}
-        className="rounded-md border w-full [--cell-size:3rem] min-h-[calc(var(--cell-size)*10)]"
+        // CSS変数を直接指定して高さを確保
+        className="rounded-xl border bg-card shadow-sm w-full [--cell-size:3rem] sm:[--cell-size:3.5rem] p-3"
       />
     </div>
   );
