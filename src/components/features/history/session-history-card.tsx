@@ -4,7 +4,6 @@ import { memo } from "react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Clock, FileText, Dumbbell, Activity } from "lucide-react";
@@ -65,32 +64,35 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* ヘッダーカード */}
-      <div className="bg-card border rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xl font-bold tracking-tight">{formattedDate}</h2>
+      {/* ヘッダー情報（カード枠を削除し、フラットに表示） */}
+      <div className="flex flex-col gap-3 px-1">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold tracking-tight">{formattedDate}</h2>
           <Button
             onClick={handleAddTraining}
             size="sm"
-            variant="outline"
-            className="h-9 rounded-full px-4 text-xs gap-1.5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground"
+            variant="outline" // 背景に馴染むようoutlineかghostにする
+            className="h-8 rounded-full px-4 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground bg-background/50 backdrop-blur-sm"
           >
             <Plus className="w-3.5 h-3.5" /> 追加
           </Button>
         </div>
 
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          {durationMinutes && (
-            <span className="flex items-center gap-1.5 bg-muted/30 px-2.5 py-1 rounded-md">
-              <Clock className="w-4 h-4" /> {durationMinutes}分
-            </span>
-          )}
-        </div>
-
-        {note && (
-          <div className="mt-4 flex items-start gap-3 bg-muted/20 p-3 rounded-xl text-sm border border-border/30">
-            <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-            <p className="text-foreground/80 leading-relaxed">{note}</p>
+        {/* メタ情報（時間・メモ） */}
+        {(durationMinutes || note) && (
+          <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+            {durationMinutes && (
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 opacity-70" />
+                <span>{durationMinutes}分</span>
+              </div>
+            )}
+            {note && (
+              <div className="flex items-start gap-2">
+                <FileText className="w-4 h-4 mt-0.5 opacity-70 shrink-0" />
+                <p className="leading-relaxed">{note}</p>
+              </div>
+            )}
           </div>
         )}
       </div>
