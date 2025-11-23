@@ -3,7 +3,7 @@
 import { db } from "../../../db";
 import { cardioRecords, workoutSessions } from "../../../db/schemas/app";
 import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
-import { eq, and } from "drizzle-orm";
+import { eq, and, lt, desc } from "drizzle-orm";
 import type { CardioRecord } from "@/types/workout";
 
 /**
@@ -32,7 +32,10 @@ export async function saveCardioRecords(
 }> {
   try {
     // 種目IDのバリデーションと認証チェック
-    const validationResult = await validateExerciseIdAndAuth(userId, exerciseId);
+    const validationResult = await validateExerciseIdAndAuth(
+      userId,
+      exerciseId
+    );
     if (!validationResult.success) {
       return {
         success: false,
@@ -230,5 +233,86 @@ export async function getCardioRecords(
           ? error.message
           : "有酸素記録の取得に失敗しました",
     };
+  }
+}
+
+/**
+ * 指定された種目の最新の有酸素記録を取得する
+ * @param userId ユーザーID
+ * @param exerciseId 種目ID
+ * @param beforeDate この日付より前の記録を取得（オプション）
+ */
+export async function getLatestCardioRecord(
+  userId: string,
+  exerciseId: string,
+  beforeDate?: Date
+): Promise<{
+  success: boolean;
+  data?: { records: CardioRecord[]; date: Date } | null;
+  error?: string;
+}> {
+  try {
+    let dateCondition = undefined;
+    if (beforeDate) {
+      const dateStr = beforeDate.toISOString().split("T")[0];
+      dateCondition = lt(workoutSessions.date, dateStr);
+    }
+
+    const [latestSession] = await db
+      .select({
+        id: workoutSessions.id,
+        date: workoutSessions.date,
+      })
+      .from(workoutSessions)
+      .innerJoin(cardioRecords, eq(cardioRecords.sessionId, workoutSessions.id))
+      .where(
+        and(
+          eq(workoutSessions.userId, userId),
+          eq(cardioRecords.exerciseId, exerciseId),
+          dateCondition
+        )
+      )
+      .orderBy(desc(workoutSessions.date))
+      .limit(1);
+
+    if (!latestSession) {
+      return { success: true, data: null };
+    }
+
+    const recordsData = await db
+      .select()
+      .from(cardioRecords)
+      .where(
+        and(
+          eq(cardioRecords.sessionId, latestSession.id),
+          eq(cardioRecords.exerciseId, exerciseId)
+        )
+      )
+      .orderBy(cardioRecords.createdAt);
+
+    const records: CardioRecord[] = recordsData.map((record) => ({
+      id: record.id,
+      duration: record.duration,
+      distance: record.distance ? parseFloat(record.distance) : null,
+      speed: record.speed ? parseFloat(record.speed) : null,
+      calories: record.calories ?? null,
+      heartRate: record.heartRate ?? null,
+      incline: record.incline ? parseFloat(record.incline) : null,
+      notes: record.notes ?? null,
+      date: new Date(latestSession.date),
+    }));
+
+    return {
+      success: true,
+      data: {
+        records,
+        date: new Date(latestSession.date),
+      },
+    };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "不明なエラー";
+    console.error("最新有酸素記録取得エラー:", errorMessage);
+    return { success: false, error: "記録の取得に失敗しました" };
   }
 }
