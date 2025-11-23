@@ -4,9 +4,8 @@ import { revalidateTag } from "next/cache";
 import { db } from "../../../db";
 import { sets, workoutSessions } from "../../../db/schemas/app";
 import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
-import { eq, and } from "drizzle-orm";
+import { eq, and, max } from "drizzle-orm";
 import type { SetRecord } from "@/types/workout";
-
 /**
  * セット記録を保存する（既存のセット記録を削除してから新規保存）
  * @param userId ユーザーID
@@ -33,7 +32,10 @@ export async function saveSets(
 }> {
   try {
     // 種目IDのバリデーションと認証チェック
-    const validationResult = await validateExerciseIdAndAuth(userId, exerciseId);
+    const validationResult = await validateExerciseIdAndAuth(
+      userId,
+      exerciseId
+    );
     if (!validationResult.success) {
       return {
         success: false,
@@ -223,6 +225,56 @@ export async function getSets(
         error instanceof Error
           ? error.message
           : "セット記録の取得に失敗しました",
+    };
+  }
+}
+
+/**
+ * ユーザーの全期間の種目別最大重量を取得する
+ * @param userId ユーザーID
+ * @returns Record<exerciseId, maxWeight>
+ */
+export async function getUserMaxWeights(userId: string): Promise<{
+  success: boolean;
+  data?: Record<string, number>;
+  error?: string;
+}> {
+  try {
+    // 各種目の最大重量を集計
+    const maxWeightsData = await db
+      .select({
+        exerciseId: sets.exerciseId,
+        maxWeight: max(sets.weight),
+      })
+      .from(sets)
+      .innerJoin(workoutSessions, eq(sets.sessionId, workoutSessions.id))
+      .where(eq(workoutSessions.userId, userId))
+      .groupBy(sets.exerciseId);
+
+    const result: Record<string, number> = {};
+
+    for (const record of maxWeightsData) {
+      // exerciseId と maxWeight が存在することを確認
+      if (record.exerciseId && record.maxWeight) {
+        const weight = parseFloat(record.maxWeight);
+        if (!isNaN(weight) && weight > 0) {
+          result[record.exerciseId] = weight;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error: unknown) {
+    // エラーの型チェック
+    const errorMessage =
+      error instanceof Error ? error.message : "不明なエラーが発生しました";
+    console.error("最大重量取得エラー:", errorMessage);
+    return {
+      success: false,
+      error: "最大重量の取得に失敗しました",
     };
   }
 }
