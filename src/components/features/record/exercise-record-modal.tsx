@@ -20,13 +20,10 @@ import {
   PreviousWorkoutRecordCard,
   PreviousCardioRecordCard,
 } from "./previous-record-card";
-import {
-  getPreviousWorkoutRecord,
-  getPreviousCardioRecord,
-} from "@/lib/previous-record";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { useWorkoutSession } from "@/hooks/use-workout-session";
 import { useCardioSession } from "@/hooks/use-cardio-session";
+import { usePreviousRecord } from "@/hooks/use-previous-record";
 import {
   setRecordSchema,
   cardioRecordSchema,
@@ -49,15 +46,9 @@ export default function ExerciseRecordModal({
   const isCardio = exercise ? isCardioExercise(exercise) : false;
   const [activeTab, setActiveTab] = useState("record");
 
-  // 前回記録を取得
-  const previousRecord = useMemo(() => {
-    if (!exercise || !isOpen) return null;
-    if (isCardio) {
-      return getPreviousCardioRecord(date, exercise.id);
-    } else {
-      return getPreviousWorkoutRecord(date, exercise.id);
-    }
-  }, [exercise, date, isOpen, isCardio]);
+  // ▼ 修正: DB連携に対応したフックを使用
+  const { record: previousRecord, isLoading: isPreviousLoading } =
+    usePreviousRecord(date, exercise);
 
   // 初期セット作成ロジック
   const createInitialSet = (): SetRecord => {
@@ -136,9 +127,10 @@ export default function ExerciseRecordModal({
 
   const handleCopyPreviousRecord = () => {
     if (!previousRecord) return;
-    if (isCardio && "records" in previousRecord) {
+
+    if (previousRecord.type === "cardio") {
       setRecords(previousRecord.records);
-    } else if (!isCardio && "sets" in previousRecord) {
+    } else if (previousRecord.type === "workout") {
       const copiedSets: SetRecord[] = previousRecord.sets.map((set) => ({
         ...set,
         id: nanoid(),
@@ -222,7 +214,11 @@ export default function ExerciseRecordModal({
                 className="mt-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300"
               >
                 {/* 前回記録 */}
-                {previousRecord && (
+                {isPreviousLoading ? (
+                  <div className="bg-muted/20 rounded-xl p-3 text-center text-xs text-muted-foreground">
+                    前回記録を読み込み中...
+                  </div>
+                ) : previousRecord ? (
                   <div className="bg-orange-50/50 dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/20 rounded-xl p-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1">
@@ -240,22 +236,24 @@ export default function ExerciseRecordModal({
                       </Button>
                     </div>
                     <div className="opacity-80">
-                      {isCardio && "records" in previousRecord ? (
+                      {previousRecord.type === "cardio" ? (
                         <PreviousCardioRecordCard
                           records={previousRecord.records}
                           date={previousRecord.date}
                           onCopy={() => {}}
+                          hideHeader
                         />
-                      ) : !isCardio && "sets" in previousRecord ? (
+                      ) : (
                         <PreviousWorkoutRecordCard
                           sets={previousRecord.sets}
                           date={previousRecord.date}
                           onCopy={() => {}}
+                          hideHeader
                         />
-                      ) : null}
+                      )}
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {isCardio ? (
                   <CardioRecordForm
