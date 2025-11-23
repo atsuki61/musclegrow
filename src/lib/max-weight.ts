@@ -19,9 +19,12 @@ export function loadMaxWeightsCache(): MaxWeightsMap {
     const raw = window.localStorage.getItem(CACHE_KEY);
     if (!raw) return {};
 
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
+
+    // 型ガード: オブジェクトかどうか確認
     if (typeof parsed !== "object" || parsed === null) return {};
 
+    // 値が全て数値であるか簡易チェック（厳密には Record<string, unknown> として扱う）
     return parsed as MaxWeightsMap;
   } catch {
     return {};
@@ -40,7 +43,10 @@ export function saveMaxWeightsCache(maxWeights: MaxWeightsMap): void {
   }
 }
 
-/** localStorage をスキャンして最大重量を計算（重い処理） */
+/**
+ * localStorage をスキャンして最大重量を計算
+ * 修正: anyを使用せず、unknown型と型チェックを使用
+ */
 export function calculateMaxWeightsFromStorage(): MaxWeightsMap {
   if (typeof window === "undefined") return {};
 
@@ -50,34 +56,42 @@ export function calculateMaxWeightsFromStorage(): MaxWeightsMap {
     const key = window.localStorage.key(i);
     if (!key) continue;
 
-    if (!key.startsWith("workout_") && !key.startsWith("cardio_")) continue;
+    // キーの形式: "workout_YYYY-MM-DD_exerciseId"
+    if (!key.startsWith("workout_")) continue;
+
+    // 日付部分(10文字)をスキップしてIDを抽出
+    const exerciseId = key.substring(19);
+    if (!exerciseId) continue;
 
     const raw = window.localStorage.getItem(key);
     if (!raw) continue;
 
     try {
-      const parsed = JSON.parse(raw) as {
-        exerciseId?: string;
-        weight?: number;
-        sets?: { weight?: number }[];
-      };
+      const parsed: unknown = JSON.parse(raw);
 
-      const exerciseId = parsed.exerciseId;
-      if (!exerciseId) continue;
+      // 配列であることを確認
+      if (!Array.isArray(parsed)) continue;
 
       const weights: number[] = [];
 
-      if (typeof parsed.weight === "number") {
-        weights.push(parsed.weight);
-      }
+      parsed.forEach((set: unknown) => {
+        // set がオブジェクトであり、nullでないことを確認
+        if (typeof set !== "object" || set === null) return;
 
-      if (Array.isArray(parsed.sets)) {
-        parsed.sets.forEach((set) => {
-          if (typeof set.weight === "number") {
-            weights.push(set.weight);
+        // 'weight' プロパティが存在するか確認 (Record<string, unknown> として安全にアクセス)
+        const record = set as Record<string, unknown>;
+
+        if ("weight" in record) {
+          const val = record.weight;
+
+          if (typeof val === "number") {
+            weights.push(val);
+          } else if (typeof val === "string") {
+            const w = parseFloat(val);
+            if (!isNaN(w)) weights.push(w);
           }
-        });
-      }
+        }
+      });
 
       if (weights.length === 0) continue;
 
