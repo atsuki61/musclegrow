@@ -1,28 +1,20 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
-import { ChevronsLeft } from "lucide-react";
-import { BODY_PART_LABELS, calculate1RM } from "@/lib/utils";
+import { Trophy, ChevronsLeft } from "lucide-react";
+import { BODY_PART_LABELS, calculate1RM, cn } from "@/lib/utils";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 
 interface ExerciseCardProps {
-  /** 種目情報 */
   exercise: Exercise;
-  /** セット記録（筋トレ種目の場合） */
   sets?: SetRecord[];
-  /** 有酸素記録（有酸素種目の場合） */
   records?: CardioRecord[];
-  /** クリック時のコールバック */
   onClick?: () => void;
-  /** 種目ごとの最大重量（過去の記録を含む） */
   maxWeights?: Record<string, number>;
-  /** スワイプヒントを表示するかどうか（履歴画面用） */
   showSwipeHint?: boolean;
 }
 
 /**
  * 種目カードコンポーネント
- * 種目名、部位、セット記録または有酸素記録を表示
  */
 export function ExerciseCard({
   exercise,
@@ -32,112 +24,154 @@ export function ExerciseCard({
   maxWeights = {},
   showSwipeHint = false,
 }: ExerciseCardProps) {
-  // MAX重量を取得（過去の記録を含む全記録の中で最大の重量）
+  // 全期間の最大重量を取得
   const maxWeight = maxWeights[exercise.id] || 0;
 
   return (
-    <Card
-      className="cursor-pointer transition-colors hover:bg-muted/50 py-2 px-1"
+    <div
+      className="w-full p-3 bg-card rounded-xl border shadow-sm transition-all hover:shadow-md active:bg-muted/40 cursor-pointer"
       onClick={onClick}
     >
-      <div className="p-1.5">
-        {/* ヘッダー */}
-        <div className="flex items-center justify-between mb-0.5">
-          <span className="font-semibold text-sm leading-tight">
+      {/* ヘッダー */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 overflow-hidden">
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground shrink-0">
+            {BODY_PART_LABELS[exercise.bodyPart]}
+          </span>
+          <span className="font-bold text-sm truncate text-foreground/90">
             {exercise.name}
           </span>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground shrink-0">
-              {BODY_PART_LABELS[exercise.bodyPart]}
-            </span>
-            {/* スワイプヒント（履歴画面でのみ表示） */}
-            {showSwipeHint && (
-              <ChevronsLeft className="h-3.5 w-3.5 text-muted-foreground/30 animate-pulse" />
-            )}
-          </div>
         </div>
 
-        {/* セット記録（筋トレ種目） */}
-        {sets && sets.length > 0 && (
-          <div className="space-y-0.5">
-            {sets.map((set) => {
-              const weight = set.weight ?? 0;
-              const isMaxWeight = weight > 0 && weight === maxWeight;
-              const oneRM =
-                weight > 0 && set.reps > 0
-                  ? calculate1RM(weight, set.reps)
-                  : null;
-
-              return (
-                <div
-                  key={set.id}
-                  className="flex items-center justify-between text-xs text-muted-foreground leading-tight"
-                >
-                  {/* 左側：セット番号と重量×回数 */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-muted-foreground">
-                      {set.setOrder}.
-                    </span>
-                    {weight > 0 ? (
-                      <>
-                        <div className="flex items-center">
-                          <span className="tabular-nums w-14 text-right">
-                            {weight.toFixed(1)}
-                          </span>
-                          <span className="ml-1">kg</span>
-                        </div>
-                        <span>×</span>
-                        <span>{set.reps}回</span>
-                      </>
-                    ) : (
-                      <span>{set.reps}回</span>
-                    )}
-                    {isMaxWeight && (
-                      <span className="text-primary font-semibold ml-1">
-                        MAX！
-                      </span>
-                    )}
-                  </div>
-
-                  {/* 右側：1RM */}
-                  {oneRM && (
-                    <div className="text-muted-foreground shrink-0 ml-2 flex items-center">
-                      <span>1RM:</span>
-                      <span className="tabular-nums w-14 text-right">
-                        {oneRM.toFixed(1)}
-                      </span>
-                      <span className="ml-1">kg</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* 有酸素記録 */}
-        {records && records.length > 0 && (
-          <div className="space-y-0.5">
-            {records.map((record) => {
-              const parts: string[] = [`${record.duration}分`];
-              if (record.distance) {
-                parts.push(`${record.distance}km`);
-              }
-              if (record.calories) {
-                parts.push(`${record.calories}kcal`);
-              }
-              return (
-                <div
-                  key={record.id}
-                  className="text-xs text-muted-foreground leading-tight"
-                >
-                  {parts.join(" / ")}
-                </div>
-              );
-            })}
-          </div>
+        {showSwipeHint && (
+          <ChevronsLeft className="h-4 w-4 text-muted-foreground/20 animate-pulse shrink-0" />
         )}
       </div>
-    </Card>
+
+      {/* セット記録（筋トレ種目） */}
+      {sets && sets.length > 0 && (
+        <div className="space-y-1">
+          {sets.map((set, index) => {
+            const weight = set.weight ?? 0;
+
+            // ▼ 修正: maxWeightが存在し(>0)、かつ今回の重量がそれ以上の場合のみ表示
+            // これにより「自己ベスト（タイ記録含む）」の場合のみバッジがつきます
+            const isMaxWeight = maxWeight > 0 && weight >= maxWeight;
+
+            const oneRM =
+              weight > 0 && set.reps > 0
+                ? calculate1RM(weight, set.reps)
+                : null;
+
+            return (
+              <div
+                key={set.id || index}
+                className={cn(
+                  "flex items-center justify-between text-sm py-1.5 px-2 rounded-lg transition-colors",
+                  // MAX記録の時は背景色を少し付けて強調
+                  isMaxWeight
+                    ? "bg-orange-50/60 dark:bg-orange-900/20"
+                    : "hover:bg-muted/30"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground/40 font-mono w-3 text-right">
+                    {set.setOrder || index + 1}
+                  </span>
+
+                  <div className="flex items-baseline gap-1">
+                    <span
+                      className={cn(
+                        "font-bold tabular-nums text-base",
+                        isMaxWeight
+                          ? "text-orange-600 dark:text-orange-400"
+                          : "text-foreground"
+                      )}
+                    >
+                      {weight > 0 ? weight : "-"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">kg</span>
+                  </div>
+
+                  <span className="text-xs text-muted-foreground/30">×</span>
+
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-bold tabular-nums text-base text-foreground">
+                      {set.reps}
+                    </span>
+                    <span className="text-xs text-muted-foreground">回</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* 自己ベスト（MAX）バッジ */}
+                  {isMaxWeight && (
+                    <span className="flex items-center gap-0.5 text-[9px] font-bold text-orange-600 bg-orange-100 dark:bg-orange-900/40 dark:text-orange-300 px-1.5 py-0.5 rounded-full shadow-sm animate-in fade-in zoom-in duration-300">
+                      <Trophy className="w-2.5 h-2.5 fill-orange-600 dark:fill-orange-400" />{" "}
+                      MAX
+                    </span>
+                  )}
+
+                  {/* 1RM */}
+                  {oneRM && (
+                    <span className="text-[10px] text-muted-foreground tabular-nums opacity-70">
+                      1RM:{Math.round(oneRM)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 有酸素記録 */}
+      {records && records.length > 0 && (
+        <div className="space-y-1">
+          {records.map((record, index) => {
+            return (
+              <div
+                key={record.id || index}
+                className="flex items-center gap-3 text-sm py-1.5 px-2 rounded-lg hover:bg-muted/30"
+              >
+                <span className="text-xs text-muted-foreground/40 font-mono w-3 text-right">
+                  {index + 1}
+                </span>
+                <div className="flex items-baseline gap-1">
+                  <span className="font-bold tabular-nums text-base">
+                    {record.duration}
+                  </span>
+                  <span className="text-xs text-muted-foreground">分</span>
+                </div>
+                {record.distance && (
+                  <>
+                    <span className="text-xs text-muted-foreground/30">/</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-bold tabular-nums text-base">
+                        {record.distance}
+                      </span>
+                      <span className="text-xs text-muted-foreground">km</span>
+                    </div>
+                  </>
+                )}
+                {record.calories && (
+                  <>
+                    <span className="text-xs text-muted-foreground/30">/</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-bold tabular-nums text-base">
+                        {record.calories}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        kcal
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
