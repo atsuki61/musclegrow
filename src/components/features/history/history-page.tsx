@@ -18,6 +18,7 @@ import dynamic from "next/dynamic";
 import { HistoryCalendarSkeleton } from "./history-calendar-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// ダイナミックインポートで初期ロードを軽量化
 const SessionHistoryCard = dynamic(() => import("./session-history-card"), {
   ssr: false,
   loading: () => (
@@ -85,6 +86,7 @@ export function HistoryPage({
   const hasLoadedInitialSessionRef = useRef(false);
   const { userId } = useAuthSession();
 
+  // 負荷分散のため遅延ロード
   const loadExercises = useCallback(async () => {
     const items = await loadExercisesWithFallback(undefined, userId);
     setExercises(items);
@@ -103,12 +105,14 @@ export function HistoryPage({
     initialSessionDetails: initialSessionDetailsValue,
   });
 
+  // アイドル時に種目リストを取得
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handle = window.setTimeout(() => loadExercises(), 500);
     return () => window.clearTimeout(handle);
   }, [loadExercises]);
 
+  // カレンダー月変更時のデータ取得
   useEffect(() => {
     if (!hasSkippedInitialFetchRef.current) {
       hasSkippedInitialFetchRef.current = true;
@@ -117,6 +121,7 @@ export function HistoryPage({
     loadBodyPartsByDate(currentMonth);
   }, [currentMonth, loadBodyPartsByDate]);
 
+  // 初期選択日のデータロード制御
   useEffect(() => {
     if (hasLoadedInitialSessionRef.current) return;
     if (!selectedDate) return;
