@@ -16,10 +16,17 @@ import type { Exercise, BodyPart } from "@/types/workout";
 import { useAuthSession } from "@/lib/auth-session-context";
 import dynamic from "next/dynamic";
 import { HistoryCalendarSkeleton } from "./history-calendar-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// ダイナミックインポートで初期ロードを軽量化
 const SessionHistoryCard = dynamic(() => import("./session-history-card"), {
   ssr: false,
   loading: () => (
-    <div className="text-center py-8 text-muted-foreground">読み込み中...</div>
+    <div className="space-y-4 mt-6">
+      <Skeleton className="h-32 w-full rounded-2xl" />
+      <Skeleton className="h-20 w-full rounded-xl" />
+      <Skeleton className="h-20 w-full rounded-xl" />
+    </div>
   ),
 });
 
@@ -40,10 +47,6 @@ interface HistoryPageProps {
   initialSessionDetails?: SerializedSessionDetails | null;
 }
 
-/**
- * 履歴ページコンポーネント
- * カレンダーと履歴表示を統合
- */
 export function HistoryPage({
   initialMonthDate,
   initialBodyPartsByDate,
@@ -83,16 +86,14 @@ export function HistoryPage({
   const hasLoadedInitialSessionRef = useRef(false);
   const { userId } = useAuthSession();
 
-  // ★ ここに追加（正しい位置）
+  // 負荷分散のため遅延ロード
   const loadExercises = useCallback(async () => {
     const items = await loadExercisesWithFallback(undefined, userId);
     setExercises(items);
   }, [userId]);
 
-  // 最大重量を管理するカスタムフック
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
 
-  // 履歴データを管理するカスタムフック
   const {
     bodyPartsByDate,
     sessionDetails,
@@ -104,72 +105,34 @@ export function HistoryPage({
     initialSessionDetails: initialSessionDetailsValue,
   });
 
-  // 種目一覧を「アイドル時」に取得（マウント時またはuserIdの変更時）
+  // アイドル時に種目リストを取得
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    let handle: number | null = null;
-
-    if (typeof window.requestIdleCallback === "function") {
-      handle = window.requestIdleCallback(
-        () => {
-          loadExercises();
-        },
-        { timeout: 2000 }
-      );
-    } else {
-      // Fallback: 少し遅らせて実行（blocking を避ける）
-      handle = window.setTimeout(() => {
-        loadExercises();
-      }, 500);
-    }
-
-    return () => {
-      if (handle === null) return;
-
-      if (typeof window.cancelIdleCallback === "function") {
-        window.cancelIdleCallback(handle);
-      } else {
-        window.clearTimeout(handle);
-      }
-    };
+    const handle = window.setTimeout(() => loadExercises(), 500);
+    return () => window.clearTimeout(handle);
   }, [loadExercises]);
 
-  // 種目一覧が読み込まれた後、または月が変更されたときに部位一覧を取得
-
+  // カレンダー月変更時のデータ取得
   useEffect(() => {
-    // 初回レンダリング時は fetch しない
     if (!hasSkippedInitialFetchRef.current) {
       hasSkippedInitialFetchRef.current = true;
       return;
     }
-
-    // 2回目以降の月変更だけ fetch
     loadBodyPartsByDate(currentMonth);
   }, [currentMonth, loadBodyPartsByDate]);
 
-  // 初期選択日がある場合、マウント時に一度だけセッション詳細を読み込む
+  // 初期選択日のデータロード制御
   useEffect(() => {
-    // すでに初期ロード済みなら何もしない
     if (hasLoadedInitialSessionRef.current) return;
-
-    // 選択日が存在しない場合は何もしない
     if (!selectedDate) return;
-
-    // SSR から initialSessionDetails が渡されている場合は、
-    // それを使えばよいので追加の fetch は不要
     if (initialSessionDetailsValue) {
       hasLoadedInitialSessionRef.current = true;
       return;
     }
-
-    // ここまで来たら「選択日はあるが initialSessionDetails は無い」ケース。
-    // → 初回マウント時に一度だけ詳細を取りに行く。
     hasLoadedInitialSessionRef.current = true;
     loadSessionDetails(selectedDate);
   }, [selectedDate, initialSessionDetailsValue, loadSessionDetails]);
 
-  // 日付選択時の処理
   const handleDateSelect = useCallback(
     (date: Date) => {
       setSelectedDate(date);
@@ -178,27 +141,19 @@ export function HistoryPage({
     [loadSessionDetails]
   );
 
-  // 種目クリック時の処理
   const handleExerciseClick = useCallback((exercise: Exercise, date: Date) => {
     setEditingExercise({ exercise, date });
   }, []);
 
-  // 種目削除時の処理
   const handleExerciseDelete = useCallback(
     async (exerciseId: string, date: Date) => {
       const dateStr = format(date, "yyyy-MM-dd");
+      localStorage.removeItem(`workout_${dateStr}_${exerciseId}`);
+      localStorage.removeItem(`cardio_${dateStr}_${exerciseId}`);
 
-      // ローカルストレージから削除
-      const workoutStorageKey = `workout_${dateStr}_${exerciseId}`;
-      const cardioStorageKey = `cardio_${dateStr}_${exerciseId}`;
-      localStorage.removeItem(workoutStorageKey);
-      localStorage.removeItem(cardioStorageKey);
-
-      // データベースからも削除を試みる
       try {
         const sessionResult = await getWorkoutSession(userId, dateStr);
         if (sessionResult.success && sessionResult.data) {
-          // セット記録と有酸素記録の両方を削除（どちらか一方が存在する可能性があるため）
           await Promise.all([
             deleteExerciseSets(userId, {
               sessionId: sessionResult.data.id,
@@ -211,16 +166,9 @@ export function HistoryPage({
           ]);
         }
       } catch (error) {
-        // データベース削除エラーはログのみ（ローカルストレージは削除済み）
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            "データベースからの削除に失敗（ローカルストレージは削除済み）:",
-            error
-          );
-        }
+        if (process.env.NODE_ENV === "development") console.warn(error);
       }
 
-      // 履歴を再読み込み
       if (selectedDate) {
         await loadSessionDetails(selectedDate);
         await loadBodyPartsByDate(currentMonth);
@@ -237,17 +185,12 @@ export function HistoryPage({
     ]
   );
 
-  // 編集モーダルを閉じる
   const handleCloseModal = useCallback(async () => {
     setEditingExercise(null);
-    // 編集後に履歴を再読み込み（保存完了を待機）
     if (selectedDate) {
-      // データベースへの保存が完了するまで少し待機
       await new Promise((resolve) => setTimeout(resolve, 300));
       loadSessionDetails(selectedDate);
-      // 部位一覧も再読み込み
       loadBodyPartsByDate(currentMonth);
-      // 最大重量も再読み込み（編集により最大重量が更新された可能性があるため）
       recalculateMaxWeights();
     }
   }, [
@@ -259,18 +202,18 @@ export function HistoryPage({
   ]);
 
   return (
-    <>
-      {/* 部位別フィルター（headerの真下に配置） */}
-      <div className="sticky top-14 z-40 w-full border-b bg-background px-4 py-0">
+    <div className="min-h-screen bg-background pb-20">
+      {/* フィルター (Sticky) */}
+      <div className="sticky top-14 z-40 w-full border-b bg-background/95 backdrop-blur px-4 py-2">
         <BodyPartFilter
           selectedPart={selectedBodyPart}
           onPartChange={setSelectedBodyPart}
         />
       </div>
 
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-6 space-y-8">
         {/* カレンダー */}
-        <div className="mb-6">
+        <section>
           <HistoryCalendar
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
@@ -279,14 +222,16 @@ export function HistoryPage({
             onDateSelect={handleDateSelect}
             filteredBodyPart={selectedBodyPart}
           />
-        </div>
+        </section>
 
         {/* 選択日の履歴表示 */}
         {selectedDate && (
-          <div className="mt-6">
+          <section>
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                読み込み中...
+              <div className="space-y-4 mt-6 animate-pulse">
+                <Skeleton className="h-32 w-full rounded-2xl" />
+                <Skeleton className="h-20 w-full rounded-xl" />
+                <Skeleton className="h-20 w-full rounded-xl" />
               </div>
             ) : (
               <SessionHistoryCard
@@ -301,7 +246,7 @@ export function HistoryPage({
                 maxWeights={maxWeights}
               />
             )}
-          </div>
+          </section>
         )}
 
         {/* 編集モーダル */}
@@ -314,13 +259,11 @@ export function HistoryPage({
           />
         )}
       </div>
-    </>
+    </div>
   );
 }
 
 function selectedMonthFromSelection(selectedDate: Date | null) {
-  if (!selectedDate) {
-    return undefined;
-  }
+  if (!selectedDate) return undefined;
   return startOfMonth(selectedDate);
 }
