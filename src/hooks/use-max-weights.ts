@@ -8,21 +8,17 @@ import {
   saveMaxWeightsCache,
   calculateMaxWeightsFromStorage,
 } from "@/lib/max-weight";
+import { getUserMaxWeights } from "@/lib/actions/sets";
+import { useAuthSession } from "@/lib/auth-session-context";
 
-/** requestIdleCallback の型定義 */
 type IdleCallbackHandle = number;
 
-/**
- * requestIdleCallback を使って重い処理をアイドル時に実行
- */
 function runOnIdle(cb: () => void, timeout = 2000): IdleCallbackHandle | null {
   if (typeof window === "undefined") return null;
 
   if (typeof window.requestIdleCallback === "function") {
     return window.requestIdleCallback(() => cb(), { timeout });
   }
-
-  // fallback
   return window.setTimeout(cb, 0);
 }
 
@@ -36,33 +32,62 @@ function cancelIdle(handle: IdleCallbackHandle | null): void {
   }
 }
 
-/**
- * 最大重量の管理フック
- */
 export function useMaxWeights(): {
   maxWeights: MaxWeightsMap;
   recalculateMaxWeights: () => void;
 } {
+  const { userId } = useAuthSession();
+
   // 1) 初期値は軽いキャッシュ
   const [maxWeights, setMaxWeights] = useState<MaxWeightsMap>(() => {
     return loadMaxWeightsCache();
   });
 
-  // 2) 重い再計算
-  const runHeavyRecalc = useCallback(() => {
-    const fresh = calculateMaxWeightsFromStorage();
-    setMaxWeights(fresh);
-    saveMaxWeightsCache(fresh);
-  }, []);
+  // 2) ローカルとDBをマージして再計算
+  const runHeavyRecalc = useCallback(async () => {
+    // ローカルストレージからの計算（同期処理）
+    const localMax = calculateMaxWeightsFromStorage();
 
-  // 3) 外部から呼べる再計算
+    const mergedMax: MaxWeightsMap = { ...localMax };
+
+    // DBからの取得（非同期処理）- ログイン時のみ
+    if (userId) {
+      try {
+        const dbResult = await getUserMaxWeights(userId);
+        if (dbResult.success && dbResult.data) {
+          // ローカルとDBの値を比較し、大きい方を採用
+          const dbData = dbResult.data;
+          Object.keys(dbData).forEach((exerciseId) => {
+            const dbWeight = dbData[exerciseId];
+            const localWeight = mergedMax[exerciseId] ?? 0;
+
+            if (typeof dbWeight === "number" && dbWeight > localWeight) {
+              mergedMax[exerciseId] = dbWeight;
+            }
+          });
+        }
+      } catch (e) {
+        console.error("DBからのMAX重量取得に失敗", e);
+      }
+    }
+
+    // ステート更新とキャッシュ保存
+    setMaxWeights(mergedMax);
+    saveMaxWeightsCache(mergedMax);
+  }, [userId]);
+
+  // 3) 外部から呼べる再計算（非同期関数をラップ）
   const recalculateMaxWeights = useCallback(() => {
-    runOnIdle(runHeavyRecalc);
+    runOnIdle(() => {
+      runHeavyRecalc().catch((e) => console.error("MAX重量再計算エラー", e));
+    });
   }, [runHeavyRecalc]);
 
-  // 4) 初回 hydration 後に idle で更新する
+  // 4) 初回 hydration 後または userId 変更時に更新
   useEffect(() => {
-    const handle = runOnIdle(runHeavyRecalc);
+    const handle = runOnIdle(() => {
+      runHeavyRecalc().catch((e) => console.error("MAX重量初期計算エラー", e));
+    });
 
     return () => cancelIdle(handle);
   }, [runHeavyRecalc]);
