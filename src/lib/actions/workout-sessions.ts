@@ -1,16 +1,19 @@
 "use server";
 
+import { revalidateTag } from "next/cache";
 import { db } from "../../../db";
-import { workoutSessions } from "../../../db/schemas/app";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import {
+  workoutSessions,
+  sets,
+  cardioRecords,
+  exercises,
+} from "../../../db/schemas/app";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 
 /**
  * ワークアウトセッションを保存または更新する
  * @param userId ユーザーID
- * @param date トレーニング日（YYYY-MM-DD形式の文字列）
- * @param note メモ（オプション）
- * @param durationMinutes トレーニング時間（分、オプション）
- * @returns 保存結果
+ * @param sessionData セッションデータ
  */
 export async function saveWorkoutSession(
   userId: string,
@@ -29,41 +32,31 @@ export async function saveWorkoutSession(
   data?: { id: string; date: string };
 }> {
   try {
-
     // 既存のセッションを確認
-    const existingSession = await db
+    const [existingSession] = await db
       .select()
       .from(workoutSessions)
       .where(
-        and(
-          eq(workoutSessions.userId, userId),
-          eq(workoutSessions.date, date)
-        )
+        and(eq(workoutSessions.userId, userId), eq(workoutSessions.date, date))
       )
       .limit(1);
 
-    if (existingSession.length > 0) {
-      // 既存セッションを更新
-      const [updated] = await db
+    let sessionId: string;
+
+    if (existingSession) {
+      // 更新
+      await db
         .update(workoutSessions)
         .set({
-          note: note ?? null,
-          durationMinutes: durationMinutes ?? null,
+          note: note ?? existingSession.note,
+          durationMinutes: durationMinutes ?? existingSession.durationMinutes,
           updatedAt: new Date(),
         })
-        .where(eq(workoutSessions.id, existingSession[0].id))
-        .returning();
-
-      return {
-        success: true,
-        data: {
-          id: updated.id,
-          date: updated.date,
-        },
-      };
+        .where(eq(workoutSessions.id, existingSession.id));
+      sessionId = existingSession.id;
     } else {
-      // 新規セッションを作成
-      const [created] = await db
+      // 新規作成
+      const [newSession] = await db
         .insert(workoutSessions)
         .values({
           userId,
@@ -71,24 +64,23 @@ export async function saveWorkoutSession(
           note: note ?? null,
           durationMinutes: durationMinutes ?? null,
         })
-        .returning();
-
-      return {
-        success: true,
-        data: {
-          id: created.id,
-          date: created.date,
-        },
-      };
+        .returning({ id: workoutSessions.id });
+      sessionId = newSession.id;
     }
+
+    revalidateTag(`workout-session:${userId}:${date}`);
+
+    return {
+      success: true,
+      data: { id: sessionId, date },
+    };
   } catch (error: unknown) {
-    console.error("ワークアウトセッション保存エラー:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "不明なエラー";
+    console.error("セッション保存エラー:", errorMessage);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "ワークアウトセッションの保存に失敗しました",
+      error: "セッションの保存に失敗しました",
     };
   }
 }
@@ -96,8 +88,7 @@ export async function saveWorkoutSession(
 /**
  * 指定日付のワークアウトセッションを取得する
  * @param userId ユーザーID
- * @param date トレーニング日（YYYY-MM-DD形式の文字列）
- * @returns セッション情報
+ * @param date 日付 (YYYY-MM-DD)
  */
 export async function getWorkoutSession(
   userId: string,
@@ -105,26 +96,25 @@ export async function getWorkoutSession(
 ): Promise<{
   success: boolean;
   error?: string;
-  data?: { id: string; date: string; note?: string | null; durationMinutes?: number | null };
+  data?: {
+    id: string;
+    date: string;
+    note?: string | null;
+    durationMinutes?: number | null;
+  };
 }> {
   try {
-
     const [session] = await db
       .select()
       .from(workoutSessions)
       .where(
-        and(
-          eq(workoutSessions.userId, userId),
-          eq(workoutSessions.date, date)
-        )
+        and(eq(workoutSessions.userId, userId), eq(workoutSessions.date, date))
       )
       .limit(1);
 
     if (!session) {
-      return {
-        success: true,
-        data: undefined,
-      };
+      // セッションが存在しない場合はnullを返す（エラーではない）
+      return { success: true, data: undefined };
     }
 
     return {
@@ -132,18 +122,17 @@ export async function getWorkoutSession(
       data: {
         id: session.id,
         date: session.date,
-        note: session.note ?? undefined,
-        durationMinutes: session.durationMinutes ?? undefined,
+        note: session.note,
+        durationMinutes: session.durationMinutes,
       },
     };
   } catch (error: unknown) {
-    console.error("ワークアウトセッション取得エラー:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "不明なエラー";
+    console.error("セッション取得エラー:", errorMessage);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "ワークアウトセッションの取得に失敗しました",
+      error: "セッションの取得に失敗しました",
     };
   }
 }
@@ -151,9 +140,7 @@ export async function getWorkoutSession(
 /**
  * 日付範囲でワークアウトセッション一覧を取得する
  * @param userId ユーザーID
- * @param startDate 開始日（YYYY-MM-DD形式の文字列）
- * @param endDate 終了日（YYYY-MM-DD形式の文字列）
- * @returns セッション一覧
+ * @param range 日付範囲
  */
 export async function getWorkoutSessionsByDateRange(
   userId: string,
@@ -175,14 +162,8 @@ export async function getWorkoutSessionsByDateRange(
   }>;
 }> {
   try {
-
     const sessions = await db
-      .select({
-        id: workoutSessions.id,
-        date: workoutSessions.date,
-        note: workoutSessions.note,
-        durationMinutes: workoutSessions.durationMinutes,
-      })
+      .select()
       .from(workoutSessions)
       .where(
         and(
@@ -195,22 +176,90 @@ export async function getWorkoutSessionsByDateRange(
 
     return {
       success: true,
-      data: sessions.map((session) => ({
-        id: session.id,
-        date: session.date,
-        note: session.note ?? undefined,
-        durationMinutes: session.durationMinutes ?? undefined,
+      data: sessions.map((s) => ({
+        id: s.id,
+        date: s.date,
+        note: s.note,
+        durationMinutes: s.durationMinutes,
       })),
     };
   } catch (error: unknown) {
-    console.error("ワークアウトセッション一覧取得エラー:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "不明なエラー";
+    console.error("セッション一覧取得エラー:", errorMessage);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "ワークアウトセッション一覧の取得に失敗しました",
+      error: "セッション一覧の取得に失敗しました",
     };
   }
 }
 
+// データベースクエリ結果の型定義
+interface SqlResult {
+  rows: Record<string, unknown>[];
+}
+
+/**
+ * ユーザーの全期間の種目別最終トレーニング日を取得する
+ * @param userId ユーザーID
+ * @returns Record<exerciseId, dateString(YYYY-MM-DD)>
+ */
+export async function getLastTrainedDatesFromDB(userId: string): Promise<{
+  success: boolean;
+  data?: Record<string, string>;
+  error?: string;
+}> {
+  try {
+    // セット記録がある種目の最終日
+    const setsResult = (await db.execute(sql`
+      SELECT 
+        ${sets.exerciseId} as exercise_id,
+        MAX(${workoutSessions.date}) as last_date
+      FROM ${workoutSessions}
+      JOIN ${sets} ON ${sets.sessionId} = ${workoutSessions.id}
+      WHERE ${workoutSessions.userId} = ${userId}
+      GROUP BY ${sets.exerciseId}
+    `)) as unknown as SqlResult;
+
+    // 有酸素記録がある種目の最終日
+    const cardioResult = (await db.execute(sql`
+      SELECT 
+        ${cardioRecords.exerciseId} as exercise_id,
+        MAX(${workoutSessions.date}) as last_date
+      FROM ${workoutSessions}
+      JOIN ${cardioRecords} ON ${cardioRecords.sessionId} = ${workoutSessions.id}
+      WHERE ${workoutSessions.userId} = ${userId}
+      GROUP BY ${cardioRecords.exerciseId}
+    `)) as unknown as SqlResult;
+
+    const map: Record<string, string> = {};
+
+    // マージ処理
+    const processRow = (row: Record<string, unknown>) => {
+      if (
+        typeof row.exercise_id === "string" &&
+        typeof row.last_date === "string"
+      ) {
+        const exerciseId = row.exercise_id;
+        const lastDate = row.last_date;
+
+        if (!map[exerciseId] || lastDate > map[exerciseId]) {
+          map[exerciseId] = lastDate;
+        }
+      }
+    };
+
+    if (Array.isArray(setsResult.rows)) {
+      setsResult.rows.forEach(processRow);
+    }
+
+    if (Array.isArray(cardioResult.rows)) {
+      cardioResult.rows.forEach(processRow);
+    }
+
+    return { success: true, data: map };
+  } catch (error) {
+    console.error("最終トレーニング日取得エラー:", error);
+    return { success: false, error: "データの取得に失敗しました" };
+  }
+}
