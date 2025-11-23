@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { motion, PanInfo, useMotionValue, useTransform } from "framer-motion";
+import {
+  motion,
+  PanInfo,
+  useMotionValue,
+  useTransform,
+  animate,
+} from "framer-motion";
 import { Trash2 } from "lucide-react";
 import { ExerciseCard } from "./exercise-card";
 import {
@@ -19,18 +25,11 @@ interface SwipeableExerciseCardProps {
   maxWeights?: Record<string, number>;
 }
 
-// スワイプ閾値の定数定義
-const SWIPE_THRESHOLD = -50; // 削除ボタンを表示する閾値（px）
-const DELETE_THRESHOLD = -100; // 自動削除する閾値（px）
-const DELETE_BUTTON_MIN_WIDTH = 80; // 削除ボタンの最小幅（px）
-const DELETE_BUTTON_MAX_WIDTH = 200; // 削除ボタンの最大幅（px）
-const DELETE_ANIMATION_DISTANCE = -1000; // 削除アニメーションの移動距離（px）
-const DELETE_ANIMATION_DURATION = 300; // 削除アニメーションの時間（ms）
+// 定数定義
+const SWIPE_THRESHOLD = -60; // 削除ボタンを表示する閾値
+const DELETE_THRESHOLD = -120; // 自動削除発動の閾値
+const MAX_DRAG = -200; // 引っ張れる最大距離
 
-/**
- * スワイプ可能な種目カードコンポーネント
- * 左にスワイプすると削除ボタンが表示され、さらにスワイプすると削除確認
- */
 export function SwipeableExerciseCard({
   exercise,
   sets,
@@ -41,118 +40,152 @@ export function SwipeableExerciseCard({
 }: SwipeableExerciseCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isDragging, setIsDragging] = useState(false); // ドラッグ中かどうかのフラグ
+
   const x = useMotionValue(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // スワイプの進行度に応じて削除ボタンの透明度を変化させる
-  const deleteButtonOpacity = useTransform(x, [0, -10], [0, 1]);
-
-  // スワイプ量に応じて背景の赤枠の幅を拡張
-  const deleteButtonWidth = useTransform(
+  // ゴミ箱アイコンのスタイル制御
+  const deleteOpacity = useTransform(x, [-20, -50], [0, 1]);
+  const deleteScale = useTransform(
     x,
-    [0, -DELETE_BUTTON_MAX_WIDTH],
-    [DELETE_BUTTON_MIN_WIDTH, DELETE_BUTTON_MAX_WIDTH]
+    [SWIPE_THRESHOLD, DELETE_THRESHOLD],
+    [1, 1.3]
+  );
+  const deleteColor = useTransform(
+    x,
+    [SWIPE_THRESHOLD, DELETE_THRESHOLD],
+    ["#ef4444", "#dc2626"] // red-500 -> red-600
   );
 
-  const handleDragEnd = (
+  // ドラッグ開始時
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
+
+  // ドラッグ終了時
+  const handleDragEnd = async (
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: PanInfo
   ) => {
     const offset = info.offset.x;
+    const velocity = info.velocity.x;
 
-    if (offset < DELETE_THRESHOLD) {
-      // 削除閾値を超えた場合は自動削除
+    // ドラッグ判定の解除（少し遅延させてクリックイベントの発火を防ぐ）
+    setTimeout(() => setIsDragging(false), 100);
+
+    if (offset < DELETE_THRESHOLD || velocity < -500) {
+      // 削除閾値を超えた、または勢いよくスワイプした場合
       handleDelete();
     } else if (offset < SWIPE_THRESHOLD) {
-      // スワイプ閾値を超えた場合は削除ボタンを表示したままにする
-      x.set(SWIPE_THRESHOLD);
+      // ボタン表示位置で止める
+      animate(x, SWIPE_THRESHOLD, {
+        type: "spring",
+        stiffness: 400,
+        damping: 25,
+      });
     } else {
-      // 閾値未満の場合は元の位置に戻す
-      x.set(0);
+      // 元の位置に戻す
+      resetPosition();
     }
   };
 
-  const handleDelete = async () => {
+  // 元の位置に戻すアニメーション
+  const resetPosition = () => {
+    animate(x, 0, { type: "spring", stiffness: 500, damping: 30 });
+  };
+
+  // 削除フロー開始
+  const handleDelete = () => {
     if (isDeleting) return;
 
-    // 確認をスキップする設定になっている場合は、即座に削除
+    // タクタイルフィードバック（振動）対応デバイス向け
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+
     if (shouldSkipDeleteConfirm()) {
       executeDelete();
     } else {
-      // 確認ダイアログを表示
+      // 位置を固定しつつダイアログ表示
+      animate(x, DELETE_THRESHOLD, {
+        type: "spring",
+        stiffness: 400,
+        damping: 25,
+      });
       setShowConfirmDialog(true);
     }
   };
 
+  // 実際の削除実行
   const executeDelete = async () => {
     setIsDeleting(true);
     setShowConfirmDialog(false);
 
     if (onDelete) {
-      // 削除アニメーション
-      await new Promise((resolve) => {
-        x.set(DELETE_ANIMATION_DISTANCE);
-        setTimeout(resolve, DELETE_ANIMATION_DURATION);
-      });
+      // 画面外へスライドアウトさせるアニメーション
+      await animate(x, -500, { duration: 0.2 }).then(() => {});
       onDelete();
     }
   };
 
+  // 削除キャンセル
   const handleCancelDelete = () => {
     setShowConfirmDialog(false);
     setIsDeleting(false);
-    x.set(0); // 元の位置に戻す
+    resetPosition();
+  };
+
+  // クリックハンドラ（ドラッグ中は発火させない）
+  const handleClick = () => {
+    if (!isDragging && onClick) {
+      onClick();
+    }
   };
 
   return (
     <>
-      <div ref={containerRef} className="relative overflow-hidden">
-        {/* 背景の削除ボタン - スワイプ量に応じて幅が伸びる */}
-        <motion.div
-          className="absolute inset-y-0 right-0 flex items-center justify-end pr-4 bg-destructive rounded-lg"
-          style={{
-            opacity: deleteButtonOpacity,
-            width: deleteButtonWidth,
-          }}
-        >
+      <div ref={containerRef} className="relative">
+        {/* 背景の削除エリア */}
+        <div className="absolute inset-0 flex justify-end rounded-xl overflow-hidden">
           <motion.div
-            animate={{
-              scale: [1, 1.15, 1],
-              rotate: [0, -5, 5, -5, 0],
-            }}
-            transition={{
-              duration: 0.6,
-              repeat: Infinity,
-              repeatDelay: 0.8,
-              ease: "easeInOut",
+            className="h-full bg-red-100 flex items-center justify-center rounded-r-xl"
+            style={{
+              width: useTransform(x, (val) => Math.max(0, -val)), // スワイプ量に合わせて背景を伸ばす
+              opacity: deleteOpacity,
             }}
           >
-            <Trash2 className="h-7 w-7 text-white shrink-0" />
+            <motion.div
+              style={{ scale: deleteScale, color: deleteColor }}
+              className="pr-6"
+            >
+              <Trash2 className="w-6 h-6" />
+            </motion.div>
           </motion.div>
-        </motion.div>
+        </div>
 
-        {/* スワイプ可能なカード */}
+        {/* 前面のカード */}
         <motion.div
-          drag="x"
-          dragConstraints={{ left: -DELETE_BUTTON_MAX_WIDTH, right: 0 }}
-          dragElastic={0.1}
-          onDragEnd={handleDragEnd}
           style={{ x }}
-          className="relative z-10"
+          drag="x"
+          dragConstraints={{ left: MAX_DRAG, right: 0 }}
+          dragElastic={0.1} // 引っ張りの抵抗感
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          className="relative z-10 bg-background rounded-xl touch-pan-y" // 縦スクロールを阻害しない
           whileTap={{ cursor: "grabbing" }}
         >
           <ExerciseCard
             exercise={exercise}
             sets={sets}
             records={records}
-            onClick={onClick}
+            onClick={handleClick}
             maxWeights={maxWeights}
-            showSwipeHint={true}
+            showSwipeHint
           />
         </motion.div>
       </div>
 
-      {/* 削除確認ダイアログ */}
       <DeleteConfirmDialog
         isOpen={showConfirmDialog}
         exerciseName={exercise.name}
