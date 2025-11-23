@@ -1,48 +1,29 @@
 "use client";
 
+import { memo } from "react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Plus } from "lucide-react";
+import { Plus, Clock, FileText, Dumbbell, Activity } from "lucide-react";
 import { SwipeableExerciseCard } from "./swipeable-exercise-card";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { getExerciseById } from "@/lib/local-storage-exercises";
-import { memo } from "react";
 
 interface SessionHistoryCardProps {
-  /** セッション日付 */
   date: Date;
-  /** トレーニング時間（分） */
   durationMinutes?: number | null;
-  /** メモ */
   note?: string | null;
-  /** 筋トレ種目の記録 */
-  workoutExercises: Array<{
-    exerciseId: string;
-    sets: SetRecord[];
-  }>;
-  /** 有酸素種目の記録 */
-  cardioExercises: Array<{
-    exerciseId: string;
-    records: CardioRecord[];
-  }>;
-  /** 種目一覧（IDから種目情報を取得するため） */
+  workoutExercises: Array<{ exerciseId: string; sets: SetRecord[] }>;
+  cardioExercises: Array<{ exerciseId: string; records: CardioRecord[] }>;
   exercises: Exercise[];
-  /** 種目クリック時のコールバック */
   onExerciseClick?: (exercise: Exercise, date: Date) => void;
-  /** 種目削除時のコールバック */
   onExerciseDelete?: (exerciseId: string, date: Date) => void;
-  /** 種目ごとの最大重量（過去の記録を含む） */
   maxWeights?: Record<string, number>;
 }
 
-/**
- * セッション履歴カードコンポーネント
- * 日付、時間、メモ、種目記録を表示
- */
 const SessionHistoryCard = memo(function SessionHistoryCard({
   date,
   durationMinutes,
@@ -55,109 +36,137 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
   maxWeights = {},
 }: SessionHistoryCardProps) {
   const router = useRouter();
-  const formattedDate = format(date, "yyyy年M月d日(E)", { locale: ja });
+  const formattedDate = format(date, "yyyy年M月d日 (E)", { locale: ja });
   const hasRecords = workoutExercises.length > 0 || cardioExercises.length > 0;
 
   const handleAddTraining = () => {
-    // 該当日付の記録ページへ遷移
     const dateStr = format(date, "yyyy-MM-dd");
     router.push(`/record?date=${dateStr}`);
   };
 
-  return (
-    <Card className="py-5 gap-0">
-      <CardHeader className="pb-3 px-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">📅 {formattedDate}</CardTitle>
-          <div className="flex items-center gap-2">
-            {durationMinutes && (
-              <span className="text-sm text-muted-foreground">
-                ⏱️ {durationMinutes}分
-              </span>
-            )}
-            {hasRecords && (
-              <Button
-                onClick={handleAddTraining}
-                variant="outline"
-                size="sm"
-                className="h-8 px-3 gap-1.5 text-xs font-medium border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-200"
-              >
-                <Plus className="h-4 w-4" />
-                追加
-              </Button>
-            )}
-          </div>
+  // 記録がない場合のデザイン
+  if (!hasRecords) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-muted/10 rounded-2xl border border-dashed border-muted-foreground/20 animate-in fade-in zoom-in duration-500">
+        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+          <Plus className="w-8 h-8 text-muted-foreground/50" />
         </div>
-        {note && <p className="text-sm text-muted-foreground mt-1.5">{note}</p>}
-      </CardHeader>
-      <CardContent className="space-y-2 pt-0 px-4">
-        {/* 筋トレ種目 */}
-        {workoutExercises.length > 0 && (
-          <div>
-            <h3 className="text-xs font-semibold mb-1 text-muted-foreground">
-              💪 筋トレ種目
-            </h3>
-            <div className="space-y-1">
-              {workoutExercises.map(({ exerciseId, sets }) => {
-                const exercise = getExerciseById(exerciseId, exercises);
-                if (!exercise) return null; // 種目が見つからない場合はスキップ
+        <h3 className="text-lg font-semibold mb-1">{formattedDate}</h3>
+        <p className="text-sm text-muted-foreground mb-6">
+          この日の記録はまだありません
+        </p>
+        <Button
+          onClick={handleAddTraining}
+          size="lg"
+          className="rounded-xl shadow-lg shadow-primary/20"
+        >
+          トレーニングを開始する
+        </Button>
+      </div>
+    );
+  }
 
-                return (
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* ヘッダー情報 */}
+      <div className="flex flex-col gap-3 bg-card border rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">
+              {formattedDate}
+            </h2>
+            <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+              {durationMinutes && (
+                <span className="flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-md">
+                  <Clock className="w-3.5 h-3.5" /> {durationMinutes}分
+                </span>
+              )}
+            </div>
+          </div>
+          <Button
+            onClick={handleAddTraining}
+            size="icon"
+            className="h-10 w-10 rounded-full shadow-md active:scale-95 transition-transform"
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {note && (
+          <div className="flex items-start gap-2 bg-muted/30 p-3 rounded-xl text-sm">
+            <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+            <p className="text-foreground/80 leading-relaxed">{note}</p>
+          </div>
+        )}
+      </div>
+
+      {/* 筋トレ種目リスト */}
+      {workoutExercises.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-1">
+            <Dumbbell className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+              Workouts
+            </h3>
+          </div>
+          <div className="grid gap-3">
+            {workoutExercises.map(({ exerciseId, sets }, index) => {
+              const exercise = getExerciseById(exerciseId, exercises);
+              if (!exercise) return null;
+              return (
+                <div
+                  key={exerciseId}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards"
+                >
                   <SwipeableExerciseCard
-                    key={exerciseId}
                     exercise={exercise}
                     sets={sets}
                     onClick={() => onExerciseClick?.(exercise, date)}
                     onDelete={() => onExerciseDelete?.(exerciseId, date)}
                     maxWeights={maxWeights}
                   />
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* 有酸素種目 */}
-        {cardioExercises.length > 0 && (
-          <div>
-            {workoutExercises.length > 0 && <Separator className="my-2" />}
-            <h3 className="text-xs font-semibold mb-1 text-muted-foreground">
-              🏃 有酸素種目
+      {/* 有酸素種目リスト */}
+      {cardioExercises.length > 0 && (
+        <div className="space-y-3">
+          {workoutExercises.length > 0 && <Separator className="opacity-50" />}
+          <div className="flex items-center gap-2 px-1">
+            <Activity className="w-4 h-4 text-blue-500" />
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+              Cardio
             </h3>
-            <div className="space-y-1">
-              {cardioExercises.map(({ exerciseId, records }) => {
-                const exercise = getExerciseById(exerciseId, exercises);
-                if (!exercise) return null; // 種目が見つからない場合はスキップ
-
-                return (
+          </div>
+          <div className="grid gap-3">
+            {cardioExercises.map(({ exerciseId, records }, index) => {
+              const exercise = getExerciseById(exerciseId, exercises);
+              if (!exercise) return null;
+              return (
+                <div
+                  key={exerciseId}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards"
+                >
                   <SwipeableExerciseCard
-                    key={exerciseId}
                     exercise={exercise}
                     records={records}
                     onClick={() => onExerciseClick?.(exercise, date)}
                     onDelete={() => onExerciseDelete?.(exerciseId, date)}
                     maxWeights={maxWeights}
                   />
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
-        )}
-
-        {/* 記録がない場合 */}
-        {!hasRecords && (
-          <div className="flex flex-col items-center gap-3 py-6">
-            <p className="text-sm text-muted-foreground">
-              この日の記録はまだありません
-            </p>
-            <Button onClick={handleAddTraining} size="lg" className="gap-2">
-              <Plus className="h-5 w-5" />
-              トレーニングを追加
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 });
 

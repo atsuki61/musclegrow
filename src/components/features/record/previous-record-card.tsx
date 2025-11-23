@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { calculate1RM } from "@/lib/utils";
 import type { SetRecord, CardioRecord } from "@/types/workout";
 import { Copy } from "lucide-react";
