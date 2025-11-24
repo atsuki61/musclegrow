@@ -5,7 +5,6 @@ import { format, isSameMonth, isSameDay } from "date-fns";
 import { ja } from "date-fns/locale";
 import { DayButton } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
 import { cn, isFutureDate } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
 import MultiPartDayButton from "./multi-part-day-button";
@@ -47,26 +46,14 @@ const CustomDayButton = React.memo(
       onDateSelect(date);
     };
 
-    // 1. 現在の月以外は薄く表示（ポインターイベント無効化）
+    // ▼ 修正箇所: 現在の月以外は非表示にする
+    // invisible を指定することで、スペースは確保しつつ姿を消す（レイアウト崩れ防止）
     if (!isCurrentMonth) {
-      return (
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            buttonSizeClass,
-            "min-w-0 opacity-30 cursor-default hover:bg-transparent",
-            props.className
-          )}
-          {...props}
-        >
-          {date.getDate()}
-        </Button>
-      );
+      return <div className={cn(buttonSizeClass, "invisible")} />;
     }
 
     // 2. 記録の有無に関わらず、すべて MultiPartDayButton で統一して描画
-    // これにより、記録がない日も「透明なグリッド」として同じサイズ・挙動になる
+    // 記録がない日も「透明なグリッド」として同じサイズ・挙動になる
 
     // 単一部位の場合の処理 ("all" の扱いなど)
     const partsToRender = bodyParts;
@@ -164,8 +151,8 @@ function HistoryCalendar({
           day: "h-[var(--cell-size)] w-[var(--cell-size)] p-0 font-normal aria-selected:opacity-100",
         }}
         // サイズ指定
-        // スマホ: 3rem (48px), タブレット以上: 3.5rem (56px)
-        className="rounded-xl border bg-card shadow-sm w-auto inline-block [--cell-size:3.5rem] sm:[--cell-size:3.5rem] p-3"
+        // スマホ: 3.4rem, タブレット以上: 3.5rem
+        className="rounded-xl border bg-card shadow-sm w-auto inline-block [--cell-size:3.4rem] sm:[--cell-size:3.5rem] p-3"
       />
     </div>
   );
