@@ -20,7 +20,6 @@ import {
 } from "@/lib/local-storage-exercises";
 import { useAuthSession } from "@/lib/auth-session-context";
 import type { BodyPart, Exercise } from "@/types/workout";
-import { getLastTrainedDatesByBodyPart } from "@/lib/last-trained";
 
 interface RecordPageProps {
   initialExercises?: Exercise[];
@@ -61,14 +60,11 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
 
   // フック呼び出し
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
-  // ▼ 修正: 新しいフックを使用
-  const { lastTrainedDates, refresh: refreshLastTrained } =
-    useLastTrainedDates();
 
-  // lastTrainedDatesByBodyPart を計算（useMemoで最適化）
-  const lastTrainedDatesByBodyPart = useMemo(() => {
-    return getLastTrainedDatesByBodyPart(exercises, lastTrainedDates);
-  }, [exercises, lastTrainedDates]);
+  // ▼ 修正: lastTrainedDates は使わないので refresh だけ取得
+  const { refresh: refreshLastTrained } = useLastTrainedDates();
+
+  // ▼ 削除: lastTrainedDatesByBodyPart の計算ロジックを削除
 
   useEffect(() => {
     const loadExercises = async () => {
@@ -174,10 +170,6 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
           bodyPart={selectedPart}
           exercises={filteredExercises}
           maxWeights={maxWeights}
-          // ▼ 追加: 最終トレーニング日を渡す（BodyPartCard側で対応が必要なら修正するが、今回はprops定義にはないので無視されるか、もし必要ならBodyPartCardも修正）
-          // 現状のBodyPartCard実装ではlastTrainedAtは使われていない（カードリスト表示だけ）ようなので、
-          // 部位ごとの最終日表示が必要なら、BodyPartNavigationなどに渡す必要があるかもしれません。
-          // いったんここでは計算ロジックの統合のみ完了しています。
           onExerciseSelect={handleExerciseSelect}
           onAddExerciseClick={handleAddExerciseClick}
         />
