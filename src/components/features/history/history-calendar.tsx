@@ -5,7 +5,6 @@ import { format, isSameMonth, isSameDay } from "date-fns";
 import { ja } from "date-fns/locale";
 import { DayButton } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
 import { cn, isFutureDate } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
 import MultiPartDayButton from "./multi-part-day-button";
@@ -26,7 +25,7 @@ interface HistoryCalendarProps {
 const CustomDayButton = React.memo(
   ({
     day,
-    // modifiers は未使用のため削除して警告回避
+    // modifiers は使用しないため削除
     bodyParts,
     isSelected,
     onDateSelect,
@@ -47,34 +46,21 @@ const CustomDayButton = React.memo(
       onDateSelect(date);
     };
 
-    // 1. 現在の月以外は薄く表示（ポインターイベント無効化）
+    // ▼ 修正箇所: 現在の月以外は非表示にする
+    // invisible を指定することで、スペースは確保しつつ姿を消す（レイアウト崩れ防止）
     if (!isCurrentMonth) {
-      return (
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            buttonSizeClass,
-            "min-w-0 opacity-30 cursor-default hover:bg-transparent",
-            props.className
-          )}
-          {...props}
-        >
-          {date.getDate()}
-        </Button>
-      );
+      return <div className={cn(buttonSizeClass, "invisible")} />;
     }
 
-    // 2. 単一部位の場合は、4つに複製してグリッド全体を埋める配列を作成
-    // これにより、1種目だけの日は「全塗り」に見えるようになる
-    let partsToRender = bodyParts;
-    if (bodyParts.length === 1) {
-      const p = bodyParts[0];
-      partsToRender = [p, p, p, p];
-    }
+    // 2. 記録の有無に関わらず、すべて MultiPartDayButton で統一して描画
+    // 記録がない日も「透明なグリッド」として同じサイズ・挙動になる
 
-    // 3. 記録の有無に関わらず、すべて MultiPartDayButton で統一して描画
-    // 記録がない場合は空配列が渡され、MultiPartDayButton側で空グリッド（透明）として描画される
+    // 単一部位の場合の処理 ("all" の扱いなど)
+    const partsToRender = bodyParts;
+
+    // もし単一部位で "all" だった場合、特定の処理が必要なければそのまま渡す
+    // ここでは統一感のため、特別な分岐を削除し、全てMultiPartDayButtonに委ねます
+
     return (
       <MultiPartDayButton
         date={date}
@@ -111,12 +97,8 @@ function HistoryCalendar({
     (date: Date) => {
       const dateStr = format(date, "yyyy-MM-dd");
       const parts = bodyPartsByDate[dateStr] || [];
-
       if (filteredBodyPart === "all") return parts;
-
-      // フィルター選択時は、その部位が含まれているかチェックし、
-      // 含まれていれば「その部位だけ」を返す（＝カレンダー上はその色一色になる）
-      return parts.includes(filteredBodyPart) ? [filteredBodyPart] : [];
+      return parts.includes(filteredBodyPart) ? parts : [];
     },
     [bodyPartsByDate, filteredBodyPart]
   );
@@ -169,7 +151,7 @@ function HistoryCalendar({
           day: "h-[var(--cell-size)] w-[var(--cell-size)] p-0 font-normal aria-selected:opacity-100",
         }}
         // サイズ指定
-        // スマホ: 3rem (48px), タブレット以上: 3.5rem (56px)
+        // スマホ: 3.4rem, タブレット以上: 3.5rem
         className="rounded-xl border bg-card shadow-sm w-auto inline-block [--cell-size:3.4rem] sm:[--cell-size:3.5rem] p-3"
       />
     </div>
