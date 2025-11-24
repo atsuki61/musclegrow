@@ -26,7 +26,7 @@ interface HistoryCalendarProps {
 const CustomDayButton = React.memo(
   ({
     day,
-    modifiers,
+    // modifiers は使用しないため削除
     bodyParts,
     isSelected,
     onDateSelect,
@@ -39,41 +39,15 @@ const CustomDayButton = React.memo(
     isCurrentMonth: boolean;
   }) => {
     const date = day.date;
-    const isToday = modifiers?.today ?? false;
+
+    // 親セル(td)のサイズに追従させるクラス
+    const buttonSizeClass = "h-full w-full";
 
     const handleClick = () => {
       onDateSelect(date);
     };
 
-    // ボタンのサイズ（親のセルサイズに追従させるため h-full w-full）
-    const buttonSizeClass = "h-full w-full";
-
-    // 記録がない日のボタン描画
-    const renderPlainDayButton = (onClick?: () => void) => (
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onClick}
-        className={cn(
-          buttonSizeClass,
-          "min-w-0 font-normal transition-all duration-200 rounded-md",
-          // 選択時のスタイル
-          isSelected
-            ? "bg-primary text-primary-foreground hover:bg-primary opacity-100 shadow-md scale-105 font-bold ring-0"
-            : "hover:bg-muted/50",
-          // 今日のスタイル
-          !isSelected &&
-            isToday &&
-            "bg-muted/50 text-foreground font-bold border border-border",
-          props.className
-        )}
-        {...props}
-      >
-        {date.getDate()}
-      </Button>
-    );
-
-    // 現在の月以外は薄く表示
+    // 1. 現在の月以外は薄く表示（ポインターイベント無効化）
     if (!isCurrentMonth) {
       return (
         <Button
@@ -91,38 +65,23 @@ const CustomDayButton = React.memo(
       );
     }
 
-    // 記録なし
-    if (bodyParts.length === 0) {
-      return renderPlainDayButton(handleClick);
-    }
+    // 2. 記録の有無に関わらず、すべて MultiPartDayButton で統一して描画
+    // これにより、記録がない日も「透明なグリッド」として同じサイズ・挙動になる
 
-    // 複数部位（MultiPartDayButton）
-    if (bodyParts.length > 1) {
-      return (
-        <MultiPartDayButton
-          date={date}
-          bodyParts={bodyParts}
-          isSelected={!!isSelected}
-          onClick={handleClick}
-          className={cn(buttonSizeClass, props.className)}
-        />
-      );
-    }
+    // 単一部位の場合の処理 ("all" の扱いなど)
+    const partsToRender = bodyParts;
 
-    // 単一部位
-    const bodyPart = bodyParts[0];
-    if (bodyPart === "all") {
-      return renderPlainDayButton(handleClick);
-    }
+    // もし単一部位で "all" だった場合、特定の処理が必要なければそのまま渡す
+    // ここでは統一感のため、特別な分岐を削除し、全てMultiPartDayButtonに委ねます
 
     return (
       <MultiPartDayButton
         date={date}
-        bodyParts={[bodyPart, bodyPart]}
+        bodyParts={partsToRender}
         isSelected={!!isSelected}
         onClick={handleClick}
+        // h-full w-full を渡して親セルいっぱいに広げる
         className={cn(buttonSizeClass, props.className)}
-        {...props}
       />
     );
   }
@@ -181,31 +140,32 @@ function HistoryCalendar({
             />
           ),
         }}
-        // ▼ 修正: セル自体のスタイルも上書きして高さを確保する
         classNames={{
           today: "",
 
-          // テーブル全体のレイアウト
+          // 月の表示サイズ
+          caption_label: "text-xl font-bold",
+
+          // テーブルレイアウト
           table: "w-full border-collapse space-y-1",
 
-          // 曜日ヘッダーのセルサイズも合わせる
-          head_row: "flex",
+          // 曜日ヘッダー
+          head_row: "flex mb-2",
           head_cell:
-            "text-muted-foreground rounded-md w-[var(--cell-size)] font-normal text-[0.8rem]",
+            "text-muted-foreground rounded-md w-[var(--cell-size)] font-normal text-[0.8rem] flex items-center justify-center flex-none",
 
           // 日付行
           row: "flex w-full mt-2",
 
-          // ★重要★: セル自体にサイズ変数を適用して高さを確保
-          cell: "h-[var(--cell-size)] w-[var(--cell-size)] text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+          // セル: サイズ固定 + Flex制御なし (flex-none) でサイズを死守
+          cell: "h-[var(--cell-size)] w-[var(--cell-size)] flex-none text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
 
-          // デフォルトのボタンクラス（CustomDayButtonで上書きされるが念のため）
+          // デフォルトボタン
           day: "h-[var(--cell-size)] w-[var(--cell-size)] p-0 font-normal aria-selected:opacity-100",
         }}
-        // CSS変数でサイズを指定
-        // スマホ: 2.8rem (約45px), タブレット以上: 3.5rem (56px)
-        // w-auto inline-block にして中身にフィットさせる
-        className="rounded-xl border bg-card shadow-sm w-auto inline-block [--cell-size:2.8rem] sm:[--cell-size:3.5rem] p-3"
+        // サイズ指定
+        // スマホ: 3rem (48px), タブレット以上: 3.5rem (56px)
+        className="rounded-xl border bg-card shadow-sm w-auto inline-block [--cell-size:3.5rem] sm:[--cell-size:3.5rem] p-3"
       />
     </div>
   );
