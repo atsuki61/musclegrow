@@ -26,7 +26,7 @@ interface HistoryCalendarProps {
 const CustomDayButton = React.memo(
   ({
     day,
-    // modifiers は使用しないため削除
+    // modifiers は未使用のため削除して警告回避
     bodyParts,
     isSelected,
     onDateSelect,
@@ -65,15 +65,16 @@ const CustomDayButton = React.memo(
       );
     }
 
-    // 2. 記録の有無に関わらず、すべて MultiPartDayButton で統一して描画
-    // これにより、記録がない日も「透明なグリッド」として同じサイズ・挙動になる
+    // 2. 単一部位の場合は、4つに複製してグリッド全体を埋める配列を作成
+    // これにより、1種目だけの日は「全塗り」に見えるようになる
+    let partsToRender = bodyParts;
+    if (bodyParts.length === 1) {
+      const p = bodyParts[0];
+      partsToRender = [p, p, p, p];
+    }
 
-    // 単一部位の場合の処理 ("all" の扱いなど)
-    const partsToRender = bodyParts;
-
-    // もし単一部位で "all" だった場合、特定の処理が必要なければそのまま渡す
-    // ここでは統一感のため、特別な分岐を削除し、全てMultiPartDayButtonに委ねます
-
+    // 3. 記録の有無に関わらず、すべて MultiPartDayButton で統一して描画
+    // 記録がない場合は空配列が渡され、MultiPartDayButton側で空グリッド（透明）として描画される
     return (
       <MultiPartDayButton
         date={date}
@@ -110,8 +111,12 @@ function HistoryCalendar({
     (date: Date) => {
       const dateStr = format(date, "yyyy-MM-dd");
       const parts = bodyPartsByDate[dateStr] || [];
+
       if (filteredBodyPart === "all") return parts;
-      return parts.includes(filteredBodyPart) ? parts : [];
+
+      // フィルター選択時は、その部位が含まれているかチェックし、
+      // 含まれていれば「その部位だけ」を返す（＝カレンダー上はその色一色になる）
+      return parts.includes(filteredBodyPart) ? [filteredBodyPart] : [];
     },
     [bodyPartsByDate, filteredBodyPart]
   );
@@ -165,7 +170,7 @@ function HistoryCalendar({
         }}
         // サイズ指定
         // スマホ: 3rem (48px), タブレット以上: 3.5rem (56px)
-        className="rounded-xl border bg-card shadow-sm w-auto inline-block [--cell-size:3.5rem] sm:[--cell-size:3.5rem] p-3"
+        className="rounded-xl border bg-card shadow-sm w-auto inline-block [--cell-size:3.4rem] sm:[--cell-size:3.5rem] p-3"
       />
     </div>
   );
