@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { cn, isCardioExercise } from "@/lib/utils";
 import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
@@ -28,12 +29,21 @@ export function BodyPartCard({
 }: BodyPartCardProps) {
   const initialExercises = filterInitialExercises(exercises);
 
+  // ハイドレーションエラー対策: クライアントサイドでのみMAX重量を表示する
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <div className="space-y-4">
       {/* 3列グリッドレイアウト */}
       <div className="grid grid-cols-3 gap-3">
         {initialExercises.map((exercise) => {
-          const maxWeight = maxWeights[exercise.id];
+          // マウントされるまでは maxWeights を参照せず undefined (表示なし) にする
+          const maxWeight = isMounted ? maxWeights[exercise.id] : undefined;
+
           const isCardio = isCardioExercise(exercise);
           // サブ部位ラベル
           const subGroupLabel = exercise.muscleSubGroup
@@ -55,17 +65,27 @@ export function BodyPartCard({
 
               {/* MAX重量バッジ (右上) */}
               {!isCardio && (
-                <div className="relative z-10 w-full flex justify-end">
-                  <span
-                    className={cn(
-                      "inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-md shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-105",
-                      maxWeight
-                        ? "bg-orange-100 text-orange-700 border border-orange-200"
-                        : "bg-muted text-muted-foreground/60 border border-border"
-                    )}
-                  >
-                    {maxWeight ? `${maxWeight}kg` : "-"}
-                  </span>
+                <div className="relative z-10 w-full flex justify-end h-5">
+                  {/* マウント前は何も表示しないか、あるいはダミーを表示してレイアウトシフトを防ぐ */}
+                  {/* ここでは「値がある場合のみ表示」するロジックなので、マウント前は非表示でOK */}
+                  {isMounted && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-md shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-105",
+                        maxWeight
+                          ? "bg-orange-100 text-orange-700 border border-orange-200"
+                          : "bg-muted text-muted-foreground/60 border border-border"
+                      )}
+                    >
+                      {maxWeight ? `${maxWeight}kg` : "-"}
+                    </span>
+                  )}
+                  {/* マウント前のプレースホルダー（高さを確保してガタつきを防ぐならこれを入れる） */}
+                  {!isMounted && (
+                    <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-muted text-transparent border border-border opacity-30">
+                      -
+                    </span>
+                  )}
                 </div>
               )}
 
