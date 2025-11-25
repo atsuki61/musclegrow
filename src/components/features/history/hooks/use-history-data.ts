@@ -7,6 +7,7 @@ import {
 } from "@/lib/api";
 import { getBodyPartsByDateRangeFromStorage } from "@/lib/local-storage-history";
 import { getSessionDetailsFromStorage } from "@/lib/local-storage-session-details";
+import { shouldUseDbOnly } from "@/lib/data-source";
 import type {
   Exercise,
   BodyPart,
@@ -124,6 +125,9 @@ export function useHistoryData(
   const loadBodyPartsByDate = useCallback(
     async (currentMonth: Date) => {
       try {
+        // DBのみ参照すべきか判定（ログイン済み＋移行完了の場合true）
+        const useDbOnly = shouldUseDbOnly(userId);
+
         const start = startOfMonth(currentMonth);
         const end = endOfMonth(currentMonth);
 
@@ -132,23 +136,22 @@ export function useHistoryData(
           endDate: format(end, "yyyy-MM-dd"),
         };
 
-        // API と localStorage を並列
-        const [dbResult] = await Promise.all([
-          getBodyPartsByDateRange(userId, monthRange),
-        ]);
-
+        // APIから取得
+        const dbResult = await getBodyPartsByDateRange(userId, monthRange);
         const dbBodyParts = dbResult.success ? dbResult.data ?? {} : {};
 
-        // localStorage
-        const storageBodyParts = getBodyPartsByDateRangeFromStorage({
-          startDate: new Date(monthRange.startDate + "T00:00:00"),
-          endDate: new Date(monthRange.endDate + "T23:59:59"),
-        });
-
-        // useMemo化でレンダリング負荷を削減
-        const merged = mergeBodyParts(dbBodyParts, storageBodyParts);
-
-        setBodyPartsByDate(merged);
+        if (useDbOnly) {
+          // DBのみモード: ローカルストレージを参照しない（パフォーマンス向上）
+          setBodyPartsByDate(dbBodyParts);
+        } else {
+          // 従来モード: ローカルストレージとマージ
+          const storageBodyParts = getBodyPartsByDateRangeFromStorage({
+            startDate: new Date(monthRange.startDate + "T00:00:00"),
+            endDate: new Date(monthRange.endDate + "T23:59:59"),
+          });
+          const merged = mergeBodyParts(dbBodyParts, storageBodyParts);
+          setBodyPartsByDate(merged);
+        }
       } catch (e) {
         console.error("部位一覧取得エラー:", e);
       }
@@ -163,12 +166,13 @@ export function useHistoryData(
     async (date: Date) => {
       setIsLoading(true);
       try {
+        // DBのみ参照すべきか判定（ログイン済み＋移行完了の場合true）
+        const useDbOnly = shouldUseDbOnly(userId);
+
         const dateStr = format(date, "yyyy-MM-dd");
 
-        const [sessionResult, storageDetails] = await Promise.all([
-          getWorkoutSession(userId, dateStr),
-          Promise.resolve(getSessionDetailsFromStorage({ date })),
-        ]);
+        // DBから取得
+        const sessionResult = await getWorkoutSession(userId, dateStr);
 
         let dbDetails = null;
         let dbNote: string | null = null;
@@ -182,25 +186,39 @@ export function useHistoryData(
 
           if (details.success && details.data) {
             dbDetails = details.data;
-
-            // undefinedをnullに変換することで、nullとundefinedを区別できる
             dbNote = sessionResult.data.note ?? null;
             dbDurationMinutes = sessionResult.data.durationMinutes ?? null;
           }
         }
 
-        // useMemo化したpure functionでのマージ
-        const merged = mergeSessionDetails(dbDetails, storageDetails);
-
-        if (merged) {
-          setSessionDetails({
-            ...merged,
-            date,
-            note: dbNote,
-            durationMinutes: dbDurationMinutes,
-          });
+        if (useDbOnly) {
+          // DBのみモード: ローカルストレージを参照しない（パフォーマンス向上）
+          if (dbDetails) {
+            setSessionDetails({
+              workoutExercises: dbDetails.workoutExercises,
+              cardioExercises: dbDetails.cardioExercises,
+              date,
+              note: dbNote,
+              durationMinutes: dbDurationMinutes,
+            });
+          } else {
+            setSessionDetails(null);
+          }
         } else {
-          setSessionDetails(null);
+          // 従来モード: ローカルストレージとマージ
+          const storageDetails = getSessionDetailsFromStorage({ date });
+          const merged = mergeSessionDetails(dbDetails, storageDetails);
+
+          if (merged) {
+            setSessionDetails({
+              ...merged,
+              date,
+              note: dbNote,
+              durationMinutes: dbDurationMinutes,
+            });
+          } else {
+            setSessionDetails(null);
+          }
         }
       } catch (e) {
         console.error("セッション詳細取得エラー:", e);
