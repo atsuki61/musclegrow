@@ -73,7 +73,7 @@ export function BodyPartCard({
                       className={cn(
                         "inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-md shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-105",
                         maxWeight
-                          ? "bg-orange-100 text-orange-700 border border-orange-200"
+                          ? "bg-orange-100 text-primary border border-orange-200"
                           : "bg-muted text-muted-foreground/60 border border-border"
                       )}
                     >
