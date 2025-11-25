@@ -12,17 +12,15 @@ import { formatDateToYYYYMMDD } from "@/lib/utils";
 import { useAuthSession } from "@/lib/auth-session-context";
 
 /**
- * ローカルストレージのキーを生成（有酸素種目用）
- * 日付と種目IDを組み合わせて一意のキーを作成
- * ローカルタイムゾーン（日本時間）で日付を取得
+ * ローカルストレージのキーを生成
  */
 const getStorageKey = (date: Date, exerciseId: string): string => {
-  const dateStr = formatDateToYYYYMMDD(date); // YYYY-MM-DD形式（ローカルタイムゾーン）
+  const dateStr = formatDateToYYYYMMDD(date);
   return `cardio_${dateStr}_${exerciseId}`;
 };
 
 /**
- * ローカルストレージから有酸素種目の記録を取得
+ * ローカルストレージから有酸素記録を取得
  */
 const loadCardioRecordsFromStorage = (
   date: Date,
@@ -48,8 +46,7 @@ const loadCardioRecordsFromStorage = (
 };
 
 /**
- * ローカルストレージに有酸素種目の記録を保存
- * 外部からも使用可能にするためエクスポート
+ * ローカルストレージに有酸素記録を保存
  */
 export const saveCardioRecordsToStorage = (
   date: Date,
@@ -60,19 +57,15 @@ export const saveCardioRecordsToStorage = (
 
   try {
     const key = getStorageKey(date, exerciseId);
-    // 空の記録（時間0、距離0のみ）は保存しない
     const hasValidData = records.some(
       (record) =>
         record.duration > 0 ||
         (record.distance ?? 0) > 0 ||
-        (record.calories ?? 0) > 0 ||
-        (record.heartRate ?? 0) > 0 ||
-        (record.incline ?? 0) > 0
+        (record.calories ?? 0) > 0
     );
     if (hasValidData) {
       localStorage.setItem(key, JSON.stringify(records));
     } else {
-      // 無効なデータの場合は削除
       localStorage.removeItem(key);
     }
   } catch (error) {
@@ -81,7 +74,7 @@ export const saveCardioRecordsToStorage = (
 };
 
 /**
- * ローカルストレージから有酸素種目の記録を削除
+ * ローカルストレージから有酸素記録を削除
  */
 const removeCardioRecordsFromStorage = (
   date: Date,
@@ -98,20 +91,12 @@ const removeCardioRecordsFromStorage = (
 };
 
 interface UseCardioSessionOptions {
-  /** 日付 */
   date: Date;
-  /** 種目ID */
   exerciseId: string | null;
-  /** モーダルが開いているかどうか */
   isOpen: boolean;
-  /** 初期記録を作成する関数（オプション） */
   createInitialRecord?: () => CardioRecord;
 }
 
-/**
- * 有酸素種目セッション管理フック
- * ローカルストレージを使用して有酸素種目の記録を保存・読み込み
- */
 export function useCardioSession({
   date,
   exerciseId,
@@ -119,24 +104,20 @@ export function useCardioSession({
   createInitialRecord,
 }: UseCardioSessionOptions) {
   const { userId } = useAuthSession();
+
+  // ▼ 修正: 初期値は空配列（同期的なlocalStorageアクセスを避けるため）
   const [records, setRecords] = useState<CardioRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  // 前回の日付と種目IDを追跡（日付変更時の自動保存用）
+  const [isLoaded, setIsLoaded] = useState(false);
+
   const previousDateRef = useRef<Date>(date);
   const previousExerciseIdRef = useRef<string | null>(exerciseId);
 
-  // 日付文字列をメモ化（useEffectの依存配列で使用）
   const dateStr = useMemo(() => formatDateToYYYYMMDD(date), [date]);
 
-  /**
-   * 記録を更新し、ローカルストレージにも即座に保存する
-   * この関数を使うことで、削除時にも確実にローカルストレージが更新される
-   */
   const updateRecords = useCallback(
     (
-      newRecords:
-        | CardioRecord[]
-        | ((prev: CardioRecord[]) => CardioRecord[])
+      newRecords: CardioRecord[] | ((prev: CardioRecord[]) => CardioRecord[])
     ) => {
       setRecords((prevRecords) => {
         const updatedRecords =
@@ -144,7 +125,6 @@ export function useCardioSession({
             ? newRecords(prevRecords)
             : newRecords;
 
-        // ローカルストレージに即座に保存
         if (exerciseId) {
           saveCardioRecordsToStorage(date, exerciseId, updatedRecords);
         }
@@ -155,10 +135,6 @@ export function useCardioSession({
     [date, exerciseId]
   );
 
-  /**
-   * 有酸素種目の記録を読み込む
-   * データベースから取得を試み、失敗した場合はローカルストレージから取得
-   */
   const loadRecords = useCallback(async () => {
     if (!exerciseId || !isOpen) {
       setRecords([]);
@@ -167,13 +143,11 @@ export function useCardioSession({
 
     setIsLoading(true);
 
-    // まずデータベースから取得を試みる
     try {
-      const dateStr = formatDateToYYYYMMDD(date); // YYYY-MM-DD形式（ローカルタイムゾーン）
+      const dateStr = formatDateToYYYYMMDD(date);
       const sessionResult = await getWorkoutSession(userId, dateStr);
 
       if (sessionResult.success && sessionResult.data) {
-        // セッションが存在する場合、有酸素記録を取得
         const recordsResult = await getCardioRecordsFromAPI(userId, {
           sessionId: sessionResult.data.id,
           exerciseId,
@@ -184,21 +158,14 @@ export function useCardioSession({
           recordsResult.data &&
           recordsResult.data.length > 0
         ) {
-          // データベースから取得できた場合
-          // セッションの日付を各記録に設定
-          const recordsWithDate = recordsResult.data.map((record) => ({
-            ...record,
-            date: new Date(sessionResult.data!.date),
-          }));
-          setRecords(recordsWithDate);
-          // ローカルストレージにも同期（オフライン対応）
-          saveCardioRecordsToStorage(date, exerciseId, recordsWithDate);
+          setRecords(recordsResult.data);
+          saveCardioRecordsToStorage(date, exerciseId, recordsResult.data);
           setIsLoading(false);
+          setIsLoaded(true);
           return;
         }
       }
     } catch (error) {
-      // データベース取得エラーは無視してローカルストレージから取得
       if (process.env.NODE_ENV === "development") {
         console.warn(
           "データベースからの取得に失敗、ローカルストレージから取得:",
@@ -207,43 +174,34 @@ export function useCardioSession({
       }
     }
 
-    // データベースから取得できなかった場合、ローカルストレージから取得
     const loaded = loadCardioRecordsFromStorage(date, exerciseId);
     if (loaded && loaded.length > 0) {
       setRecords(loaded);
     } else {
-      // 保存済みデータがない場合、初期記録を作成（指定されている場合）
+      // ▼ 修正: データがない場合、初期記録作成関数があればそれを使う
       if (createInitialRecord) {
         setRecords([createInitialRecord()]);
       } else {
         setRecords([]);
       }
     }
-    setIsLoading(false);
-  }, [date, exerciseId, isOpen, createInitialRecord, userId]);
 
-  /**
-   * 有酸素種目の記録を保存する
-   * ローカルストレージに即座に保存し、認証済みの場合はデータベースにも保存
-   */
+    setIsLoading(false);
+    setIsLoaded(true);
+  }, [date, exerciseId, isOpen, userId, createInitialRecord]); // 依存配列に追加
   const saveRecords = useCallback(
     async (recordsToSave: CardioRecord[]) => {
       if (!exerciseId) return;
 
-      // 1. ローカルストレージに即座に保存（既存の動作を維持）
       saveCardioRecordsToStorage(date, exerciseId, recordsToSave);
 
-      // 2. データベースにも保存を試みる（非同期、エラー時はログのみ）
       try {
-        const dateStr = formatDateToYYYYMMDD(date); // YYYY-MM-DD形式（ローカルタイムゾーン）
-
-        // セッションを保存または取得
+        const dateStr = formatDateToYYYYMMDD(date);
         const sessionResult = await saveWorkoutSession(userId, {
           date: dateStr,
         });
 
         if (sessionResult.success && sessionResult.data) {
-          // 有酸素記録を保存
           await saveCardioRecordsToAPI(userId, {
             sessionId: sessionResult.data.id,
             exerciseId,
@@ -251,7 +209,6 @@ export function useCardioSession({
           });
         }
       } catch (error) {
-        // データベース保存エラーはログのみ（ローカルストレージは保存済み）
         if (process.env.NODE_ENV === "development") {
           console.warn(
             "データベースへの保存に失敗（ローカルストレージは保存済み）:",
@@ -260,43 +217,30 @@ export function useCardioSession({
         }
       }
 
-      // 3. 記録更新イベントを発行（グラフページなどで再取得をトリガー）
       if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("workout-record-updated", {
-          detail: { exerciseId, date: formatDateToYYYYMMDD(date) },
-        }));
+        window.dispatchEvent(
+          new CustomEvent("workout-record-updated", {
+            detail: { exerciseId, date: formatDateToYYYYMMDD(date) },
+          })
+        );
       }
     },
     [date, exerciseId, userId]
   );
 
-  /**
-   * 有酸素種目の記録を削除する
-   */
   const removeRecords = useCallback(() => {
     if (!exerciseId) return;
-
     removeCardioRecordsFromStorage(date, exerciseId);
     setRecords([]);
   }, [date, exerciseId]);
 
-  // recordsの最新値を保持するref（日付変更時の保存用）
   const recordsRef = useRef<CardioRecord[]>(records);
-  
-  /**
-   * 外部リソース（メモリ内のref）との同期
-   * recordsの最新値をrefに保持し、日付変更時の保存で使用
-   */
+
   useEffect(() => {
     recordsRef.current = records;
   }, [records]);
 
-  /**
-   * 外部リソース（ローカルストレージ、データベース）との同期
-   * 日付または種目が変更された時に、前回のデータを自動保存
-   */
   useEffect(() => {
-    // 日付または種目が変更された場合
     const dateChanged = previousDateRef.current.getTime() !== date.getTime();
     const exerciseChanged = previousExerciseIdRef.current !== exerciseId;
 
@@ -306,18 +250,15 @@ export function useCardioSession({
       previousExerciseIdRef.current &&
       recordsRef.current.length > 0
     ) {
-      // 前回の日付と種目IDでデータを保存（ローカルストレージ）
       saveCardioRecordsToStorage(
         previousDateRef.current,
         previousExerciseIdRef.current,
         recordsRef.current
       );
 
-      // データベースにも保存を試みる（非同期、エラー時はログのみ）
-      // 前回の日付でセッションを取得または作成してから保存
       (async () => {
         try {
-          const previousDateStr = formatDateToYYYYMMDD(previousDateRef.current); // YYYY-MM-DD形式（ローカルタイムゾーン）
+          const previousDateStr = formatDateToYYYYMMDD(previousDateRef.current);
           const sessionResult = await saveWorkoutSession(userId, {
             date: previousDateStr,
           });
@@ -337,31 +278,27 @@ export function useCardioSession({
       })();
     }
 
-    // 参照を更新
     previousDateRef.current = date;
     previousExerciseIdRef.current = exerciseId;
   }, [date, exerciseId, isOpen, userId]);
 
-  /**
-   * 外部リソース（ローカルストレージ、データベース）との同期
-   * モーダルが開いた時、または日付・種目が変更された時にデータを読み込む
-   */
   useEffect(() => {
     if (isOpen && exerciseId) {
       loadRecords();
     } else if (!isOpen) {
-      // モーダルが閉じられた時はリセット
       setRecords([]);
+      setIsLoaded(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, exerciseId, dateStr]);
 
   return {
     records,
-    setRecords: updateRecords, // updateRecordsを返すことで、自動的にローカルストレージに保存される
+    setRecords: updateRecords,
     isLoading,
     saveRecords,
     removeRecords,
     loadRecords,
+    isLoaded, // 追加
   };
 }

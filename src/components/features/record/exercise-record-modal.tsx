@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,11 +30,19 @@ import {
   validateItems,
 } from "@/lib/validations";
 
+// usePreviousRecordフックが返すデータの型定義
+type PreviousRecordData =
+  | { type: "workout"; sets: SetRecord[]; date: Date }
+  | { type: "cardio"; records: CardioRecord[]; date: Date }
+  | null;
+
 interface ExerciseRecordModalProps {
   exercise: Exercise | null;
   isOpen: boolean;
   onClose: () => void;
   date: Date;
+  // 修正: any を廃止し、具体的な型定義を適用
+  prefetchedPreviousRecord?: PreviousRecordData;
 }
 
 export default function ExerciseRecordModal({
@@ -42,12 +50,18 @@ export default function ExerciseRecordModal({
   isOpen,
   onClose,
   date,
+  prefetchedPreviousRecord,
 }: ExerciseRecordModalProps) {
   const isCardio = exercise ? isCardioExercise(exercise) : false;
   const [activeTab, setActiveTab] = useState("record");
 
-  const { record: previousRecord, isLoading: isPreviousLoading } =
+  const { record: fetchedPreviousRecord, isLoading: isPreviousLoading } =
     usePreviousRecord(date, exercise);
+
+  // 優先順位: フェッチ完了データ > プリフェッチデータ
+  const previousRecord = fetchedPreviousRecord || prefetchedPreviousRecord;
+  // プリフェッチデータがあればローディング表示をスキップ
+  const isLoading = isPreviousLoading && !prefetchedPreviousRecord;
 
   // 初期セット作成ロジック
   const createInitialSet = (): SetRecord => {
@@ -87,6 +101,26 @@ export default function ExerciseRecordModal({
     isOpen,
     createInitialRecord: isCardio ? createInitialCardioRecord : undefined,
   });
+
+  // モーダルが開いたとき、セットが空ならデフォルトで3セット追加
+  useEffect(() => {
+    if (isOpen && !isCardio && sets.length === 0 && exercise) {
+      const isTimeBased = isTimeBasedExercise(exercise);
+      const initialSets: SetRecord[] = Array.from({ length: 3 }).map(
+        (_, i) => ({
+          id: nanoid(),
+          setOrder: i + 1,
+          weight: undefined,
+          reps: 0,
+          duration: isTimeBased ? 0 : undefined,
+          isWarmup: false,
+          failure: false,
+        })
+      );
+      setSets(initialSets);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleClose = () => {
     if (!exercise) {
@@ -142,7 +176,6 @@ export default function ExerciseRecordModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      {/* h-[85vh] -> h-[90dvh] に変更し、スマホのアドレスバー考慮 */}
       <DialogContent className="w-full max-w-lg h-[95dvh] sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl border-0 sm:border">
         {/* 1. ヘッダーエリア */}
         <div className="bg-background border-b px-4 py-3 flex items-center justify-between shrink-0 z-10 shadow-sm">
@@ -207,13 +240,12 @@ export default function ExerciseRecordModal({
           </div>
 
           {/* 3. メインコンテンツ */}
-          {/* ScrollAreaのコンテナ設定を修正してスクロール可能に */}
           <div className="flex-1 min-h-0 relative">
             <ScrollArea className="h-full w-full">
               <div className="p-4 pb-4">
                 <TabsContent value="record" className="mt-0 space-y-4">
                   {/* 前回記録 */}
-                  {isPreviousLoading ? (
+                  {isLoading ? (
                     <div className="bg-muted/20 rounded-xl p-3 text-center text-xs text-muted-foreground">
                       前回記録を読み込み中...
                     </div>

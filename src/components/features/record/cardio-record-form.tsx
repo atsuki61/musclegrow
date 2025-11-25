@@ -52,7 +52,7 @@ function CardioRecordRow({
       ref={recordRowRef}
       className="group relative animate-in fade-in slide-in-from-bottom-2 duration-300"
     >
-      <div className="flex flex-col gap-2 py-2">
+      <div className="flex flex-col gap-2 py-1">
         {/* メイン入力 (時間 x 距離) */}
         <div className="flex items-center gap-2">
           {/* 時間 */}
@@ -67,7 +67,7 @@ function CardioRecordRow({
                   parseNumber(e.target.value)
                 )
               }
-              // コンパクト化
+              // コンパクト化: h-14 -> h-10, text-xl -> text-lg
               className="h-10 text-center text-lg font-bold bg-muted/30 border-transparent focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all rounded-lg pr-8"
               placeholder="0"
             />
@@ -163,7 +163,7 @@ function CardioRecordRow({
         </div>
       </div>
 
-      {!isLast && <Separator className="my-3 opacity-50" />}
+      {!isLast && <Separator className="my-2 opacity-30" />}
     </div>
   );
 }
