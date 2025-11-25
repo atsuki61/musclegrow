@@ -9,6 +9,7 @@ import { getBig3ProgressDataFromStorage } from "@/lib/local-storage-big3-progres
 import { getExerciseProgressDataFromStorage } from "@/lib/local-storage-exercise-progress";
 import { identifyBig3Exercises, mergeProgressData } from "@/lib/utils/stats";
 import { useAuthSession } from "@/lib/auth-session-context";
+import { shouldUseDbOnly } from "@/lib/data-source";
 import type {
   DateRangePreset,
   ExerciseProgressData,
@@ -76,6 +77,9 @@ export function useTrainingStats({
     setLoading(true);
 
     try {
+      // DBのみ参照すべきか判定（ログイン済み＋移行完了の場合true）
+      const useDbOnly = shouldUseDbOnly(userId);
+
       // データベースから取得
       const dbResult = await getBig3ProgressData(userId, { preset: trainingDateRange });
 
@@ -84,41 +88,51 @@ export function useTrainingStats({
       const { benchPressId, squatId, deadliftId } =
         identifyBig3Exercises(big3Exercises);
 
-      // ローカルストレージから取得
-      const storageData = getBig3ProgressDataFromStorage({
-        preset: trainingDateRange,
-        big3ExerciseIds: {
-          benchPressId,
-          squatId,
-          deadliftId,
-        },
-      });
+      // DBデータを取得
+      const dbBenchPress = dbResult.success && dbResult.data ? dbResult.data.benchPress : [];
+      const dbSquat = dbResult.success && dbResult.data ? dbResult.data.squat : [];
+      const dbDeadlift = dbResult.success && dbResult.data ? dbResult.data.deadlift : [];
 
-      // データベースとローカルストレージのデータをマージ
-      const mergedData = {
-        benchPress: mergeProgressData(
-          dbResult.success && dbResult.data ? dbResult.data.benchPress : [],
-          storageData.benchPress
-        ),
-        squat: mergeProgressData(
-          dbResult.success && dbResult.data ? dbResult.data.squat : [],
-          storageData.squat
-        ),
-        deadlift: mergeProgressData(
-          dbResult.success && dbResult.data ? dbResult.data.deadlift : [],
-          storageData.deadlift
-        ),
+      let finalData: {
+        benchPress: typeof dbBenchPress;
+        squat: typeof dbSquat;
+        deadlift: typeof dbDeadlift;
       };
+
+      if (useDbOnly) {
+        // DBのみモード: ローカルストレージを参照しない（パフォーマンス向上）
+        finalData = {
+          benchPress: dbBenchPress,
+          squat: dbSquat,
+          deadlift: dbDeadlift,
+        };
+      } else {
+        // 従来モード: ローカルストレージとマージ
+        const storageData = getBig3ProgressDataFromStorage({
+          preset: trainingDateRange,
+          big3ExerciseIds: {
+            benchPressId,
+            squatId,
+            deadliftId,
+          },
+        });
+
+        finalData = {
+          benchPress: mergeProgressData(dbBenchPress, storageData.benchPress),
+          squat: mergeProgressData(dbSquat, storageData.squat),
+          deadlift: mergeProgressData(dbDeadlift, storageData.deadlift),
+        };
+      }
 
       // データがあるBig3種目をexercisesWithDataに追加
       const exerciseIds: string[] = [];
-      if (mergedData.benchPress.length > 0 && benchPressId) {
+      if (finalData.benchPress.length > 0 && benchPressId) {
         exerciseIds.push(benchPressId);
       }
-      if (mergedData.squat.length > 0 && squatId) {
+      if (finalData.squat.length > 0 && squatId) {
         exerciseIds.push(squatId);
       }
-      if (mergedData.deadlift.length > 0 && deadliftId) {
+      if (finalData.deadlift.length > 0 && deadliftId) {
         exerciseIds.push(deadliftId);
       }
       updateExercisesWithData(exerciseIds);
@@ -139,30 +153,37 @@ export function useTrainingStats({
     setLoading(true);
 
     try {
+      // DBのみ参照すべきか判定（ログイン済み＋移行完了の場合true）
+      const useDbOnly = shouldUseDbOnly(userId);
+
       // データベースから取得
       const dbResult = await getExerciseProgressData(userId, {
         exerciseId: selectedExerciseId,
         preset: trainingDateRange,
       });
 
-      // ローカルストレージから取得
-      const storageData = getExerciseProgressDataFromStorage({
-        exerciseId: selectedExerciseId,
-        preset: trainingDateRange,
-      });
+      const dbData = dbResult.success && dbResult.data ? dbResult.data : [];
 
-      // データベースとローカルストレージのデータをマージ
-      const mergedData = mergeProgressData(
-        dbResult.success && dbResult.data ? dbResult.data : [],
-        storageData
-      );
+      let finalData: typeof dbData;
+
+      if (useDbOnly) {
+        // DBのみモード: ローカルストレージを参照しない（パフォーマンス向上）
+        finalData = dbData;
+      } else {
+        // 従来モード: ローカルストレージとマージ
+        const storageData = getExerciseProgressDataFromStorage({
+          exerciseId: selectedExerciseId,
+          preset: trainingDateRange,
+        });
+        finalData = mergeProgressData(dbData, storageData);
+      }
 
       // データがある場合、exercisesWithDataに追加
-      if (mergedData.length > 0) {
+      if (finalData.length > 0) {
         updateExercisesWithData([selectedExerciseId]);
       }
 
-      setExerciseData(mergedData);
+      setExerciseData(finalData);
     } finally {
       setLoading(false);
     }
