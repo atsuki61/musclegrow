@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DateRangeSelector } from "./date-range-selector";
 import { BodyPartSelector } from "./body-part-selector";
@@ -17,7 +17,19 @@ import type {
   ProfileHistoryData,
 } from "@/types/stats";
 import type { Exercise, BodyPart } from "@/types/workout";
-import dynamic from "next/dynamic"; // 追加
+import dynamic from "next/dynamic";
+
+// ダイナミックインポートは維持しつつ、ローディング表示をスケルトンに変更しても良いですが、
+// ここではチラつき防止のために一旦そのままにします。
+const ProfileChart = dynamic(
+  () => import("./profile-chart").then((mod) => mod.ProfileChart),
+  { loading: () => <ChartLoading /> }
+);
+
+const ExerciseChart = dynamic(
+  () => import("./exercise-chart").then((mod) => mod.ExerciseChart),
+  { loading: () => <ChartLoading /> }
+);
 
 const PROFILE_CHART_TYPES: { value: ProfileChartType; label: string }[] = [
   { value: "weight", label: "体重" },
@@ -26,9 +38,6 @@ const PROFILE_CHART_TYPES: { value: ProfileChartType; label: string }[] = [
   { value: "bmi", label: "BMI" },
 ];
 
-/**
- * データなしメッセージコンポーネント
- */
 function EmptyStateMessage({
   title,
   description,
@@ -57,9 +66,6 @@ interface StatsPageProps {
   initialExercisesWithData: string[];
 }
 
-/**
- * グラフページコンポーネント
- */
 export function StatsPage({
   initialProfileHistory,
   initialProfileDateRange,
@@ -68,6 +74,7 @@ export function StatsPage({
   initialExercisesWithData,
 }: StatsPageProps) {
   const { userId } = useAuthSession();
+  const [isPending, startTransition] = useTransition(); // トランジション追加
 
   // タブ状態
   const [activeTab, setActiveTab] = useState<"profile" | "training">("profile");
@@ -78,12 +85,15 @@ export function StatsPage({
   );
   const [profileChartType, setProfileChartType] =
     useState<ProfileChartType>("weight");
+
   const [profileHistory, setProfileHistory] = useState<ProfileHistoryData[]>(
     initialProfileHistory
   );
-  const [profileLoading, setProfileLoading] = useState(false);
-  const initialProfileRangeRef = useRef(initialProfileDateRange);
-  const hasHydratedProfileRef = useRef(false);
+
+  // キャッシュ用のRef
+  const profileCache = useRef<Record<string, ProfileHistoryData[]>>({
+    [initialProfileDateRange]: initialProfileHistory,
+  });
 
   // トレーニングタブの状態
   const [trainingDateRange, setTrainingDateRange] = useState<DateRangePreset>(
@@ -95,10 +105,9 @@ export function StatsPage({
   );
   const [exercises] = useState<Exercise[]>(initialExercises);
 
-  // トレーニング統計データを管理するカスタムフック
   const {
     exerciseData,
-    loading: trainingLoading,
+    loading: trainingLoading, // フック内部のローディング状態
     exercisesWithData,
   } = useTrainingStats({
     exercises,
@@ -107,7 +116,38 @@ export function StatsPage({
     initialExercisesWithData,
   });
 
-  // 初回マウント時にローカルストレージの記録がある種目を自動選択
+  // プロフィール期間変更ハンドラ（キャッシュ活用 & トランジション）
+  const handleProfileDateRangeChange = (range: DateRangePreset) => {
+    startTransition(() => {
+      setProfileDateRange(range);
+
+      // キャッシュにあれば即座にセット
+      if (profileCache.current[range]) {
+        setProfileHistory(profileCache.current[range]);
+      } else {
+        // なければフェッチ（この間 isPending が true になるが、前のデータは表示されたまま）
+        fetchProfileHistory(range);
+      }
+    });
+  };
+
+  async function fetchProfileHistory(range: DateRangePreset) {
+    const result = await getProfileHistory(userId, { preset: range });
+    if (result.success && result.data) {
+      // データを更新しつつキャッシュにも保存
+      setProfileHistory(result.data);
+      profileCache.current[range] = result.data;
+    }
+  }
+
+  // トレーニング期間変更ハンドラ
+  const handleTrainingDateRangeChange = (range: DateRangePreset) => {
+    startTransition(() => {
+      setTrainingDateRange(range);
+    });
+  };
+
+  // 初回マウント時の自動選択（変更なし）
   useEffect(() => {
     if (selectedExerciseId) return;
     const exercisesWithDataFromStorage = getExercisesWithDataFromStorage();
@@ -118,65 +158,16 @@ export function StatsPage({
       setSelectedExerciseId(firstExerciseWithLocalData.id);
       return;
     }
-
     if (initialExercisesWithData.length > 0) {
       const fallback = initialExercisesWithData.find((id) =>
         exercises.some((ex) => ex.id === id)
       );
-      if (fallback) {
-        setSelectedExerciseId(fallback);
-      }
+      if (fallback) setSelectedExerciseId(fallback);
     }
   }, [exercises, initialExercisesWithData, selectedExerciseId]);
 
-  // プロフィール履歴を取得
-  useEffect(() => {
-    if (
-      !hasHydratedProfileRef.current &&
-      profileDateRange === initialProfileRangeRef.current
-    ) {
-      hasHydratedProfileRef.current = true;
-      return;
-    }
-
-    hasHydratedProfileRef.current = true;
-
-    async function fetchProfileHistory() {
-      setProfileLoading(true);
-      const result = await getProfileHistory(userId, {
-        preset: profileDateRange,
-      });
-      if (result.success && result.data) {
-        setProfileHistory(result.data);
-      }
-      setProfileLoading(false);
-    }
-    fetchProfileHistory();
-  }, [profileDateRange, userId]);
-
-  // 選択された種目を取得
   const selectedExercise = exercises.find((ex) => ex.id === selectedExerciseId);
-
-  // データの有無をチェック
   const hasExerciseData = exerciseData.length > 0;
-
-  // 通常のimportを削除し、dynamic importに変更
-  // import { ProfileChart } from "./profile-chart";
-  // import { ExerciseChart } from "./exercise-chart";
-
-  const ProfileChart = dynamic(
-    () => import("./profile-chart").then((mod) => mod.ProfileChart),
-    {
-      loading: () => <ChartLoading />,
-    }
-  );
-
-  const ExerciseChart = dynamic(
-    () => import("./exercise-chart").then((mod) => mod.ExerciseChart),
-    {
-      loading: () => <ChartLoading />,
-    }
-  );
 
   return (
     <div className="container mx-auto px-4 py-4 space-y-4 pb-20">
@@ -197,33 +188,37 @@ export function StatsPage({
         <TabsContent value="profile" className="space-y-4 mt-4">
           <DateRangeSelector
             value={profileDateRange}
-            onChange={setProfileDateRange}
+            onChange={handleProfileDateRangeChange}
           />
 
-          {/* グラフタイプ選択 */}
           <HorizontalNav
             items={PROFILE_CHART_TYPES}
             value={profileChartType}
             onChange={setProfileChartType}
           />
 
-          {/* プロフィールグラフ */}
-          {profileLoading ? (
-            <ChartLoading />
-          ) : (
+          {/* 
+            isPending中はグラフを少し薄くする（opacity-50）ことで、
+            「読み込み中」であることを伝えつつ、ガタつきを防ぐ
+           */}
+          <div
+            className={`transition-opacity duration-300 ${
+              isPending ? "opacity-50" : "opacity-100"
+            }`}
+          >
             <ProfileChart
               data={profileHistory}
               chartType={profileChartType}
               dataCount={profileHistory.length}
             />
-          )}
+          </div>
         </TabsContent>
 
         {/* トレーニングタブ */}
         <TabsContent value="training" className="space-y-4 mt-4">
           <DateRangeSelector
             value={trainingDateRange}
-            onChange={setTrainingDateRange}
+            onChange={handleTrainingDateRangeChange}
           />
 
           <BodyPartSelector
@@ -239,35 +234,29 @@ export function StatsPage({
             onChange={setSelectedExerciseId}
           />
 
-          {/* 種目別グラフ */}
-          {selectedExerciseId && hasExerciseData && (
-            <>
-              {trainingLoading ? (
-                <ChartLoading />
-              ) : (
-                <ExerciseChart
-                  data={exerciseData}
-                  exercise={selectedExercise || null}
-                  dataCount={exerciseData.length}
-                />
-              )}
-            </>
-          )}
-
-          {/* データなしメッセージ */}
-          {!selectedExerciseId && (
-            <EmptyStateMessage
-              title="種目を選択してください"
-              description="記録がある種目から選択できます"
-            />
-          )}
-
-          {selectedExerciseId && !hasExerciseData && (
-            <EmptyStateMessage
-              title="この種目のデータがありません"
-              description="記録を追加すると、ここにグラフが表示されます"
-            />
-          )}
+          <div
+            className={`transition-opacity duration-300 ${
+              isPending || trainingLoading ? "opacity-50" : "opacity-100"
+            }`}
+          >
+            {selectedExerciseId && hasExerciseData ? (
+              <ExerciseChart
+                data={exerciseData}
+                exercise={selectedExercise || null}
+                dataCount={exerciseData.length}
+              />
+            ) : !selectedExerciseId ? (
+              <EmptyStateMessage
+                title="種目を選択してください"
+                description="記録がある種目から選択できます"
+              />
+            ) : (
+              <EmptyStateMessage
+                title="この種目のデータがありません"
+                description="記録を追加すると、ここにグラフが表示されます"
+              />
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
