@@ -34,6 +34,7 @@ export const cachedGetSessionDetails = unstable_cache(
     tags: ["history-session"], // ← 関数 NG。固定配列のみ
   }
 );
+
 /**
  * テーブルが存在しない場合のエラーハンドリングを行う共通関数
  * @param queryFn 実行するクエリ関数
@@ -68,7 +69,6 @@ async function handleTableNotExistsError<T>(
  * @param sessionId ワークアウトセッションID
  * @returns 種目ごとのセット記録と有酸素記録
  */
-
 export async function getSessionDetails(
   userId: string,
   sessionId: string
@@ -102,25 +102,49 @@ export async function getSessionDetails(
     }
 
     // ================================
-    // ① セット記録（無酸素）
+    // セット記録（無酸素）と有酸素記録（cardio）を並列取得
     // ================================
-    const setsData = await db
-      .select({
-        id: sets.id,
-        exerciseId: sets.exerciseId,
-        setOrder: sets.setOrder,
-        weight: sets.weight,
-        reps: sets.reps,
-        rpe: sets.rpe,
-        isWarmup: sets.isWarmup,
-        restSeconds: sets.restSeconds,
-        notes: sets.notes,
-        failure: sets.failure,
-      })
-      .from(sets)
-      .where(eq(sets.sessionId, sessionId))
-      .orderBy(sets.exerciseId, sets.setOrder);
+    const [setsData, cardioData] = await Promise.all([
+      db
+        .select({
+          id: sets.id,
+          exerciseId: sets.exerciseId,
+          setOrder: sets.setOrder,
+          weight: sets.weight,
+          reps: sets.reps,
+          rpe: sets.rpe,
+          isWarmup: sets.isWarmup,
+          restSeconds: sets.restSeconds,
+          notes: sets.notes,
+          failure: sets.failure,
+        })
+        .from(sets)
+        .where(eq(sets.sessionId, sessionId))
+        .orderBy(sets.exerciseId, sets.setOrder),
 
+      handleTableNotExistsError(
+        () =>
+          db
+            .select({
+              id: cardioRecords.id,
+              exerciseId: cardioRecords.exerciseId,
+              duration: cardioRecords.duration,
+              distance: cardioRecords.distance,
+              speed: cardioRecords.speed,
+              calories: cardioRecords.calories,
+              heartRate: cardioRecords.heartRate,
+              incline: cardioRecords.incline,
+              notes: cardioRecords.notes,
+              createdAt: cardioRecords.createdAt,
+            })
+            .from(cardioRecords)
+            .where(eq(cardioRecords.sessionId, sessionId)),
+        [],
+        "cardio_records"
+      ),
+    ]);
+
+    // 整形処理: セット記録
     const workoutExercisesMap = new Map<string, SetRecord[]>();
 
     setsData.forEach((row) => {
@@ -142,30 +166,7 @@ export async function getSessionDetails(
       workoutExercisesMap.set(row.exerciseId, list);
     });
 
-    // ================================
-    // ② 有酸素記録（cardio）
-    // ================================
-    const cardioData = await handleTableNotExistsError(
-      () =>
-        db
-          .select({
-            id: cardioRecords.id,
-            exerciseId: cardioRecords.exerciseId,
-            duration: cardioRecords.duration,
-            distance: cardioRecords.distance,
-            speed: cardioRecords.speed,
-            calories: cardioRecords.calories,
-            heartRate: cardioRecords.heartRate,
-            incline: cardioRecords.incline,
-            notes: cardioRecords.notes,
-            createdAt: cardioRecords.createdAt,
-          })
-          .from(cardioRecords)
-          .where(eq(cardioRecords.sessionId, sessionId)),
-      [],
-      "cardio_records"
-    );
-
+    // 整形処理: 有酸素記録
     const cardioExercisesMap = new Map<string, CardioRecord[]>();
 
     cardioData.forEach((row) => {
@@ -230,47 +231,52 @@ export async function getBodyPartsByDateRange(
   data?: Record<string, BodyPart[]>; // 日付文字列をキー、部位配列を値
 }> {
   try {
-    const strengthRows = await db
-      .select({
-        date: workoutSessions.date,
-        bodyPart: exercises.bodyPart,
-      })
-      .from(workoutSessions)
-      .innerJoin(sets, eq(sets.sessionId, workoutSessions.id))
-      .innerJoin(exercises, eq(sets.exerciseId, exercises.id))
-      .where(
-        and(
-          eq(workoutSessions.userId, userId),
-          gte(workoutSessions.date, startDate),
-          lte(workoutSessions.date, endDate)
+    // ================================
+    // 筋トレ履歴と有酸素履歴を並列取得
+    // ================================
+    const [strengthRows, cardioRows] = await Promise.all([
+      db
+        .select({
+          date: workoutSessions.date,
+          bodyPart: exercises.bodyPart,
+        })
+        .from(workoutSessions)
+        .innerJoin(sets, eq(sets.sessionId, workoutSessions.id))
+        .innerJoin(exercises, eq(sets.exerciseId, exercises.id))
+        .where(
+          and(
+            eq(workoutSessions.userId, userId),
+            gte(workoutSessions.date, startDate),
+            lte(workoutSessions.date, endDate)
+          )
         )
-      )
-      .groupBy(workoutSessions.date, exercises.bodyPart);
+        .groupBy(workoutSessions.date, exercises.bodyPart),
 
-    const cardioRows = await handleTableNotExistsError(
-      () =>
-        db
-          .select({
-            date: workoutSessions.date,
-            bodyPart: exercises.bodyPart,
-          })
-          .from(workoutSessions)
-          .innerJoin(
-            cardioRecords,
-            eq(cardioRecords.sessionId, workoutSessions.id)
-          )
-          .innerJoin(exercises, eq(cardioRecords.exerciseId, exercises.id))
-          .where(
-            and(
-              eq(workoutSessions.userId, userId),
-              gte(workoutSessions.date, startDate),
-              lte(workoutSessions.date, endDate)
+      handleTableNotExistsError(
+        () =>
+          db
+            .select({
+              date: workoutSessions.date,
+              bodyPart: exercises.bodyPart,
+            })
+            .from(workoutSessions)
+            .innerJoin(
+              cardioRecords,
+              eq(cardioRecords.sessionId, workoutSessions.id)
             )
-          )
-          .groupBy(workoutSessions.date, exercises.bodyPart),
-      [],
-      "cardio_records"
-    );
+            .innerJoin(exercises, eq(cardioRecords.exerciseId, exercises.id))
+            .where(
+              and(
+                eq(workoutSessions.userId, userId),
+                gte(workoutSessions.date, startDate),
+                lte(workoutSessions.date, endDate)
+              )
+            )
+            .groupBy(workoutSessions.date, exercises.bodyPart),
+        [],
+        "cardio_records"
+      ),
+    ]);
 
     const bodyPartsByDate: Record<string, Set<BodyPart>> = {};
 
