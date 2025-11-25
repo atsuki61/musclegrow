@@ -64,7 +64,7 @@ export function BodyPartNavigation({
               className={cn(
                 "px-5 py-1.5 rounded-full text-sm font-bold transition-all duration-300 active:scale-95",
                 isSelected
-                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/25"
+                  ? "bg-primary text-white shadow-md shadow-orange-500/25"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted"
               )}
             >
