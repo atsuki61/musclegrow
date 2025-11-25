@@ -31,7 +31,7 @@ export default async function Page({
 
   // 日付の決定（URLパラメータ or 今日）
   const today = new Date();
-  const selectedDateStr = searchParams.date;
+  const selectedDateStr = await searchParams.date;
   // 修正: 未使用の変数を削除
   // const selectedDate = selectedDateStr ? new Date(selectedDateStr) : today;
 
