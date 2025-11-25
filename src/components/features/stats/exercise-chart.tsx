@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -41,6 +41,14 @@ export function ExerciseChart({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   // グラフコンテナのref（ラベル位置制限用）
   const containerRef = useRef<HTMLDivElement>(null);
+  // 初回描画後にアニメーションを有効化（左から右への描画アニメーションを防止）
+  const [enableAnimation, setEnableAnimation] = useState(false);
+
+  useEffect(() => {
+    // 初回マウント後にアニメーションを有効化
+    const timer = setTimeout(() => setEnableAnimation(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // グラフ用データを準備
   const chartData = data.map((item) => ({
@@ -145,12 +153,12 @@ export function ExerciseChart({
               </filter>
             </defs>
 
-            {/* グリッド（超薄く） */}
+            {/* グリッド（縦横の点線） */}
             <CartesianGrid
               strokeDasharray="3 3"
               stroke={COLORS.grid}
-              opacity={0.1}
-              vertical={false}
+              opacity={0.4}
+              vertical={true}
             />
 
             {/* X軸 */}
@@ -182,6 +190,8 @@ export function ExerciseChart({
                 strokeWidth={3}
                 dot={false}
                 activeDot={false}
+                isAnimationActive={enableAnimation}
+                animationDuration={300}
               />
             )}
 
@@ -191,6 +201,8 @@ export function ExerciseChart({
               dataKey="value"
               stroke="transparent"
               strokeWidth={0}
+              isAnimationActive={enableAnimation}
+              animationDuration={300}
               dot={(props) => {
                 const isSelected = selectedIndex === props.index;
                 return (
@@ -202,7 +214,7 @@ export function ExerciseChart({
                     stroke={COLORS.primary}
                     strokeWidth={isSelected ? 3 : 2}
                     filter={isSelected ? "url(#shadowOrange)" : undefined}
-                    style={{ cursor: "pointer" }}
+                    style={{ cursor: "pointer", outline: "none" }}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (props.index !== undefined) {
@@ -212,12 +224,7 @@ export function ExerciseChart({
                   />
                 );
               }}
-              activeDot={{
-                r: 6,
-                fill: COLORS.primary,
-                stroke: COLORS.white,
-                strokeWidth: 2,
-              }}
+              activeDot={false}
               label={(props) => {
                 collectCoordinate(props);
                 return null;
