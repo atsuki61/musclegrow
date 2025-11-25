@@ -59,16 +59,16 @@ function SetRow({
       ref={setRowRef}
       className="group relative animate-in fade-in slide-in-from-bottom-2 duration-300"
     >
-      <div className="flex items-center gap-2 py-1">
+      <div className="flex items-center gap-2 py-0.5">
         {/* 1. セット番号とコピーボタン */}
-        <div className="w-10 flex flex-col items-center gap-1 shrink-0">
-          <span className="text-xs font-bold text-muted-foreground bg-muted/40 w-6 h-6 flex items-center justify-center rounded-full">
+        <div className="w-8 flex flex-col items-center gap-0.5 shrink-0">
+          <span className="text-xs font-bold text-muted-foreground bg-muted/40 w-5 h-5 flex items-center justify-center rounded-full">
             {index + 1}
           </span>
           {hasPreviousSet && (
             <button
               onClick={() => onCopyPrevious(index)}
-              className="text-[10px] text-primary font-bold hover:bg-primary/10 px-1.5 py-0.5 rounded transition-colors"
+              className="text-[9px] text-primary font-bold hover:bg-primary/10 px-1 py-0.5 rounded transition-colors"
             >
               COPY
             </button>
@@ -76,7 +76,7 @@ function SetRow({
         </div>
 
         {/* 2. 入力フィールド群 */}
-        <div className="flex-1 grid grid-cols-2 gap-3">
+        <div className="flex-1 grid grid-cols-2 gap-2">
           {/* 重量 */}
           {needsWeight && (
             <div className="relative">
@@ -86,10 +86,11 @@ function SetRow({
                 onChange={(e) =>
                   onSetChange(set.id, "weight", parseFloat(e.target.value))
                 }
-                className="h-12 text-center text-lg font-bold bg-muted/30 border-transparent focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all rounded-xl pr-8"
+                // h-12 -> h-10, text-lg -> text-base でコンパクト化
+                className="h-10 text-center text-base font-bold bg-muted/30 border-transparent focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all rounded-lg pr-6"
                 placeholder={isBodyweight ? "-" : "0"}
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium pointer-events-none">
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium pointer-events-none">
                 kg
               </span>
             </div>
@@ -107,10 +108,11 @@ function SetRow({
                   parseFloat(e.target.value)
                 )
               }
-              className="h-12 text-center text-lg font-bold bg-muted/30 border-transparent focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all rounded-xl pr-8"
+              // h-12 -> h-10, text-lg -> text-base でコンパクト化
+              className="h-10 text-center text-base font-bold bg-muted/30 border-transparent focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all rounded-lg pr-6"
               placeholder="0"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium pointer-events-none">
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium pointer-events-none">
               {isTimeBased ? "秒" : "回"}
             </span>
           </div>
@@ -122,23 +124,23 @@ function SetRow({
             variant="ghost"
             size="icon"
             onClick={() => onDelete(set.id)}
-            className="h-10 w-10 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors"
+            className="h-8 w-8 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors"
           >
-            <Trash2 className="h-5 w-5" />
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       {/* 1RMなどの補足情報 */}
       {oneRM && (
-        <div className="ml-12 mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-          <span className="bg-muted/50 px-1.5 py-0.5 rounded">
-            1RM: {oneRM}kg
+        <div className="ml-10 -mt-0.5 mb-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+          <span className="bg-muted/50 px-1.5 py-0 rounded">
+            1RM: {Math.round(oneRM)}kg
           </span>
         </div>
       )}
 
-      {!isLast && <Separator className="my-3 opacity-50" />}
+      {!isLast && <Separator className="my-2 opacity-30" />}
     </div>
   );
 }
@@ -157,7 +159,7 @@ export function SetRecordForm({
       id: nanoid(),
       setOrder,
       weight: isTimeBased ? undefined : undefined,
-      reps: isTimeBased ? 0 : 0,
+      reps: 0,
       duration: isTimeBased ? 0 : undefined,
       isWarmup: false,
       failure: false,
@@ -165,8 +167,7 @@ export function SetRecordForm({
   };
 
   const handleAddSet = () => {
-    const newSet = createNewSet(sets.length + 1);
-    onSetsChange([...sets, newSet]);
+    onSetsChange([...sets, createNewSet(sets.length + 1)]);
   };
 
   useEffect(() => {
@@ -228,14 +229,14 @@ export function SetRecordForm({
       <Card className="border-none shadow-none sm:border sm:shadow-sm bg-transparent sm:bg-card">
         <div className="p-0 sm:p-4 space-y-2">
           {sets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-muted rounded-xl bg-muted/10">
-              <Dumbbell className="w-10 h-10 text-muted-foreground/20 mb-2" />
+            <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-muted rounded-xl bg-muted/10">
+              <Dumbbell className="w-8 h-8 text-muted-foreground/20 mb-2" />
               <p className="text-sm font-medium text-muted-foreground">
                 最初のセットを追加しよう
               </p>
             </div>
           ) : (
-            <div className="bg-card border rounded-2xl p-4 shadow-sm space-y-1">
+            <div className="bg-card border rounded-xl p-3 shadow-sm space-y-1">
               {sets.map((set, index) => {
                 const isLast = index === sets.length - 1;
                 return (
@@ -258,11 +259,11 @@ export function SetRecordForm({
 
           <Button
             onClick={handleAddSet}
-            className="w-full h-12 mt-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-bold shadow-none"
+            className="w-full h-10 mt-3 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-bold shadow-none text-sm"
             variant="outline"
             disabled={sets.length >= 50}
           >
-            <Plus className="w-5 h-5 mr-2" />
+            <Plus className="w-4 h-4 mr-2" />
             セットを追加
           </Button>
         </div>

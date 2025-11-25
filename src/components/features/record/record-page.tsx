@@ -29,7 +29,6 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const searchParams = useSearchParams();
   const { userId } = useAuthSession();
 
-  // --- Date Logic ---
   const getInitialDate = (): Date => {
     const dateParam = searchParams.get("date");
     if (dateParam) {
@@ -46,10 +45,11 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(getInitialDate());
   const [selectedPart, setSelectedPart] =
     useState<Exclude<BodyPart, "all">>("chest");
-  const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
-  const [searchQuery, setSearchQuery] = useState("");
 
-  // Modals & Selection
+  // ▼ 修正: 初期値としてpropsのデータをそのまま使用
+  const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
+
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
     null
   );
@@ -58,24 +58,18 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const [addExerciseBodyPart, setAddExerciseBodyPart] =
     useState<Exclude<BodyPart, "all">>("chest");
 
-  // フック呼び出し
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
-
-  // ▼ 修正: lastTrainedDates は使わないので refresh だけ取得
   const { refresh: refreshLastTrained } = useLastTrainedDates();
 
-  // ▼ 削除: lastTrainedDatesByBodyPart の計算ロジックを削除
-
+  // ▼ 修正: マウント時にローカルストレージとマージするが、
+  // 初期表示はサーバーデータで既に行われているため、ユーザーには待機時間ゼロに見える
   useEffect(() => {
-    const loadExercises = async () => {
-      const exercisesList = await loadExercisesWithFallback(
-        initialExercises,
-        userId
-      );
-      setExercises(exercisesList);
+    const syncExercises = async () => {
+      const merged = await loadExercisesWithFallback(initialExercises, userId);
+      setExercises(merged);
     };
-    loadExercises();
-  }, [initialExercises, userId]);
+    syncExercises();
+  }, [userId, initialExercises]);
 
   const recalculateStats = useCallback(() => {
     recalculateMaxWeights();
@@ -86,7 +80,6 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
     recalculateStats();
   }, [recalculateStats]);
 
-  // --- Filtering Logic ---
   const filteredExercises = useMemo(() => {
     let result = exercises.filter((e) => e.bodyPart === selectedPart);
 
@@ -102,11 +95,11 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
     return result;
   }, [exercises, selectedPart, searchQuery]);
 
-  // --- Handlers ---
+  // --- Handlers (以下変更なし) ---
   const handleDateChange = (date: Date) => setSelectedDate(date);
   const handlePartChange = (part: Exclude<BodyPart, "all">) => {
     setSelectedPart(part);
-    setSearchQuery(""); // 部位変更時に検索リセット
+    setSearchQuery("");
   };
 
   const handleExerciseSelect = (exercise: Exercise) => {
@@ -137,13 +130,10 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
 
   return (
     <div className="flex flex-col min-h-screen pb-20 bg-background">
-      {/* Header (Sticky) */}
       <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="flex h-14 items-center justify-center px-4">
           <DateSelector date={selectedDate} onDateChange={handleDateChange} />
         </div>
-
-        {/* Navigation */}
         <div className="px-2 pb-1">
           <BodyPartNavigation
             selectedPart={selectedPart}
@@ -152,9 +142,7 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-4 space-y-4">
-        {/* 検索バー */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -165,7 +153,6 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
           />
         </div>
 
-        {/* 種目カード一覧 */}
         <BodyPartCard
           bodyPart={selectedPart}
           exercises={filteredExercises}
@@ -175,7 +162,6 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
         />
       </main>
 
-      {/* フィルターボタン (Floating Action Button) */}
       <div className="fixed bottom-24 right-5 z-40">
         <Button
           size="icon"
@@ -185,7 +171,6 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
         </Button>
       </div>
 
-      {/* Modals */}
       <ExerciseRecordModal
         exercise={selectedExercise}
         isOpen={isModalOpen}
