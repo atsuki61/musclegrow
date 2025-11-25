@@ -1,7 +1,6 @@
 import { Metadata } from "next";
-import { headers } from "next/headers"; // 追加
 import { HistoryPage } from "@/components/features/history";
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth-session-server";
 import { redirect } from "next/navigation";
 import {
   getBodyPartsByDateRange,
@@ -19,27 +18,23 @@ export const metadata: Metadata = {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: { date?: string; month?: string };
+  searchParams: Promise<{ date?: string; month?: string }>; // Next.js 15ではsearchParamsはPromise
 }) {
-  // 修正: authを関数としてではなく、APIメソッドとして呼び出す
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  // 修正: キャッシュされた関数を使用。layout.tsxですでに取得済みなら即座に返ります（DBアクセス0回）
+  const userId = await getAuthUserId();
+  if (!userId) redirect("/login");
 
-  if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
+  // Next.js 15対応: searchParamsをawait
+  const resolvedParams = await searchParams;
 
-  // 日付の決定（URLパラメータ or 今日）
+  // 日付の決定
   const today = new Date();
-  const selectedDateStr = await searchParams.date;
-  // 修正: 未使用の変数を削除
-  // const selectedDate = selectedDateStr ? new Date(selectedDateStr) : today;
+  const selectedDateStr = resolvedParams.date;
 
   // 月の決定
-  const monthStr = searchParams.month || format(today, "yyyy-MM");
+  const monthStr = resolvedParams.month || format(today, "yyyy-MM");
   const currentMonth = new Date(monthStr);
 
-  // 並列データ取得 (Promise.all で待機時間を短縮)
   const start = startOfMonth(currentMonth);
   const end = endOfMonth(currentMonth);
   const monthRange = {
@@ -47,17 +42,13 @@ export default async function Page({
     endDate: format(end, "yyyy-MM-dd"),
   };
 
-  // 1. カレンダーの色分けデータ
-  // 2. 選択された日の詳細データ（もしあれば）
   const [bodyPartsResult, sessionResult] = await Promise.all([
     getBodyPartsByDateRange(userId, monthRange),
-    // 選択された日付のセッションIDを取得
     selectedDateStr
       ? getWorkoutSession(userId, selectedDateStr)
       : Promise.resolve({ success: true, data: null }),
   ]);
 
-  // セッション詳細の取得（セッションIDがある場合のみ）
   let initialSessionDetails = null;
   if (sessionResult.success && sessionResult.data) {
     const detailsResult = await getSessionDetails(

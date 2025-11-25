@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getAuthSession } from "@/lib/auth-session-server";
 import { AuthSessionProvider } from "@/lib/auth-session-context";
 import { GuestDataMigrator } from "@/components/features/guest-data-migrator";
 
@@ -12,13 +11,8 @@ interface ProtectedLayoutProps {
 export default async function ProtectedLayout({
   children,
 }: ProtectedLayoutProps) {
-  // Next.js 15 の headers() は Promise
-  const h = await headers();
-
-  // BetterAuth 公式のセッション取得
-  const session = await auth.api.getSession({
-    headers: h,
-  });
+  // 共通のキャッシュ関数を使用（これで page.tsx と結果が共有される）
+  const session = await getAuthSession();
 
   if (!session) {
     redirect("/login");
