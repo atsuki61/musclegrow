@@ -18,13 +18,11 @@ import dynamic from "next/dynamic";
 import { HistoryCalendarSkeleton } from "./history-calendar-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// ダイナミックインポートで初期ロードを軽量化
 const SessionHistoryCard = dynamic(() => import("./session-history-card"), {
-  ssr: false,
+  ssr: false, // クライアントサイドでのみレンダリング
   loading: () => (
-    <div className="space-y-4 mt-6">
+    <div className="space-y-4 mt-6 animate-pulse">
       <Skeleton className="h-32 w-full rounded-2xl" />
-      <Skeleton className="h-20 w-full rounded-xl" />
       <Skeleton className="h-20 w-full rounded-xl" />
     </div>
   ),
@@ -83,10 +81,9 @@ export function HistoryPage({
   } | null>(null);
 
   const hasSkippedInitialFetchRef = useRef(false);
-  const hasLoadedInitialSessionRef = useRef(false);
   const { userId } = useAuthSession();
 
-  // 負荷分散のため遅延ロード
+  // ▼ 修正: 遅延なしで即時ロード
   const loadExercises = useCallback(async () => {
     const items = await loadExercisesWithFallback(undefined, userId);
     setExercises(items);
@@ -105,14 +102,12 @@ export function HistoryPage({
     initialSessionDetails: initialSessionDetailsValue,
   });
 
-  // アイドル時に種目リストを取得
+  // ▼ 修正: setTimeoutを削除し、マウント時に即実行
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const handle = window.setTimeout(() => loadExercises(), 500);
-    return () => window.clearTimeout(handle);
+    loadExercises();
   }, [loadExercises]);
 
-  // カレンダー月変更時のデータ取得
+  // カレンダー月変更時のデータ取得（初回はサーバーデータを信じるのでスキップ）
   useEffect(() => {
     if (!hasSkippedInitialFetchRef.current) {
       hasSkippedInitialFetchRef.current = true;
@@ -121,18 +116,7 @@ export function HistoryPage({
     loadBodyPartsByDate(currentMonth);
   }, [currentMonth, loadBodyPartsByDate]);
 
-  // 初期選択日のデータロード制御
-  useEffect(() => {
-    if (hasLoadedInitialSessionRef.current) return;
-    if (!selectedDate) return;
-    if (initialSessionDetailsValue) {
-      hasLoadedInitialSessionRef.current = true;
-      return;
-    }
-    hasLoadedInitialSessionRef.current = true;
-    loadSessionDetails(selectedDate);
-  }, [selectedDate, initialSessionDetailsValue, loadSessionDetails]);
-
+  // 日付選択時の処理
   const handleDateSelect = useCallback(
     (date: Date) => {
       setSelectedDate(date);
@@ -147,6 +131,7 @@ export function HistoryPage({
 
   const handleExerciseDelete = useCallback(
     async (exerciseId: string, date: Date) => {
+      // 削除処理（変更なし）
       const dateStr = format(date, "yyyy-MM-dd");
       localStorage.removeItem(`workout_${dateStr}_${exerciseId}`);
       localStorage.removeItem(`cardio_${dateStr}_${exerciseId}`);
@@ -230,7 +215,6 @@ export function HistoryPage({
             {isLoading ? (
               <div className="space-y-4 mt-6 animate-pulse">
                 <Skeleton className="h-32 w-full rounded-2xl" />
-                <Skeleton className="h-20 w-full rounded-xl" />
                 <Skeleton className="h-20 w-full rounded-xl" />
               </div>
             ) : (
