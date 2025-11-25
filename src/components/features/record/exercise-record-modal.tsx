@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +46,6 @@ export default function ExerciseRecordModal({
   const isCardio = exercise ? isCardioExercise(exercise) : false;
   const [activeTab, setActiveTab] = useState("record");
 
-  // ▼ 修正: DB連携に対応したフックを使用
   const { record: previousRecord, isLoading: isPreviousLoading } =
     usePreviousRecord(date, exercise);
 
@@ -143,10 +142,11 @@ export default function ExerciseRecordModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-full max-w-lg h-[90vh] sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl border-0 sm:border">
+      {/* h-[85vh] -> h-[90dvh] に変更し、スマホのアドレスバー考慮 */}
+      <DialogContent className="w-full max-w-lg h-[95dvh] sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl border-0 sm:border">
         {/* 1. ヘッダーエリア */}
         <div className="bg-background border-b px-4 py-3 flex items-center justify-between shrink-0 z-10 shadow-sm">
-          <div className="flex flex-col gap-1 overflow-hidden pr-2">
+          <div className="flex flex-col gap-0.5 overflow-hidden pr-2">
             <div className="flex items-center gap-2">
               <DialogTitle className="text-lg font-bold truncate leading-tight">
                 {exercise.name}
@@ -183,119 +183,113 @@ export default function ExerciseRecordModal({
           onValueChange={setActiveTab}
           className="flex-1 flex flex-col min-h-0"
         >
-          <div className="px-4 py-2 border-b bg-muted/10">
-            <TabsList className="grid w-full grid-cols-3 h-9 bg-muted/50 p-1">
+          <div className="px-4 py-2 border-b bg-muted/10 shrink-0">
+            <TabsList className="grid w-full grid-cols-3 h-8 bg-muted/50 p-0.5">
               <TabsTrigger
                 value="record"
-                className="text-xs font-bold data-[state=active]:shadow-sm"
+                className="text-xs font-bold data-[state=active]:shadow-sm h-7"
               >
                 記録
               </TabsTrigger>
               <TabsTrigger
                 value="history"
-                className="text-xs font-bold gap-1.5 data-[state=active]:shadow-sm"
+                className="text-xs font-bold gap-1.5 data-[state=active]:shadow-sm h-7"
               >
-                <History className="w-3.5 h-3.5" /> 履歴
+                <History className="w-3 h-3" /> 履歴
               </TabsTrigger>
               <TabsTrigger
                 value="info"
-                className="text-xs font-bold gap-1.5 data-[state=active]:shadow-sm"
+                className="text-xs font-bold gap-1.5 data-[state=active]:shadow-sm h-7"
               >
-                <Info className="w-3.5 h-3.5" /> 解説
+                <Info className="w-3 h-3" /> 解説
               </TabsTrigger>
             </TabsList>
           </div>
 
           {/* 3. メインコンテンツ */}
-          <ScrollArea className="flex-1 bg-background/50">
-            <div className="p-4 pb-24">
-              <TabsContent
-                value="record"
-                className="mt-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300"
-              >
-                {/* 前回記録 */}
-                {isPreviousLoading ? (
-                  <div className="bg-muted/20 rounded-xl p-3 text-center text-xs text-muted-foreground">
-                    前回記録を読み込み中...
-                  </div>
-                ) : previousRecord ? (
-                  <div className="bg-orange-50/50 dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/20 rounded-xl p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1">
-                        <History className="w-3 h-3" />
-                        前回の記録 (
-                        {new Date(previousRecord.date).toLocaleDateString()})
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCopyPreviousRecord}
-                        className="h-6 text-[10px] px-2 text-orange-600 hover:text-orange-700 hover:bg-orange-100"
-                      >
-                        コピーする
-                      </Button>
+          {/* ScrollAreaのコンテナ設定を修正してスクロール可能に */}
+          <div className="flex-1 min-h-0 relative">
+            <ScrollArea className="h-full w-full">
+              <div className="p-4 pb-4">
+                <TabsContent value="record" className="mt-0 space-y-4">
+                  {/* 前回記録 */}
+                  {isPreviousLoading ? (
+                    <div className="bg-muted/20 rounded-xl p-3 text-center text-xs text-muted-foreground">
+                      前回記録を読み込み中...
                     </div>
-                    <div className="opacity-80">
-                      {previousRecord.type === "cardio" ? (
-                        <PreviousCardioRecordCard
-                          records={previousRecord.records}
-                          date={previousRecord.date}
-                          onCopy={() => {}}
-                          hideHeader
-                        />
-                      ) : (
-                        <PreviousWorkoutRecordCard
-                          sets={previousRecord.sets}
-                          date={previousRecord.date}
-                          onCopy={() => {}}
-                          hideHeader
-                        />
-                      )}
+                  ) : previousRecord ? (
+                    <div className="bg-orange-50/50 dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/20 rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1">
+                          <History className="w-3 h-3" />
+                          前回の記録 (
+                          {new Date(previousRecord.date).toLocaleDateString()})
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCopyPreviousRecord}
+                          className="h-6 text-[10px] px-2 text-orange-600 hover:text-orange-700 hover:bg-orange-100"
+                        >
+                          コピーする
+                        </Button>
+                      </div>
+                      <div className="opacity-80">
+                        {previousRecord.type === "cardio" ? (
+                          <PreviousCardioRecordCard
+                            records={previousRecord.records}
+                            date={previousRecord.date}
+                            onCopy={() => {}}
+                            hideHeader
+                          />
+                        ) : (
+                          <PreviousWorkoutRecordCard
+                            sets={previousRecord.sets}
+                            date={previousRecord.date}
+                            onCopy={() => {}}
+                            hideHeader
+                          />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ) : null}
+                  ) : null}
 
-                {isCardio ? (
-                  <CardioRecordForm
-                    records={records}
-                    onRecordsChange={setRecords}
-                  />
-                ) : (
-                  <SetRecordForm
-                    exercise={exercise}
-                    sets={sets}
-                    onSetsChange={setSets}
-                  />
-                )}
-              </TabsContent>
+                  {isCardio ? (
+                    <CardioRecordForm
+                      records={records}
+                      onRecordsChange={setRecords}
+                    />
+                  ) : (
+                    <SetRecordForm
+                      exercise={exercise}
+                      sets={sets}
+                      onSetsChange={setSets}
+                    />
+                  )}
+                </TabsContent>
 
-              <TabsContent
-                value="history"
-                className="mt-0 animate-in fade-in duration-300"
-              >
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <History className="w-12 h-12 opacity-20 mb-3" />
-                  <p className="text-sm">過去の履歴がここに表示されます</p>
-                </div>
-              </TabsContent>
+                <TabsContent value="history" className="mt-0 py-8 text-center">
+                  <History className="w-10 h-10 opacity-20 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    過去の履歴機能は準備中です
+                  </p>
+                </TabsContent>
 
-              <TabsContent
-                value="info"
-                className="mt-0 animate-in fade-in duration-300"
-              >
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <Info className="w-12 h-12 opacity-20 mb-3" />
-                  <p className="text-sm">種目の解説・ポイント</p>
-                </div>
-              </TabsContent>
-            </div>
-          </ScrollArea>
+                <TabsContent value="info" className="mt-0 py-8 text-center">
+                  <Info className="w-10 h-10 opacity-20 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    解説機能は準備中です
+                  </p>
+                </TabsContent>
+              </div>
+            </ScrollArea>
+          </div>
 
-          {/* 4. フッターアクション */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent pt-10">
+          {/* 4. フッターアクション（固定） */}
+          <div className="p-4 border-t bg-background shrink-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
             <Button
               onClick={handleClose}
-              className="w-full h-12 text-base font-bold shadow-lg shadow-primary/20 rounded-xl active:scale-[0.98] transition-all"
+              className="w-full h-11 text-base font-bold shadow-md shadow-primary/20 rounded-xl active:scale-[0.98] transition-all"
               size="lg"
             >
               記録を完了する

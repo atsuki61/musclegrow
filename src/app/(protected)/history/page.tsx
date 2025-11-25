@@ -1,55 +1,84 @@
-import { format, endOfMonth, startOfMonth } from "date-fns";
+import { Metadata } from "next";
+import { headers } from "next/headers"; // 追加
 import { HistoryPage } from "@/components/features/history";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import {
-  cachedGetBodyPartsByDateRange,
-  cachedGetSessionDetails,
-} from "@/lib/actions/history"; // ←★ 修正済み import
-import { getWorkoutSession } from "@/lib/actions/workout-sessions";
+  getBodyPartsByDateRange,
+  getSessionDetails,
+  getWorkoutSession,
+} from "@/lib/api";
+import { startOfMonth, endOfMonth, format } from "date-fns";
 import { serializeSessionDetails } from "@/components/features/history/types";
-import { getAuthUserId } from "@/lib/auth-session-server";
 
-export default async function Page() {
-  const userId = await getAuthUserId();
-  if (!userId) throw new Error("認証が必要です");
+export const metadata: Metadata = {
+  title: "履歴 | MuscleGrow",
+  description: "トレーニングの履歴を確認します",
+};
 
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: { date?: string; month?: string };
+}) {
+  // 修正: authを関数としてではなく、APIメソッドとして呼び出す
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+
+  // 日付の決定（URLパラメータ or 今日）
   const today = new Date();
-  const monthStart = startOfMonth(today);
+  const selectedDateStr = searchParams.date;
+  // 修正: 未使用の変数を削除
+  // const selectedDate = selectedDateStr ? new Date(selectedDateStr) : today;
 
+  // 月の決定
+  const monthStr = searchParams.month || format(today, "yyyy-MM");
+  const currentMonth = new Date(monthStr);
+
+  // 並列データ取得 (Promise.all で待機時間を短縮)
+  const start = startOfMonth(currentMonth);
+  const end = endOfMonth(currentMonth);
   const monthRange = {
-    startDate: format(monthStart, "yyyy-MM-dd"),
-    endDate: format(endOfMonth(today), "yyyy-MM-dd"),
+    startDate: format(start, "yyyy-MM-dd"),
+    endDate: format(end, "yyyy-MM-dd"),
   };
 
-  // すべてを並列化（cached 版に差し替え）
-  const [bodyPartsResult, todaySession] = await Promise.all([
-    cachedGetBodyPartsByDateRange(userId, monthRange),
-    getWorkoutSession(userId, format(today, "yyyy-MM-dd")),
+  // 1. カレンダーの色分けデータ
+  // 2. 選択された日の詳細データ（もしあれば）
+  const [bodyPartsResult, sessionResult] = await Promise.all([
+    getBodyPartsByDateRange(userId, monthRange),
+    // 選択された日付のセッションIDを取得
+    selectedDateStr
+      ? getWorkoutSession(userId, selectedDateStr)
+      : Promise.resolve({ success: true, data: null }),
   ]);
 
+  // セッション詳細の取得（セッションIDがある場合のみ）
   let initialSessionDetails = null;
-
-  // セッション詳細取得（cached に置換）
-  if (todaySession.success && todaySession.data) {
-    const detailsResult = await cachedGetSessionDetails(
+  if (sessionResult.success && sessionResult.data) {
+    const detailsResult = await getSessionDetails(
       userId,
-      todaySession.data.id
+      sessionResult.data.id
     );
-
     if (detailsResult.success && detailsResult.data) {
       initialSessionDetails = serializeSessionDetails({
         ...detailsResult.data,
-        date: today,
-        durationMinutes: todaySession.data.durationMinutes ?? null,
-        note: todaySession.data.note ?? null,
+        date: new Date(sessionResult.data.date),
+        note: sessionResult.data.note,
+        durationMinutes: sessionResult.data.durationMinutes,
       });
     }
   }
 
   return (
     <HistoryPage
-      initialMonthDate={monthStart.toISOString()}
+      initialMonthDate={currentMonth.toISOString()}
       initialBodyPartsByDate={bodyPartsResult.data ?? {}}
-      initialSelectedDate={today.toISOString()}
+      initialSelectedDate={selectedDateStr ?? null}
       initialSessionDetails={initialSessionDetails}
     />
   );
