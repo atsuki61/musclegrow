@@ -2,48 +2,44 @@
 
 import { useState, useEffect } from "react";
 import type { ProfileResponse } from "@/types/profile";
-import { ProfileMenu } from "./profile-menu";
+import { ProfileMenu, type ViewStateTarget } from "./profile-menu";
 import { BodyCompositionEditor } from "./body-composition-editor";
+import {
+  NotificationSettings,
+  AppearanceSettings,
+  AccountSettings,
+  DataSettings, // 新規作成
+} from "./settings-views";
+import { SettingsHeader } from "./settings-header";
 
 interface ProfilePageProps {
   initialProfile: ProfileResponse | null;
 }
 
-type ViewState = "menu" | "editor";
+type ViewState = "menu" | "editor" | ViewStateTarget;
 
-/**
- * プロフィール画面コンポーネント（リニューアル版）
- *
- * 設定画面風のメニュー（Hub）と、体組成データ編集画面を切り替えて表示します。
- */
+interface BodyCompositionData {
+  height: number;
+  weight: number;
+  bodyFat: number;
+  muscleMass: number;
+}
+
 export function ProfilePage({ initialProfile }: ProfilePageProps) {
-  // 画面切り替えの状態管理
   const [view, setView] = useState<ViewState>("menu");
-
-  // プロフィールデータの状態管理
   const [profile, setProfile] = useState<ProfileResponse | null>(
     initialProfile
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 初期データ同期
   useEffect(() => {
     if (initialProfile) {
       setProfile(initialProfile);
     }
   }, [initialProfile]);
 
-  /**
-   * プロフィール保存処理
-   * BodyCompositionEditorから呼ばれる
-   */
-  const handleSave = async (data: {
-    height: number;
-    weight: number;
-    bodyFat: number;
-    muscleMass: number;
-  }) => {
+  const handleSave = async (data: BodyCompositionData) => {
     try {
       setIsSaving(true);
       setError(null);
@@ -60,11 +56,9 @@ export function ProfilePage({ initialProfile }: ProfilePageProps) {
 
       if (result.success) {
         setProfile(result.data);
-        // 保存成功したらメニューに戻る
         setView("menu");
       } else {
         setError(result.error.message);
-        // ここでToastなどを出すと親切です
         console.error(result.error.message);
       }
     } catch (err) {
@@ -75,24 +69,54 @@ export function ProfilePage({ initialProfile }: ProfilePageProps) {
     }
   };
 
-  // エラー表示（簡易的）
-  if (error) {
-    // ※必要に応じてよりリッチなエラー表示に変更してください
-  }
+  const goBack = () => setView("menu");
 
-  // 画面の切り替え
-  return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-background">
-      {view === "menu" ? (
-        <ProfileMenu profile={profile} onEditBody={() => setView("editor")} />
-      ) : (
+  // 画面のレンダリング振り分け
+  switch (view) {
+    case "editor":
+      return (
         <BodyCompositionEditor
           initialData={profile}
           onSave={handleSave}
-          onCancel={() => setView("menu")}
+          onCancel={goBack}
           isSaving={isSaving}
         />
-      )}
-    </div>
-  );
+      );
+    case "notifications":
+      return <NotificationSettings onBack={goBack} />;
+    case "appearance":
+      return <AppearanceSettings onBack={goBack} />;
+    case "account":
+      return <AccountSettings onBack={goBack} />;
+    case "data": // 新規: データ管理
+      return <DataSettings onBack={goBack} />;
+    case "contact":
+      return (
+        <div className="min-h-screen bg-background">
+          <SettingsHeader title="お問い合わせ" onBack={goBack} />
+          <div className="p-4">
+            <p className="text-muted-foreground">フォーム準備中...</p>
+          </div>
+        </div>
+      );
+    case "terms":
+      return (
+        <div className="min-h-screen bg-background">
+          <SettingsHeader title="利用規約・ポリシー" onBack={goBack} />
+          <div className="p-4">
+            <p className="text-muted-foreground">規約準備中...</p>
+          </div>
+        </div>
+      );
+
+    case "menu":
+    default:
+      return (
+        <ProfileMenu
+          profile={profile}
+          onEditBody={() => setView("editor")}
+          onNavigate={(target) => setView(target)}
+        />
+      );
+  }
 }
