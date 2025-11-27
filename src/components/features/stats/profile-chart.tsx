@@ -16,7 +16,6 @@ import {
   CHART_LABELS,
   CHART_UNITS,
   CHART_ICONS,
-  COLORS,
 } from "./profile-chart.constants";
 import {
   transformChartData,
@@ -30,58 +29,66 @@ import {
   createChartEventHandlers,
 } from "./shared-chart-components";
 
+interface CustomizedProps {
+  width?: number;
+  height?: number;
+  margin?: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+}
 interface ProfileChartProps {
   data: ProfileHistoryData[];
   chartType: ProfileChartType;
-  dataCount?: number; // データ件数（オプション）
+  dataCount?: number;
 }
 
 /**
- * プロフィールグラフコンポーネント（モダン版）
+ * プロフィールグラフコンポーネント（テーマカラー対応版）
  */
 export function ProfileChart({
   data,
   chartType,
   dataCount,
 }: ProfileChartProps) {
-  // 選択されたデータポイントのインデックス
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  // グラフコンテナのref（ラベル位置制限用）
   const containerRef = useRef<HTMLDivElement>(null);
-  // 初回描画後にアニメーションを有効化（左から右への描画アニメーションを防止）
   const [enableAnimation, setEnableAnimation] = useState(false);
 
+  // CSS変数から色を取得
+  const primaryColor = "var(--primary)";
+  const gridColor = "var(--border)";
+  const textMutedColor = "var(--muted-foreground)";
+  const textColor = "var(--foreground)";
+  const referenceLineColor = "var(--muted-foreground)";
+  const bgColor = "var(--card)";
+
   useEffect(() => {
-    // 初回マウント後にアニメーションを有効化
     const timer = setTimeout(() => setEnableAnimation(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
-  // グラフ用データを準備
   const chartData = transformChartData(data, chartType);
-
-  // データポイントの座標を収集
   const [dataPointCoordinates, collectCoordinate] = useDataPointCoordinates(
     chartData.length
   );
 
+  const Icon = CHART_ICONS[chartType];
+
   if (chartData.length === 0) {
     return (
-      <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-6">
+      <div className="rounded-2xl bg-card shadow-sm border border-border p-6">
         <div className="flex items-center gap-2 mb-4">
-          {(() => {
-            const Icon = CHART_ICONS[chartType];
-            return (
-              <Icon className="w-5 h-5" style={{ color: COLORS.primary }} />
-            );
-          })()}
-          <h3 className="text-lg font-semibold" style={{ color: COLORS.text }}>
+          <Icon className="w-5 h-5" style={{ color: primaryColor }} />
+          <h3 className="text-lg font-semibold" style={{ color: textColor }}>
             {CHART_LABELS[chartType]}
           </h3>
         </div>
         <div
           className="flex flex-col items-center justify-center h-[280px]"
-          style={{ color: COLORS.textMuted }}
+          style={{ color: textMutedColor }}
         >
           <p className="text-sm">データがありません</p>
           <p className="text-xs mt-1">プロフィール更新時に自動記録されます</p>
@@ -90,52 +97,44 @@ export function ProfileChart({
     );
   }
 
-  // 最新データを取得
   const latestData = chartData[chartData.length - 1];
-
-  // 選択されたデータポイント（選択がない場合は最新）
   const selectedData =
     selectedIndex !== null && selectedIndex < chartData.length
       ? chartData[selectedIndex]
       : latestData;
 
-  // グラフ設定を計算
   const xAxisDomain = calculateXAxisDomain(chartData);
   const yAxisDomain = calculateYAxisDomain(chartData);
 
-  // 共通イベントハンドラを作成
   const chartEventHandlers = createChartEventHandlers(
     dataPointCoordinates,
     setSelectedIndex
   );
 
-  // アイコンコンポーネント
-  const Icon = CHART_ICONS[chartType];
-
   return (
     <div
-      className="rounded-2xl bg-white shadow-sm border border-gray-100 p-6"
+      className="rounded-2xl bg-card shadow-sm border border-border p-6"
       onClick={(e) => e.stopPropagation()}
     >
       {/* ヘッダー */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Icon className="w-5 h-5" style={{ color: COLORS.primary }} />
-          <h3 className="text-lg font-semibold" style={{ color: COLORS.text }}>
+          <Icon className="w-5 h-5" style={{ color: primaryColor }} />
+          <h3 className="text-lg font-semibold" style={{ color: textColor }}>
             {CHART_LABELS[chartType]}
           </h3>
         </div>
         {dataCount !== undefined && (
           <span
             className="text-xs font-medium"
-            style={{ color: COLORS.textMuted }}
+            style={{ color: textMutedColor }}
           >
             {dataCount}件
           </span>
         )}
       </div>
 
-      {/* グラフ（相対位置でラップ） */}
+      {/* グラフ */}
       <div
         ref={containerRef}
         className="relative w-full"
@@ -149,7 +148,7 @@ export function ProfileChart({
           >
             <defs>
               <filter
-                id="shadowOrange"
+                id="shadowProfile"
                 x="-50%"
                 y="-50%"
                 width="200%"
@@ -159,35 +158,32 @@ export function ProfileChart({
                   dx="0"
                   dy="2"
                   stdDeviation="4"
-                  floodColor={COLORS.primary}
+                  floodColor={primaryColor}
                   floodOpacity="0.25"
                 />
               </filter>
             </defs>
 
-            {/* グリッド（縦横の点線） */}
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke={COLORS.grid}
+              stroke={gridColor}
               opacity={0.4}
               vertical={true}
             />
 
-            {/* X軸 */}
             <XAxis
               dataKey="date"
-              stroke={COLORS.grid}
-              tick={{ fill: COLORS.textLight, fontSize: 10 }}
+              stroke={gridColor}
+              tick={{ fill: textMutedColor, fontSize: 10 }}
               tickLine={false}
-              axisLine={{ stroke: COLORS.grid, strokeWidth: 1 }}
+              axisLine={{ stroke: gridColor, strokeWidth: 1 }}
               domain={xAxisDomain}
               ticks={xAxisDomain}
             />
 
-            {/* Y軸（最小限・薄く） */}
             <YAxis
-              stroke={COLORS.grid}
-              tick={{ fill: COLORS.textLight, fontSize: 11, opacity: 0.6 }}
+              stroke={gridColor}
+              tick={{ fill: textMutedColor, fontSize: 11, opacity: 0.6 }}
               tickLine={false}
               axisLine={false}
               domain={yAxisDomain}
@@ -195,12 +191,11 @@ export function ProfileChart({
               width={35}
             />
 
-            {/* 折れ線（データが2点以上の場合のみ） */}
             {chartData.length > 1 && (
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke={COLORS.primary}
+                stroke={primaryColor}
                 strokeWidth={3}
                 dot={false}
                 activeDot={false}
@@ -209,7 +204,6 @@ export function ProfileChart({
               />
             )}
 
-            {/* データポイント（クリック可能、座標を取得するためlabelを使用） */}
             <Line
               type="monotone"
               dataKey="value"
@@ -224,11 +218,13 @@ export function ProfileChart({
                     cx={props.cx}
                     cy={props.cy}
                     r={isSelected ? 7 : 5}
-                    fill={isSelected ? COLORS.primary : COLORS.white}
-                    stroke={COLORS.primary}
+                    style={{
+                      fill: isSelected ? primaryColor : bgColor,
+                      stroke: primaryColor,
+                    }}
                     strokeWidth={isSelected ? 3 : 2}
-                    filter={isSelected ? "url(#shadowOrange)" : undefined}
-                    style={{ cursor: "pointer", outline: "none" }}
+                    filter={isSelected ? "url(#shadowProfile)" : undefined}
+                    className="cursor-pointer outline-none transition-all duration-200"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (props.index !== undefined) {
@@ -245,28 +241,20 @@ export function ProfileChart({
               }}
             />
 
-            {/* 選択されたデータポイントからX軸への垂直線（InBody風） */}
             {selectedIndex !== null &&
               selectedIndex < dataPointCoordinates.length &&
               dataPointCoordinates[selectedIndex] && (
                 <Customized
-                  component={(props: {
-                    width?: number;
-                    height?: number;
-                    margin?: {
-                      top: number;
-                      right: number;
-                      bottom: number;
-                      left: number;
-                    };
-                  }) => (
+                  component={(
+                    props: CustomizedProps // 型注釈を追加
+                  ) => (
                     <VerticalReferenceLineComponent
                       width={props.width}
                       height={props.height}
                       margin={props.margin}
                       selectedIndex={selectedIndex}
                       dataPointCoordinates={dataPointCoordinates}
-                      referenceLineColor={COLORS.referenceLine}
+                      referenceLineColor={referenceLineColor}
                     />
                   )}
                 />
@@ -274,7 +262,6 @@ export function ProfileChart({
           </LineChart>
         </ResponsiveContainer>
 
-        {/* 選択データ表示（グラフ上部、選択点のX座標に連動） - InBody風 */}
         {selectedIndex !== null &&
           selectedIndex < dataPointCoordinates.length &&
           dataPointCoordinates[selectedIndex] &&
@@ -285,25 +272,24 @@ export function ProfileChart({
               value={selectedData.value}
               unit={CHART_UNITS[chartType]}
               containerWidth={containerRef.current?.offsetWidth || 0}
-              color={COLORS.primary}
+              color={primaryColor}
             />
           )}
       </div>
 
-      {/* フッター（最新データサマリー） */}
       <div
         className="mt-4 pt-4 border-t flex items-center justify-between"
-        style={{ borderColor: COLORS.grid }}
+        style={{ borderColor: gridColor }}
       >
-        <span className="text-xs" style={{ color: COLORS.textMuted }}>
+        <span className="text-xs" style={{ color: textMutedColor }}>
           最新
         </span>
         <div className="flex items-center gap-3">
-          <span className="text-lg font-bold" style={{ color: COLORS.primary }}>
+          <span className="text-lg font-bold" style={{ color: primaryColor }}>
             {latestData.value.toFixed(1)}
             {CHART_UNITS[chartType]}
           </span>
-          <span className="text-xs" style={{ color: COLORS.textLight }}>
+          <span className="text-xs" style={{ color: textMutedColor }}>
             {format(new Date(latestData.fullDate), "M月d日")}
           </span>
         </div>
