@@ -55,6 +55,7 @@
   }
 }
 
+/* === ベース設定 (Light Mode) === */
 :root {
   --radius: 0.5rem;
   --background: oklch(1 0 0);
@@ -63,26 +64,32 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.705 0.213 47.604); /* orange-500相当 */
-  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.45 0 0);
+  --muted-foreground: oklch(0.45 0 0); /* コントラスト比改善済み */
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.705 0.213 47.604); /* primary と合わせる */
+
+  /* デフォルト (Orange) */
+  --primary: oklch(0.705 0.213 47.604);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.705 0.213 47.604);
+
+  /* チャート色 (デフォルト) */
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
+
+  /* Sidebar */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.705 0.213 47.604); /* sidebar も統一 */
+  --sidebar-primary: oklch(0.705 0.213 47.604);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
@@ -90,6 +97,7 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* === ダークモード設定 === */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -97,25 +105,29 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(
-    0.792 0.196 60.017
-  ); /* orange-400相当（ダークモード用に明るめ） */
-  --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.75 0 0);
+  --muted-foreground: oklch(0.75 0 0); /* コントラスト比改善済み */
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
+
+  /* デフォルト (Orange - Dark) */
+  --primary: oklch(0.792 0.196 60.017);
+  --primary-foreground: oklch(0.205 0 0);
   --ring: oklch(0.792 0.196 60.017);
+
+  /* チャート色 (Dark) */
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
+
+  /* Sidebar (Dark) */
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.792 0.196 60.017);
@@ -124,6 +136,86 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* === カラーテーマ定義 (Light Mode) === */
+/* Red */
+[data-color="red"] {
+  --primary: oklch(0.627 0.265 29.234);
+  --ring: oklch(0.627 0.265 29.234);
+  --sidebar-primary: oklch(0.627 0.265 29.234);
+}
+/* Blue */
+[data-color="blue"] {
+  --primary: oklch(0.623 0.214 259.815);
+  --ring: oklch(0.623 0.214 259.815);
+  --sidebar-primary: oklch(0.623 0.214 259.815);
+}
+/* Green */
+[data-color="green"] {
+  --primary: oklch(0.627 0.194 149.214);
+  --ring: oklch(0.627 0.194 149.214);
+  --sidebar-primary: oklch(0.627 0.194 149.214);
+}
+/* Yellow (Gold) - 文字色を黒にする */
+[data-color="yellow"] {
+  --primary: oklch(0.75 0.183 80.95);
+  --primary-foreground: oklch(0.205 0 0);
+  --ring: oklch(0.75 0.183 80.95);
+  --sidebar-primary: oklch(0.75 0.183 80.95);
+  --sidebar-primary-foreground: oklch(0.205 0 0);
+}
+/* Purple */
+[data-color="purple"] {
+  --primary: oklch(0.592 0.249 305.598);
+  --ring: oklch(0.592 0.249 305.598);
+  --sidebar-primary: oklch(0.592 0.249 305.598);
+}
+/* Monochrome (Simple) */
+[data-color="monochrome"] {
+  --primary: oklch(0.205 0 0);
+  --ring: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+}
+
+/* === カラーテーマ定義 (Dark Mode Overrides) === */
+/* Darkモード時は少し明るく/彩度を調整して視認性を上げる */
+.dark[data-color="red"] {
+  --primary: oklch(0.704 0.191 22.216);
+  --ring: oklch(0.704 0.191 22.216);
+  --primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.704 0.191 22.216);
+}
+.dark[data-color="blue"] {
+  --primary: oklch(0.707 0.165 254.624);
+  --ring: oklch(0.707 0.165 254.624);
+  --primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.707 0.165 254.624);
+}
+.dark[data-color="green"] {
+  --primary: oklch(0.723 0.15 152.04);
+  --ring: oklch(0.723 0.15 152.04);
+  --primary-foreground: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.723 0.15 152.04);
+}
+.dark[data-color="yellow"] {
+  --primary: oklch(0.844 0.16 89.75);
+  --ring: oklch(0.844 0.16 89.75);
+  --primary-foreground: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.844 0.16 89.75);
+}
+.dark[data-color="purple"] {
+  --primary: oklch(0.714 0.203 305.598);
+  --ring: oklch(0.714 0.203 305.598);
+  --primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.714 0.203 305.598);
+}
+.dark[data-color="monochrome"] {
+  --primary: oklch(0.985 0 0);
+  --ring: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.985 0 0);
+  --sidebar-primary-foreground: oklch(0.205 0 0);
 }
 
 @layer base {
