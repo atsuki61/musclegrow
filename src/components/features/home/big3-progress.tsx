@@ -93,6 +93,7 @@ export function Big3Progress({
 
       {/* カード本体 */}
       <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-none space-y-4 relative overflow-hidden">
+        {/* 背景のぼんやり光るエフェクトもprimary色に */}
         <div className="absolute -top-24 -right-24 w-40 h-40 bg-primary/5 rounded-full blur-3xl -z-10" />
 
         <div className="space-y-3">
@@ -104,14 +105,10 @@ export function Big3Progress({
 
             return (
               <div key={exercise.name} className="relative group">
-                {/* 変更点: 1行にまとめ、右側に数値(90/100kg)を配置 */}
                 <div className="flex justify-between items-center mb-1.5">
-                  {/* 左側: 種目名のみ */}
                   <span className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">
                     {exercise.name}
                   </span>
-
-                  {/* 右側: ％表示があった場所に数値を配置 */}
                   <div className="flex items-baseline gap-0.5 text-primary bg-primary/5 px-2 py-0.5 rounded-md">
                     <span className="text-sm font-bold tabular-nums leading-none">
                       <CountUp to={exercise.current} />
@@ -125,7 +122,8 @@ export function Big3Progress({
                 {/* プログレスバー */}
                 <div className="h-2 w-full bg-muted/80 rounded-full overflow-hidden relative">
                   <div
-                    className="h-full rounded-full relative transition-all duration-[1500ms] ease-[cubic-bezier(0.22,1,0.36,1)] bg-gradient-to-r from-primary to-orange-600"
+                    className="h-full rounded-full relative transition-all duration-[1500ms] ease-[cubic-bezier(0.22,1,0.36,1)] 
+                    bg-gradient-to-r from-primary to-primary/80" // 修正: orange-600固定からprimary系グラデに変更
                     style={{ width: mounted ? `${progress}%` : "0%" }}
                   >
                     <div className="absolute inset-0 w-full h-full -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/40 to-transparent z-10" />
@@ -137,7 +135,6 @@ export function Big3Progress({
           })}
         </div>
 
-        {/* 編集リンク */}
         <div className="pt-1 flex justify-center">
           <Link
             href="/goals"
