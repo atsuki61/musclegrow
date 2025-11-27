@@ -17,10 +17,9 @@ export const cachedGetBodyPartsByDateRange = unstable_cache(
   async (userId: string, range: { startDate: string; endDate: string }) => {
     return await getBodyPartsByDateRange(userId, range);
   },
-  // cacheKey（ユーザー別に分ける必要がある）
   ["history-bodyparts"],
   {
-    tags: ["history-bodyparts"], // ← 関数は使えない。固定配列のみ
+    tags: ["history-bodyparts"],
   }
 );
 
@@ -31,16 +30,12 @@ export const cachedGetSessionDetails = unstable_cache(
   },
   ["history-session"],
   {
-    tags: ["history-session"], // ← 関数 NG。固定配列のみ
+    tags: ["history-session"],
   }
 );
 
 /**
  * テーブルが存在しない場合のエラーハンドリングを行う共通関数
- * @param queryFn 実行するクエリ関数
- * @param defaultValue エラー時のデフォルト値
- * @param tableName テーブル名（ログ用）
- * @returns クエリ結果またはデフォルト値
  */
 async function handleTableNotExistsError<T>(
   queryFn: () => Promise<T>,
@@ -50,24 +45,19 @@ async function handleTableNotExistsError<T>(
   try {
     return await queryFn();
   } catch (error: unknown) {
-    // テーブルが存在しない場合はデフォルト値を返す
     if (error instanceof Error && error.message.includes("does not exist")) {
-      // 開発環境でのみログに出力
       if (process.env.NODE_ENV === "development") {
         console.warn(`${tableName}テーブルが存在しません`);
       }
       return defaultValue;
     }
-    // その他のエラーは再スロー
     throw error;
   }
 }
 
 /**
  * セッションIDでそのセッションの全種目とセット記録を取得する
- * @param userId ユーザーID
- * @param sessionId ワークアウトセッションID
- * @returns 種目ごとのセット記録と有酸素記録
+ * 修正: 日付、メモ、時間などのメタデータも返すように変更
  */
 export async function getSessionDetails(
   userId: string,
@@ -76,6 +66,10 @@ export async function getSessionDetails(
   success: boolean;
   error?: string;
   data?: {
+    id: string;
+    date: string; // 追加
+    durationMinutes: number | null; // 追加
+    note: string | null; // 追加
     workoutExercises: Array<{
       exerciseId: string;
       sets: SetRecord[];
@@ -87,9 +81,15 @@ export async function getSessionDetails(
   };
 }> {
   try {
-    // セッション所有者確認
+    // 修正: セッションのメタデータ（日付、メモ、時間）も取得する
     const [session] = await db
-      .select({ userId: workoutSessions.userId })
+      .select({
+        id: workoutSessions.id,
+        userId: workoutSessions.userId,
+        date: workoutSessions.date,
+        durationMinutes: workoutSessions.durationMinutes,
+        note: workoutSessions.note,
+      })
       .from(workoutSessions)
       .where(eq(workoutSessions.id, sessionId))
       .limit(1);
@@ -101,9 +101,7 @@ export async function getSessionDetails(
       return { success: false, error: "アクセス権限がありません" };
     }
 
-    // ================================
     // セット記録（無酸素）と有酸素記録（cardio）を並列取得
-    // ================================
     const [setsData, cardioData] = await Promise.all([
       db
         .select({
@@ -149,7 +147,6 @@ export async function getSessionDetails(
 
     setsData.forEach((row) => {
       const list = workoutExercisesMap.get(row.exerciseId) || [];
-
       list.push({
         id: row.id,
         setOrder: row.setOrder,
@@ -160,9 +157,8 @@ export async function getSessionDetails(
         restSeconds: row.restSeconds ?? null,
         notes: row.notes ?? null,
         failure: row.failure ?? false,
-        duration: null, // ← DBに存在しないので常にnull
+        duration: null,
       });
-
       workoutExercisesMap.set(row.exerciseId, list);
     });
 
@@ -171,7 +167,6 @@ export async function getSessionDetails(
 
     cardioData.forEach((row) => {
       const list = cardioExercisesMap.get(row.exerciseId) || [];
-
       list.push({
         id: row.id,
         duration: Number(row.duration),
@@ -183,13 +178,16 @@ export async function getSessionDetails(
         notes: row.notes ?? null,
         date: new Date(row.createdAt),
       });
-
       cardioExercisesMap.set(row.exerciseId, list);
     });
 
     return {
       success: true,
       data: {
+        id: session.id, // 追加
+        date: session.date, // 追加
+        durationMinutes: session.durationMinutes, // 追加
+        note: session.note, // 追加
         workoutExercises: Array.from(workoutExercisesMap.entries()).map(
           ([exerciseId, sets]) => ({ exerciseId, sets })
         ),
@@ -211,10 +209,6 @@ export async function getSessionDetails(
 
 /**
  * 日付範囲で日付ごとの部位一覧を取得する（カレンダー色付け用）
- * @param userId ユーザーID
- * @param startDate 開始日（YYYY-MM-DD形式の文字列）
- * @param endDate 終了日（YYYY-MM-DD形式の文字列）
- * @returns 日付文字列をキー、部位配列を値とするオブジェクト
  */
 export async function getBodyPartsByDateRange(
   userId: string,
@@ -222,18 +216,15 @@ export async function getBodyPartsByDateRange(
     startDate,
     endDate,
   }: {
-    startDate: string; // YYYY-MM-DD形式
-    endDate: string; // YYYY-MM-DD形式
+    startDate: string;
+    endDate: string;
   }
 ): Promise<{
   success: boolean;
   error?: string;
-  data?: Record<string, BodyPart[]>; // 日付文字列をキー、部位配列を値
+  data?: Record<string, BodyPart[]>;
 }> {
   try {
-    // ================================
-    // 筋トレ履歴と有酸素履歴を並列取得
-    // ================================
     const [strengthRows, cardioRows] = await Promise.all([
       db
         .select({
@@ -296,7 +287,6 @@ export async function getBodyPartsByDateRange(
       result[date] = Array.from(bodyPartsByDate[date]);
     });
 
-    // TODO: history:month-YYYY-MM といったタグで revalidateTag を行い、更新時のみ再取得する。
     return {
       success: true,
       data: result,
