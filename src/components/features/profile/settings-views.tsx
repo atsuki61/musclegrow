@@ -4,11 +4,9 @@ import type { LucideIcon } from "lucide-react";
 import { SettingsHeader } from "./settings-header";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-// ▼ 修正: Download, Trash2 を追加
 import {
   Moon,
   Sun,
-  Monitor,
   Check,
   Palette,
   Smartphone,
