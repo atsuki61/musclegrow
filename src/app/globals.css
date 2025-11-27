@@ -37,6 +37,13 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-chest: var(--color-chest);
+  --color-back: var(--color-back);
+  --color-legs: var(--color-legs);
+  --color-shoulders: var(--color-shoulders);
+  --color-arms: var(--color-arms);
+  --color-core: var(--color-core);
+  --color-other: var(--color-other);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -95,6 +102,15 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /*部位ごとの色 */
+  --color-chest: oklch(0.627 0.265 29.234); /* Red Themeと同じ */
+  --color-back: oklch(0.623 0.214 259.815); /* Blue Themeと同じ */
+  --color-legs: oklch(0.627 0.194 149.214); /* Green Themeと同じ */
+  --color-shoulders: oklch(0.75 0.183 80.95); /* Yellow Themeと同じ */
+  --color-arms: oklch(0.592 0.249 305.598); /* Purple Themeと同じ */
+  --color-core: oklch(0.705 0.213 47.604); /* Orange Themeと同じ */
+  --color-other: oklch(0.556 0 0); /* Gray */
 }
 
 /* === ダークモード設定 === */
@@ -136,6 +152,15 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* 部位ごとの色 */
+  --color-chest: oklch(0.704 0.191 22.216); /* Red Dark (明るい) */
+  --color-back: oklch(0.707 0.165 254.624); /* Blue Dark (明るい) */
+  --color-legs: oklch(0.723 0.15 152.04); /* Green Dark (明るい) */
+  --color-shoulders: oklch(0.844 0.16 89.75); /* Yellow Dark (明るい) */
+  --color-arms: oklch(0.714 0.203 305.598); /* Purple Dark (明るい) */
+  --color-core: oklch(0.792 0.196 60.017); /* Orange Dark (明るい) */
+  --color-other: oklch(0.708 0 0); /* Gray Light */
 }
 
 /* === カラーテーマ定義 (Light Mode) === */

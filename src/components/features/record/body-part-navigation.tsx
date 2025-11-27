@@ -63,8 +63,10 @@ export function BodyPartNavigation({
               data-state={isSelected ? "active" : "inactive"}
               className={cn(
                 "px-5 py-1.5 rounded-full text-sm font-bold transition-all duration-300 active:scale-95",
+                // 修正: bg-primary でテーマカラーを適用
+                // text-primary-foreground で文字色を自動調整（白など）
                 isSelected
-                  ? "bg-primary text-white shadow-md shadow-orange-500/25"
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted"
               )}
             >
