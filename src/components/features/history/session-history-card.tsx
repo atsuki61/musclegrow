@@ -10,6 +10,7 @@ import { Plus, Clock, FileText, Dumbbell, Activity } from "lucide-react";
 import { SwipeableExerciseCard } from "./swipeable-exercise-card";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { getExerciseById } from "@/lib/local-storage-exercises";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface SessionHistoryCardProps {
   date: Date;
@@ -63,22 +64,21 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6">
       {/* ヘッダー情報（カード枠を削除し、フラットに表示） */}
-      <div className="flex flex-col gap-3 px-1">
+      <div className="flex flex-col gap-3 px-1 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight">{formattedDate}</h2>
           <Button
             onClick={handleAddTraining}
             size="sm"
-            variant="outline" // 背景に馴染むようoutlineかghostにする
+            variant="outline"
             className="h-8 rounded-full px-4 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground bg-background/50 backdrop-blur-sm"
           >
             <Plus className="w-3.5 h-3.5" /> 追加
           </Button>
         </div>
 
-        {/* メタ情報（時間・メモ） */}
         {(durationMinutes || note) && (
           <div className="flex flex-col gap-2 text-sm text-muted-foreground">
             {durationMinutes && (
@@ -109,25 +109,34 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
             </h3>
           </div>
           <div className="grid gap-3">
-            {workoutExercises.map(({ exerciseId, sets }, index) => {
-              const exercise = getExerciseById(exerciseId, exercises);
-              if (!exercise) return null;
-              return (
-                <div
-                  key={exerciseId}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                  className="animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards"
-                >
-                  <SwipeableExerciseCard
-                    exercise={exercise}
-                    sets={sets}
-                    onClick={() => onExerciseClick?.(exercise, date)}
-                    onDelete={() => onExerciseDelete?.(exerciseId, date)}
-                    maxWeights={maxWeights}
-                  />
-                </div>
-              );
-            })}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {workoutExercises.map(({ exerciseId, sets }) => {
+                const exercise = getExerciseById(exerciseId, exercises);
+                if (!exercise) return null;
+                return (
+                  <motion.div
+                    key={exerciseId}
+                    layout // これが重要！削除時に他の要素が自動で動きます
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.95,
+                      transition: { duration: 0.2 },
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <SwipeableExerciseCard
+                      exercise={exercise}
+                      sets={sets}
+                      onClick={() => onExerciseClick?.(exercise, date)}
+                      onDelete={() => onExerciseDelete?.(exerciseId, date)}
+                      maxWeights={maxWeights}
+                    />
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         </div>
       )}
@@ -147,25 +156,34 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
             </h3>
           </div>
           <div className="grid gap-3">
-            {cardioExercises.map(({ exerciseId, records }, index) => {
-              const exercise = getExerciseById(exerciseId, exercises);
-              if (!exercise) return null;
-              return (
-                <div
-                  key={exerciseId}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                  className="animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards"
-                >
-                  <SwipeableExerciseCard
-                    exercise={exercise}
-                    records={records}
-                    onClick={() => onExerciseClick?.(exercise, date)}
-                    onDelete={() => onExerciseDelete?.(exerciseId, date)}
-                    maxWeights={maxWeights}
-                  />
-                </div>
-              );
-            })}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {cardioExercises.map(({ exerciseId, records }) => {
+                const exercise = getExerciseById(exerciseId, exercises);
+                if (!exercise) return null;
+                return (
+                  <motion.div
+                    key={exerciseId}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.95,
+                      transition: { duration: 0.2 },
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <SwipeableExerciseCard
+                      exercise={exercise}
+                      records={records}
+                      onClick={() => onExerciseClick?.(exercise, date)}
+                      onDelete={() => onExerciseDelete?.(exerciseId, date)}
+                      maxWeights={maxWeights}
+                    />
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         </div>
       )}
