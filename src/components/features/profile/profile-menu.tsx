@@ -129,12 +129,17 @@ export function ProfileMenu({ profile, onEditBody }: ProfileMenuProps) {
 function SettingItem({
   icon: Icon,
   label,
+  onClick,
 }: {
   icon: LucideIcon;
   label: string;
+  onClick?: () => void;
 }) {
   return (
-    <button className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/40 transition-all duration-200 active:bg-muted active:scale-[0.99] bg-card cursor-pointer select-none group">
+    <button
+      onClick={onClick}
+      className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/40 transition-all duration-200 active:bg-muted active:scale-[0.99] bg-card cursor-pointer select-none group"
+    >
       <div className="flex items-center gap-3">
         <Icon className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
         <span className="text-sm font-medium text-foreground/90">{label}</span>
