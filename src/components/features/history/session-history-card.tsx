@@ -1,3 +1,5 @@
+// src/components/features/history/session-history-card.tsx
+
 "use client";
 
 import { memo } from "react";
@@ -10,6 +12,8 @@ import { Plus, Clock, FileText, Dumbbell, Activity } from "lucide-react";
 import { SwipeableExerciseCard } from "./swipeable-exercise-card";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { getExerciseById } from "@/lib/local-storage-exercises";
+// ▼ 追加: Framer Motion
+import { motion, AnimatePresence } from "framer-motion";
 
 interface SessionHistoryCardProps {
   date: Date;
@@ -43,7 +47,7 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
     router.push(`/record?date=${dateStr}`);
   };
 
-  // 記録がない場合のデザイン
+  // 記録がない場合
   if (!hasRecords) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-muted/5 rounded-2xl border border-dashed border-border/60 animate-in fade-in zoom-in duration-300">
@@ -63,22 +67,21 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* ヘッダー情報（カード枠を削除し、フラットに表示） */}
-      <div className="flex flex-col gap-3 px-1">
+    <div className="space-y-6">
+      {/* ヘッダー情報 */}
+      <div className="flex flex-col gap-3 px-1 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight">{formattedDate}</h2>
           <Button
             onClick={handleAddTraining}
             size="sm"
-            variant="outline" // 背景に馴染むようoutlineかghostにする
+            variant="outline"
             className="h-8 rounded-full px-4 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground bg-background/50 backdrop-blur-sm"
           >
             <Plus className="w-3.5 h-3.5" /> 追加
           </Button>
         </div>
 
-        {/* メタ情報（時間・メモ） */}
         {(durationMinutes || note) && (
           <div className="flex flex-col gap-2 text-sm text-muted-foreground">
             {durationMinutes && (
@@ -109,25 +112,36 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
             </h3>
           </div>
           <div className="grid gap-3">
-            {workoutExercises.map(({ exerciseId, sets }, index) => {
-              const exercise = getExerciseById(exerciseId, exercises);
-              if (!exercise) return null;
-              return (
-                <div
-                  key={exerciseId}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                  className="animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards"
-                >
-                  <SwipeableExerciseCard
-                    exercise={exercise}
-                    sets={sets}
-                    onClick={() => onExerciseClick?.(exercise, date)}
-                    onDelete={() => onExerciseDelete?.(exerciseId, date)}
-                    maxWeights={maxWeights}
-                  />
-                </div>
-              );
-            })}
+            {/* ▼ 追加: AnimatePresence で削除アニメーションを有効化 */}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {workoutExercises.map(({ exerciseId, sets }) => {
+                const exercise = getExerciseById(exerciseId, exercises);
+                if (!exercise) return null;
+                return (
+                  // ▼ 追加: motion.div でラップ
+                  <motion.div
+                    key={exerciseId}
+                    layout // 自動レイアウト調整（繰り上がりアニメーション）
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.9,
+                      transition: { duration: 0.2 },
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <SwipeableExerciseCard
+                      exercise={exercise}
+                      sets={sets}
+                      onClick={() => onExerciseClick?.(exercise, date)}
+                      onDelete={() => onExerciseDelete?.(exerciseId, date)}
+                      maxWeights={maxWeights}
+                    />
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         </div>
       )}
@@ -147,25 +161,35 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
             </h3>
           </div>
           <div className="grid gap-3">
-            {cardioExercises.map(({ exerciseId, records }, index) => {
-              const exercise = getExerciseById(exerciseId, exercises);
-              if (!exercise) return null;
-              return (
-                <div
-                  key={exerciseId}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                  className="animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards"
-                >
-                  <SwipeableExerciseCard
-                    exercise={exercise}
-                    records={records}
-                    onClick={() => onExerciseClick?.(exercise, date)}
-                    onDelete={() => onExerciseDelete?.(exerciseId, date)}
-                    maxWeights={maxWeights}
-                  />
-                </div>
-              );
-            })}
+            {/* ▼ 追加: 有酸素も同様にアニメーション */}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {cardioExercises.map(({ exerciseId, records }) => {
+                const exercise = getExerciseById(exerciseId, exercises);
+                if (!exercise) return null;
+                return (
+                  <motion.div
+                    key={exerciseId}
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.9,
+                      transition: { duration: 0.2 },
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <SwipeableExerciseCard
+                      exercise={exercise}
+                      records={records}
+                      onClick={() => onExerciseClick?.(exercise, date)}
+                      onDelete={() => onExerciseDelete?.(exerciseId, date)}
+                      maxWeights={maxWeights}
+                    />
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         </div>
       )}
