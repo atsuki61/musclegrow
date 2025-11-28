@@ -1,5 +1,3 @@
-// src/components/features/history/session-history-card.tsx
-
 "use client";
 
 import { memo } from "react";
@@ -12,7 +10,6 @@ import { Plus, Clock, FileText, Dumbbell, Activity } from "lucide-react";
 import { SwipeableExerciseCard } from "./swipeable-exercise-card";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { getExerciseById } from "@/lib/local-storage-exercises";
-// ▼ 追加: Framer Motion
 import { motion, AnimatePresence } from "framer-motion";
 
 interface SessionHistoryCardProps {
@@ -47,7 +44,7 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
     router.push(`/record?date=${dateStr}`);
   };
 
-  // 記録がない場合
+  // 記録がない場合のデザイン
   if (!hasRecords) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-muted/5 rounded-2xl border border-dashed border-border/60 animate-in fade-in zoom-in duration-300">
@@ -76,6 +73,7 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
             onClick={handleAddTraining}
             size="sm"
             variant="outline"
+            // 修正: border-primary/30 text-primary に変更してテーマ色を反映
             className="h-8 rounded-full px-4 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground bg-background/50 backdrop-blur-sm"
           >
             <Plus className="w-3.5 h-3.5" /> 追加
@@ -104,7 +102,8 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
       {workoutExercises.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <div className="p-1 bg-orange-100 dark:bg-orange-900/30 rounded text-orange-600">
+            {/* 修正: アイコン背景色もテーマ色に合わせて調整 (primary/10) */}
+            <div className="p-1 bg-primary/10 rounded text-primary">
               <Dumbbell className="w-3.5 h-3.5" />
             </div>
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
@@ -112,16 +111,14 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
             </h3>
           </div>
           <div className="grid gap-3">
-            {/* ▼ 追加: AnimatePresence で削除アニメーションを有効化 */}
             <AnimatePresence mode="popLayout" initial={false}>
               {workoutExercises.map(({ exerciseId, sets }) => {
                 const exercise = getExerciseById(exerciseId, exercises);
                 if (!exercise) return null;
                 return (
-                  // ▼ 追加: motion.div でラップ
                   <motion.div
                     key={exerciseId}
-                    layout // 自動レイアウト調整（繰り上がりアニメーション）
+                    layout
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{
@@ -153,7 +150,8 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
             <Separator className="opacity-50 my-6" />
           )}
           <div className="flex items-center gap-2 px-1">
-            <div className="p-1 bg-blue-100 dark:bg-blue-900/30 rounded text-blue-600">
+            {/* 修正: 有酸素アイコンは青系(テーマと区別)でも良いが、統一感を出すならprimary系でも可。一旦青のまま維持しつつダークモード調整 */}
+            <div className="p-1 bg-blue-100 dark:bg-blue-900/30 rounded text-blue-600 dark:text-blue-400">
               <Activity className="w-3.5 h-3.5" />
             </div>
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
@@ -161,7 +159,6 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
             </h3>
           </div>
           <div className="grid gap-3">
-            {/* ▼ 追加: 有酸素も同様にアニメーション */}
             <AnimatePresence mode="popLayout" initial={false}>
               {cardioExercises.map(({ exerciseId, records }) => {
                 const exercise = getExerciseById(exerciseId, exercises);

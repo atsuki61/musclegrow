@@ -10,12 +10,7 @@ import { ArrowLeft, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-/**
- * BIG3目標設定ページコンポーネント
- *
- * ユーザーのBIG3（ベンチプレス、スクワット、デッドリフト）の
- * 目標重量を設定・編集するための専用画面です。
- */
+//BIG3目標設定ページコンポーネント
 export function GoalsPage() {
   const router = useRouter();
 
@@ -33,9 +28,7 @@ export function GoalsPage() {
     fetchProfile();
   }, []);
 
-  /**
-   * プロフィールデータを取得してフォームに設定
-   */
+  // プロフィールデータを取得してフォームに設定
   const fetchProfile = async () => {
     try {
       setIsLoading(true);
@@ -57,9 +50,7 @@ export function GoalsPage() {
     }
   };
 
-  /**
-   * BIG3目標を保存
-   */
+  // BIG3目標を保存
   const handleSave = async () => {
     try {
       setIsSaving(true);
@@ -99,29 +90,21 @@ export function GoalsPage() {
     }
   };
 
-  /**
-   * 数値入力フィールドを表示する
-   *
-   * @param id フィールドID
-   * @param label ラベル
-   * @param value 値
-   * @param onChange 変更ハンドラ
-   * @param placeholder プレースホルダー
-   * @param color 色（BIG3の種目色）
-   */
   const renderNumberInput = (
-    id: string,
-    label: string,
-    value: string,
-    onChange: (value: string) => void,
-    placeholder: string,
-    color: string
+    id: string, //フィールドID
+    label: string, //ラベル
+    value: string, //値
+    onChange: (value: string) => void, //変更ハンドラ
+    placeholder: string, //プレースホルダー
+    color: string //色（インジケーター用クラス名）
   ) => (
+    // 数値入力フィールドを表示
     <div className="space-y-2">
       <Label htmlFor={id} className="text-sm font-medium">
         {label}
       </Label>
       <div className="relative">
+        {/* インジケーターの色 */}
         <div
           className={`absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ${color}`}
         />
@@ -136,7 +119,7 @@ export function GoalsPage() {
           max="1000"
           step="0.5"
         />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
           kg
         </span>
       </div>
@@ -154,7 +137,7 @@ export function GoalsPage() {
   }
 
   return (
-    <div className="p-4 bg-gray-50 min-h-screen pb-20">
+    <div className="p-4 bg-background min-h-screen pb-20">
       {/* ヘッダー */}
       <div className="mb-6">
         <Link href="/">
@@ -167,21 +150,21 @@ export function GoalsPage() {
           <Target className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold">BIG3 目標設定</h1>
         </div>
-        <p className="text-sm text-gray-600 mt-2">
+        <p className="text-sm text-muted-foreground mt-2">
           長期的な目標重量を設定して、モチベーションを維持しましょう
         </p>
       </div>
 
       {/* エラーメッセージ */}
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-600">
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-md text-sm text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
 
       {/* 成功メッセージ */}
       {successMessage && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-600">
+        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 rounded-md text-sm text-green-600 dark:text-green-400">
           {successMessage}
         </div>
       )}
@@ -190,13 +173,14 @@ export function GoalsPage() {
       <Card className="p-5 mb-4">
         <h3 className="text-base font-semibold mb-4">目標重量</h3>
         <div className="space-y-4">
+          {/* 修正: 全て bg-primary に統一してテーマカラーを反映 */}
           {renderNumberInput(
             "benchPress",
             "ベンチプレス",
             benchPress,
             setBenchPress,
             "100.0",
-            "bg-red-500"
+            "bg-primary"
           )}
           {renderNumberInput(
             "squat",
@@ -204,7 +188,7 @@ export function GoalsPage() {
             squat,
             setSquat,
             "120.0",
-            "bg-green-500"
+            "bg-primary"
           )}
           {renderNumberInput(
             "deadlift",
@@ -212,7 +196,7 @@ export function GoalsPage() {
             deadlift,
             setDeadlift,
             "140.0",
-            "bg-blue-500"
+            "bg-primary"
           )}
         </div>
       </Card>
