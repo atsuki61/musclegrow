@@ -110,7 +110,10 @@
   --color-shoulders: oklch(0.75 0.183 80.95); /* Yellow Themeと同じ */
   --color-arms: oklch(0.592 0.249 305.598); /* Purple Themeと同じ */
   --color-core: oklch(0.705 0.213 47.604); /* Orange Themeと同じ */
-  --color-other: oklch(0.556 0 0); /* Gray */
+  --color-other: oklch(0.205 0 0);
+
+  /* 「その他」選択時の文字色（背景が黒なので文字は白） */
+  --color-other-foreground: #ffffff;
 }
 
 /* === ダークモード設定 === */
@@ -160,7 +163,10 @@
   --color-shoulders: oklch(0.844 0.16 89.75); /* Yellow Dark (明るい) */
   --color-arms: oklch(0.714 0.203 305.598); /* Purple Dark (明るい) */
   --color-core: oklch(0.792 0.196 60.017); /* Orange Dark (明るい) */
-  --color-other: oklch(0.708 0 0); /* Gray Light */
+  --color-other: oklch(0.985 0 0);
+
+  /*  「その他」選択時の文字色（背景が白なので文字は黒） */
+  --color-other-foreground: oklch(0.145 0 0);
 }
 
 /* === カラーテーマ定義 (Light Mode) === */

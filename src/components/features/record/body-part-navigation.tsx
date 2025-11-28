@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 import { BODY_PART_LABELS } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
 
-const BODY_PARTS: Exclude<BodyPart, "all">[] = [
+// 定数定義
+const BODY_PARTS_WITHOUT_ALL: Exclude<BodyPart, "all">[] = [
   "chest",
   "back",
   "legs",
@@ -15,18 +16,47 @@ const BODY_PARTS: Exclude<BodyPart, "all">[] = [
   "other",
 ];
 
+// 部位ごとのCSS変数マッピング（背景色）
+const PART_COLOR_VARS: Record<string, string> = {
+  all: "var(--primary)",
+  chest: "var(--color-chest)",
+  back: "var(--color-back)",
+  legs: "var(--color-legs)",
+  shoulders: "var(--color-shoulders)",
+  arms: "var(--color-arms)",
+  core: "var(--color-core)",
+  other: "var(--color-other)",
+};
+
+// ▼ 追加: 部位ごとの文字色マッピング（選択時用）
+const PART_TEXT_VARS: Record<string, string> = {
+  all: "var(--primary-foreground)", // テーマに合わせて自動調整（黄色の時は黒字など）
+  chest: "#ffffff",
+  back: "#ffffff",
+  legs: "#ffffff",
+  shoulders: "#ffffff",
+  arms: "#ffffff",
+  core: "#ffffff",
+  other: "var(--color-other-foreground)", // ライト/ダークで白黒反転
+};
+
 interface BodyPartNavigationProps {
-  selectedPart?: Exclude<BodyPart, "all">;
-  onPartChange?: (part: Exclude<BodyPart, "all">) => void;
+  selectedPart?: BodyPart;
+  onPartChange?: (part: BodyPart) => void;
+  showAll?: boolean;
 }
 
 export function BodyPartNavigation({
   selectedPart = "chest",
   onPartChange,
+  showAll = false,
 }: BodyPartNavigationProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // 選択されたタブが画面外にある場合、自動スクロール
+  const partsToRender: BodyPart[] = showAll
+    ? ["all", ...BODY_PARTS_WITHOUT_ALL]
+    : BODY_PARTS_WITHOUT_ALL;
+
   useEffect(() => {
     if (scrollContainerRef.current) {
       const selectedTab = scrollContainerRef.current.querySelector(
@@ -54,21 +84,34 @@ export function BodyPartNavigation({
       className="w-full overflow-x-auto no-scrollbar py-2"
     >
       <div className="flex gap-2 px-1 min-w-max">
-        {BODY_PARTS.map((part) => {
+        {partsToRender.map((part) => {
           const isSelected = selectedPart === part;
+          const colorVar = PART_COLOR_VARS[part];
+          // ▼ 追加: 選択時の文字色を取得
+          const textVar = PART_TEXT_VARS[part];
+
           return (
             <button
               key={part}
               onClick={() => onPartChange?.(part)}
               data-state={isSelected ? "active" : "inactive"}
               className={cn(
-                "px-5 py-1.5 rounded-full text-sm font-bold transition-all duration-300 active:scale-95",
-                // 修正: bg-primary でテーマカラーを適用
-                // text-primary-foreground で文字色を自動調整（白など）
-                isSelected
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                "px-5 py-1.5 rounded-full text-sm font-bold transition-all duration-300 active:scale-95 border",
+                "border-transparent"
               )}
+              style={{
+                backgroundColor: isSelected
+                  ? colorVar
+                  : `color-mix(in srgb, ${colorVar} 15%, transparent)`,
+                // ▼ 修正: 選択時は専用の文字色変数を使う
+                color: isSelected ? textVar : colorVar,
+                borderColor: isSelected
+                  ? "transparent"
+                  : `color-mix(in srgb, ${colorVar} 30%, transparent)`,
+                boxShadow: isSelected
+                  ? `0 4px 12px -2px color-mix(in srgb, ${colorVar} 50%, transparent)`
+                  : "none",
+              }}
             >
               {BODY_PART_LABELS[part]}
             </button>

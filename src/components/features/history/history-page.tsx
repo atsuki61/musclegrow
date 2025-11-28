@@ -5,7 +5,7 @@ import { format, parseISO, startOfMonth } from "date-fns";
 import { deleteExerciseSets, deleteCardioRecords } from "@/lib/api";
 import { getWorkoutSession } from "@/lib/api";
 import { useMaxWeights } from "@/hooks/use-max-weights";
-import { BodyPartFilter } from "./body-part-filter";
+import { BodyPartNavigation } from "../record/body-part-navigation";
 import { useHistoryData } from "./hooks/use-history-data";
 import { loadExercisesWithFallback } from "@/lib/local-storage-exercises";
 import {
@@ -19,7 +19,7 @@ import { HistoryCalendarSkeleton } from "./history-calendar-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const SessionHistoryCard = dynamic(() => import("./session-history-card"), {
-  ssr: false, // クライアントサイドでのみレンダリング
+  ssr: false,
   loading: () => (
     <div className="space-y-4 mt-6 animate-pulse">
       <Skeleton className="h-32 w-full rounded-2xl" />
@@ -83,7 +83,6 @@ export function HistoryPage({
   const hasSkippedInitialFetchRef = useRef(false);
   const { userId } = useAuthSession();
 
-  // ▼ 修正: 遅延なしで即時ロード
   const loadExercises = useCallback(async () => {
     const items = await loadExercisesWithFallback(undefined, userId);
     setExercises(items);
@@ -102,12 +101,10 @@ export function HistoryPage({
     initialSessionDetails: initialSessionDetailsValue,
   });
 
-  // ▼ 修正: setTimeoutを削除し、マウント時に即実行
   useEffect(() => {
     loadExercises();
   }, [loadExercises]);
 
-  // カレンダー月変更時のデータ取得（初回はサーバーデータを信じるのでスキップ）
   useEffect(() => {
     if (!hasSkippedInitialFetchRef.current) {
       hasSkippedInitialFetchRef.current = true;
@@ -116,7 +113,6 @@ export function HistoryPage({
     loadBodyPartsByDate(currentMonth);
   }, [currentMonth, loadBodyPartsByDate]);
 
-  // 日付選択時の処理
   const handleDateSelect = useCallback(
     (date: Date) => {
       setSelectedDate(date);
@@ -131,7 +127,6 @@ export function HistoryPage({
 
   const handleExerciseDelete = useCallback(
     async (exerciseId: string, date: Date) => {
-      // 削除処理（変更なし）
       const dateStr = format(date, "yyyy-MM-dd");
       localStorage.removeItem(`workout_${dateStr}_${exerciseId}`);
       localStorage.removeItem(`cardio_${dateStr}_${exerciseId}`);
@@ -189,10 +184,12 @@ export function HistoryPage({
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* フィルター (Sticky) */}
-      <div className="sticky top-14 z-40 w-full border-b bg-background/95 backdrop-blur px-4 py-2">
-        <BodyPartFilter
+      <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur px-2">
+        {/* 新しいナビゲーションコンポーネントを使用（showAll=true） */}
+        <BodyPartNavigation
           selectedPart={selectedBodyPart}
           onPartChange={setSelectedBodyPart}
+          showAll={true}
         />
       </div>
 
