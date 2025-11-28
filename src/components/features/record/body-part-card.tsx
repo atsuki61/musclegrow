@@ -14,7 +14,6 @@ interface BodyPartCardProps {
   onAddExerciseClick?: () => void;
 }
 
-//tier="initial"の種目のみをフィルタリングする関数
 function filterInitialExercises(exercises: Exercise[]): Exercise[] {
   return exercises.filter((exercise) => exercise.tier === "initial");
 }
@@ -26,7 +25,6 @@ export function BodyPartCard({
   onAddExerciseClick,
 }: BodyPartCardProps) {
   const initialExercises = filterInitialExercises(exercises);
-  // ハイドレーションエラー対策: クライアントサイドでのみMAX重量を表示する
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -37,9 +35,9 @@ export function BodyPartCard({
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
         {initialExercises.map((exercise) => {
-          const maxWeight = isMounted ? maxWeights[exercise.id] : undefined; // マウントされるまでは maxWeights を参照せず undefined (表示なし) にする
+          const maxWeight = isMounted ? maxWeights[exercise.id] : undefined;
           const isCardio = isCardioExercise(exercise);
-          const subGroupLabel = exercise.muscleSubGroup // サブ部位ラベル
+          const subGroupLabel = exercise.muscleSubGroup
             ? MUSCLE_SUB_GROUP_LABELS[exercise.muscleSubGroup as MuscleSubGroup]
             : "全体";
 
@@ -53,17 +51,15 @@ export function BodyPartCard({
                   active:scale-90 active:translate-y-0 active:shadow-none active:border-primary active:bg-primary/10
                   cursor-pointer select-none overflow-hidden"
             >
-              {/* ホバー時の光沢エフェクト */}
               <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              {/* MAX重量バッジ (右上) */}
+
               {!isCardio && (
                 <div className="relative z-10 w-full flex justify-end h-5">
-                  {/* マウント前は何も表示しないか、あるいはダミーを表示してレイアウトシフトを防ぐ */}
-                  {/* ここでは「値がある場合のみ表示」するロジックなので、マウント前は非表示でOK */}
                   {isMounted && (
                     <span
                       className={cn(
                         "inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-md shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-105",
+                        // 修正: orange固定からprimaryに変更
                         maxWeight
                           ? "bg-primary/10 text-primary border border-primary/20"
                           : "bg-muted text-muted-foreground/60 border border-border"
@@ -72,7 +68,6 @@ export function BodyPartCard({
                       {maxWeight ? `${maxWeight}kg` : "-"}
                     </span>
                   )}
-                  {/* マウント前のプレースホルダー（高さを確保してガタつきを防ぐならこれを入れる） */}
                   {!isMounted && (
                     <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-muted text-transparent border border-border opacity-30">
                       -
@@ -81,15 +76,14 @@ export function BodyPartCard({
                 </div>
               )}
 
-              {/* スペーサー */}
               {!isCardio ? null : <div className="h-4" />}
 
-              {/* 種目名 */}
-              <span className="relative z-10 text-xs font-bold text-center leading-tight line-clamp-2 px-1 w-full text-foreground/90 group-hover:text-primary transition-colors duration-300">
+              {/* 修正: 文字色を text-foreground にして視認性向上 (ダークモード対策) */}
+              <span className="relative z-10 text-xs font-bold text-center leading-tight line-clamp-2 px-1 w-full text-foreground group-hover:text-primary transition-colors duration-300">
                 {exercise.name}
               </span>
 
-              {/* 部位ラベル (下部) */}
+              {/* 修正: バッジ色を primary ベースに変更 */}
               <span className="relative z-10 mt-1 px-2 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted/50 rounded-full transition-colors duration-300 group-hover:bg-primary/10 group-hover:text-primary">
                 {" "}
                 {subGroupLabel || "全体"}
@@ -107,7 +101,7 @@ export function BodyPartCard({
             active:scale-90 active:translate-y-0 active:border-primary active:shadow-none
             cursor-pointer select-none"
         >
-          <div className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center mb-1 shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90">
+          <div className="w-10 h-10 rounded-full bg-white/80 dark:bg-black/20 flex items-center justify-center mb-1 shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90">
             <Plus className="w-5 h-5 text-primary" />
           </div>
           <span className="text-xs font-bold text-primary">追加</span>
