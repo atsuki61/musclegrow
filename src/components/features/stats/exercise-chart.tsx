@@ -21,6 +21,7 @@ import {
 import { useDataPointCoordinates } from "./profile-chart.hooks";
 import { calculateYAxisDomain } from "./profile-chart.utils";
 import { TrendingUp } from "lucide-react";
+// 削除: import { motion } from "framer-motion";
 
 interface CustomizedProps {
   width?: number;
@@ -39,20 +40,15 @@ interface ExerciseChartProps {
   dataCount?: number;
 }
 
-/**
- * 種目別グラフコンポーネント（テーマカラー対応版）
- */
 export function ExerciseChart({
   data,
   exercise,
   dataCount,
 }: ExerciseChartProps) {
-  // 選択されたデータポイントのインデックス
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [enableAnimation, setEnableAnimation] = useState(false);
 
-  // CSS変数から色を取得（Rechartsに渡す用）
   const primaryColor = "var(--primary)";
   const gridColor = "var(--border)";
   const textMutedColor = "var(--muted-foreground)";
@@ -113,7 +109,6 @@ export function ExerciseChart({
       className="rounded-2xl bg-card shadow-sm border border-border p-6"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* ヘッダー */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5" style={{ color: primaryColor }} />
@@ -131,7 +126,6 @@ export function ExerciseChart({
         )}
       </div>
 
-      {/* グラフ */}
       <div
         ref={containerRef}
         className="relative w-full"
@@ -195,26 +189,25 @@ export function ExerciseChart({
                 dot={false}
                 activeDot={false}
                 isAnimationActive={enableAnimation}
-                animationDuration={300}
+                animationDuration={500}
               />
             )}
 
-            {/* データポイント（アニメーション修正） */}
             <Line
               type="monotone"
               dataKey="value"
               stroke="transparent"
               strokeWidth={0}
               isAnimationActive={enableAnimation}
-              animationDuration={300}
+              animationDuration={500}
               dot={(props) => {
                 const isSelected = selectedIndex === props.index;
                 const { cx, cy, index } = props;
 
-                // 座標が未確定の場合は描画しない
                 if (cx === undefined || cy === undefined) return <></>;
 
                 return (
+                  // 修正: 標準のcircleに戻し、CSS transitionで制御
                   <circle
                     key={`dot-${index}`}
                     cx={cx}
@@ -223,12 +216,12 @@ export function ExerciseChart({
                     style={{
                       fill: isSelected ? primaryColor : bgColor,
                       stroke: primaryColor,
-                      // ▼ 修正: 時間を0.2sに短縮し、ease-outで出だしを速くする
+                      // ▼ CSSでアニメーション
                       transition:
-                        "cx 0.2s ease-out, cy 0.2s ease-out, r 0.2s ease-out",
+                        "cx 0.5s ease, cy 0.5s ease, r 0.3s ease, fill 0.3s ease",
                     }}
                     strokeWidth={isSelected ? 3 : 2}
-                    filter={isSelected ? "url(#shadowProfile)" : undefined}
+                    filter={isSelected ? "url(#shadowPrimary)" : undefined}
                     className="cursor-pointer outline-none"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -250,9 +243,7 @@ export function ExerciseChart({
               selectedIndex < dataPointCoordinates.length &&
               dataPointCoordinates[selectedIndex] && (
                 <Customized
-                  component={(
-                    props: CustomizedProps // 型注釈を追加
-                  ) => (
+                  component={(props: CustomizedProps) => (
                     <VerticalReferenceLineComponent
                       width={props.width}
                       height={props.height}
