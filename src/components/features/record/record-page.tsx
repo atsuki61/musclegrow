@@ -62,7 +62,7 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
   const { refresh: refreshLastTrained } = useLastTrainedDates();
 
-  // ▼ 追加: 選択中の種目の前回記録をプリフェッチ
+  // 選択中の種目の前回記録をプリフェッチ
   const { record: prefetchedRecord } = usePreviousRecord(
     selectedDate,
     selectedExercise
@@ -106,7 +106,11 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
 
   // --- Handlers ---
   const handleDateChange = (date: Date) => setSelectedDate(date);
-  const handlePartChange = (part: Exclude<BodyPart, "all">) => {
+
+  // ▼ 修正箇所: 引数の型を BodyPart に変更し、"all" を除外するロジックを追加
+  // これにより BodyPartNavigation の onPartChange 型定義と一致させます
+  const handlePartChange = (part: BodyPart) => {
+    if (part === "all") return;
     setSelectedPart(part);
     setSearchQuery(""); // 部位変更時に検索リセット
   };
@@ -163,7 +167,8 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
             placeholder="種目を検索..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-muted/40 border-border/50 rounded-xl focus-visible:ring-orange-500"
+            // 修正: focusリングを orange-500 から primary に変更
+            className="pl-9 bg-muted/40 border-border/50 rounded-xl focus-visible:ring-primary/50"
           />
         </div>
 
@@ -181,7 +186,8 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
       <div className="fixed bottom-24 right-5 z-40">
         <Button
           size="icon"
-          className="h-12 w-12 rounded-full bg-black text-white shadow-lg hover:bg-black/90 active:scale-95 transition-all"
+          // 修正: bg-black から bg-primary に変更し、テーマカラーに合わせる
+          className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 active:scale-95 transition-all"
         >
           <Filter className="h-5 w-5" />
         </Button>
@@ -193,7 +199,6 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
         isOpen={isModalOpen}
         onClose={handleModalClose}
         date={selectedDate}
-        // ▼ 修正: プリフェッチしたデータを渡す
         prefetchedPreviousRecord={prefetchedRecord}
       />
 

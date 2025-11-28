@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
-// useColorThemeは不要になったので削除してOKですが、他で使う可能性があれば残しても無害です
-// import { useColorTheme } from "@/components/theme-provider";
 
 interface MultiPartDayButtonProps {
   date: Date;
@@ -25,23 +23,6 @@ function MultiPartDayButton({
   ...props
 }: MultiPartDayButtonProps) {
   const dayNumber = date.getDate();
-  const numParts = bodyParts.length;
-
-  // const { color } = useColorTheme(); // テーマカラー取得は不要になったため削除
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
-  /** 部位数に応じてグリッドの行数・列数を決定 */
-  const getGridConfig = (count: number) => {
-    if (count === 1) return { rows: 1, cols: 1 };
-    if (count === 2) return { rows: 1, cols: 2 };
-    if (count === 3) return { rows: 2, cols: 2 };
-    if (count === 4) return { rows: 2, cols: 2 };
-    if (count <= 6) return { rows: 2, cols: 3 };
-    return { rows: 3, cols: 3 };
-  };
-
-  const gridConfig = getGridConfig(numParts);
 
   // 部位とCSS変数のマッピング
   const partColorVar: Record<string, string> = {
@@ -63,7 +44,6 @@ function MultiPartDayButton({
     // 1色だけの場合
     if (bodyParts.length === 1) {
       const part = bodyParts[0] as string;
-      // 修正: テーマによる分岐を削除し、常に部位カラーを使用
       const colorVar = partColorVar[part] || "var(--color-other)";
 
       return { backgroundColor: colorVar };
