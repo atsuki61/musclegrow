@@ -204,6 +204,7 @@ export function ProfileChart({
               />
             )}
 
+            {/* データポイント（アニメーション修正） */}
             <Line
               type="monotone"
               dataKey="value"
@@ -213,22 +214,31 @@ export function ProfileChart({
               animationDuration={300}
               dot={(props) => {
                 const isSelected = selectedIndex === props.index;
+                const { cx, cy, index } = props;
+
+                // 座標が未確定の場合は描画しない
+                if (cx === undefined || cy === undefined) return <></>;
+
                 return (
                   <circle
-                    cx={props.cx}
-                    cy={props.cy}
+                    key={`dot-${index}`}
+                    cx={cx}
+                    cy={cy}
                     r={isSelected ? 7 : 5}
                     style={{
                       fill: isSelected ? primaryColor : bgColor,
                       stroke: primaryColor,
+                      // ▼ 修正: 時間を0.2sに短縮し、ease-outで出だしを速くする
+                      transition:
+                        "cx 0.2s ease-out, cy 0.2s ease-out, r 0.2s ease-out",
                     }}
                     strokeWidth={isSelected ? 3 : 2}
                     filter={isSelected ? "url(#shadowProfile)" : undefined}
-                    className="cursor-pointer outline-none transition-all duration-200"
+                    className="cursor-pointer outline-none"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (props.index !== undefined) {
-                        setSelectedIndex(props.index);
+                      if (index !== undefined) {
+                        setSelectedIndex(index);
                       }
                     }}
                   />
