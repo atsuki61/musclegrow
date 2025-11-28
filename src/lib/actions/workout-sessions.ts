@@ -2,12 +2,7 @@
 
 import { revalidateTag } from "next/cache";
 import { db } from "../../../db";
-import {
-  workoutSessions,
-  sets,
-  cardioRecords,
-  exercises,
-} from "../../../db/schemas/app";
+import { workoutSessions, sets, cardioRecords } from "../../../db/schemas/app";
 import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 
 /**
@@ -66,6 +61,9 @@ export async function saveWorkoutSession(
         })
         .returning({ id: workoutSessions.id });
       sessionId = newSession.id;
+
+      // 新規作成時のみ、合計日数のキャッシュを更新する
+      revalidateTag(`stats:total-days:${userId}`);
     }
 
     revalidateTag(`workout-session:${userId}:${date}`);

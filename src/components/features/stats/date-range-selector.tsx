@@ -4,7 +4,6 @@ import { HorizontalNav } from "./horizontal-nav";
 import type { DateRangePreset } from "@/types/stats";
 
 const PRESETS: { value: DateRangePreset; label: string }[] = [
-  { value: "week", label: "週" },
   { value: "month", label: "月" },
   { value: "3months", label: "3ヶ月" },
   { value: "6months", label: "6ヶ月" },

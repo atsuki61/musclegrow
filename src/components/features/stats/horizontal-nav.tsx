@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 interface HorizontalNavProps<T extends string> {
@@ -10,29 +10,68 @@ interface HorizontalNavProps<T extends string> {
 }
 
 /**
- * 横スクロール可能なナビゲーションコンポーネント（共通化）
+ * 横スクロール可能なナビゲーションコンポーネント
+ * 記録画面・履歴画面のナビゲーションとデザインを統一
  */
 export function HorizontalNav<T extends string>({
   items,
   value,
   onChange,
 }: HorizontalNavProps<T>) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // 選択されたタブが画面外にある場合、自動スクロール
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      // data-state="active" の要素を探す
+      const selectedTab = scrollContainerRef.current.querySelector(
+        `[data-state="active"]`
+      ) as HTMLElement;
+
+      if (selectedTab) {
+        const container = scrollContainerRef.current;
+        const scrollLeft =
+          selectedTab.offsetLeft -
+          container.offsetWidth / 2 +
+          selectedTab.offsetWidth / 2;
+
+        container.scrollTo({
+          left: scrollLeft,
+          behavior: "smooth",
+        });
+      }
+    }
+  }, [value]);
+
   return (
-    <div className="rounded-lg border bg-card p-3">
-      <div className="flex overflow-x-auto gap-2 py-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent -webkit-overflow-scrolling-touch">
-        {items.map((item) => (
-          <Button
-            key={item.value}
-            variant={value === item.value ? "default" : "outline"}
-            size="sm"
-            onClick={() => onChange(item.value)}
-            className={cn("shrink-0 whitespace-nowrap", item.className)}
-          >
-            {item.label}
-          </Button>
-        ))}
+    // 枠線を削除し、シンプルな横スクロールエリアに
+    <div
+      ref={scrollContainerRef}
+      className="w-full overflow-x-auto no-scrollbar py-2"
+    >
+      <div className="flex gap-2 px-1 min-w-max">
+        {items.map((item) => {
+          const isSelected = value === item.value;
+
+          return (
+            <button
+              key={item.value}
+              onClick={() => onChange(item.value)}
+              data-state={isSelected ? "active" : "inactive"}
+              className={cn(
+                // 記録画面(body-part-navigation)と同じスタイル定義
+                "px-5 py-1.5 rounded-full text-sm font-bold transition-all duration-300 active:scale-95",
+                isSelected
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted",
+                item.className
+              )}
+            >
+              {item.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
-

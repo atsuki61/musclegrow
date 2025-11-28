@@ -255,3 +255,25 @@ export async function getExerciseProgressData(
     };
   }
 }
+
+/**
+ * トレーニング記録がある合計日数を取得する
+ * @param userId ユーザーID
+ */
+export async function getTotalWorkoutDays(userId: string): Promise<number> {
+  const getCachedTotal = unstable_cache(
+    async () => {
+      // workoutSessionsテーブルにある日付の数をカウント
+      const result = await db
+        .select({ count: sql<number>`count(distinct ${workoutSessions.date})` })
+        .from(workoutSessions)
+        .where(eq(workoutSessions.userId, userId));
+
+      return Number(result[0]?.count ?? 0);
+    },
+    [`stats-total-days-${userId}`],
+    { tags: [`stats:total-days:${userId}`] }
+  );
+
+  return getCachedTotal();
+}
