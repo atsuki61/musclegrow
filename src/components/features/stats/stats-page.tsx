@@ -170,7 +170,8 @@ export function StatsPage({
   const hasExerciseData = exerciseData.length > 0;
 
   return (
-    <div className="container mx-auto px-4 py-4 space-y-4 pb-20">
+    <div className="container mx-auto px-4 py-4 space-y-4 pb-20 pt-8">
+      <h1 className="text-2xl font-bold px-1">グラフ</h1>
       <Tabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as typeof activeTab)}

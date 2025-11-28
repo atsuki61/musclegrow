@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/layout/header";
 import { FooterNav } from "@/components/layout/footer-nav";
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -101,7 +100,6 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Header />
           <main className="min-h-screen pb-24">{children}</main>
           <FooterNav />
         </ThemeProvider>
