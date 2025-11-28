@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, CalendarDays, Plus, BarChart3, User } from "lucide-react";
-import { isAuthPage } from "@/lib/utils";
+import { isAuthPage, cn } from "@/lib/utils";
 
 export function FooterNav() {
   const pathname = usePathname();
@@ -22,7 +22,19 @@ export function FooterNav() {
   return (
     <div className="fixed bottom-6 inset-x-0 z-50 flex justify-center pointer-events-none px-4">
       {/* ナビゲーションコンテナ */}
-      <nav className="pointer-events-auto relative w-full max-w-[380px] bg-background/90 backdrop-blur-xl border border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] rounded-3xl px-2 py-3 transition-all duration-300">
+      <nav
+        className={cn(
+          "pointer-events-auto relative w-full max-w-[380px]",
+          "bg-background/90 backdrop-blur-xl",
+          "border border-border/50",
+          // ▼ 修正: ダークモード時にボーダーをテーマカラーにし、薄く光らせる
+          "dark:border-primary/40",
+          "shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
+          "dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)]",
+          "dark:shadow-primary/10", // ほんのり色味を足して立体感を出す
+          "rounded-3xl px-2 py-3 transition-all duration-300"
+        )}
+      >
         <ul className="flex justify-between items-end w-full px-2">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -42,19 +54,21 @@ export function FooterNav() {
                   >
                     {/* 光るエフェクト */}
                     <div
-                      className={`absolute inset-0 rounded-full bg-primary/40 blur-xl transition-opacity duration-500 ${
+                      className={cn(
+                        "absolute inset-0 rounded-full bg-primary/40 blur-xl transition-opacity duration-500",
                         isActive
                           ? "opacity-100"
                           : "opacity-40 group-hover:opacity-70"
-                      }`}
+                      )}
                     />
 
                     {/* ボタン本体 */}
                     <div className="relative flex items-center justify-center w-full h-full rounded-full bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/30 border-[4px] border-background group-hover:scale-105 transition-all duration-300">
                       <Plus
-                        className={`w-8 h-8 stroke-[3px] transition-transform duration-300 ${
+                        className={cn(
+                          "w-8 h-8 stroke-[3px] transition-transform duration-300",
                           isActive ? "rotate-180" : "group-hover:rotate-90"
-                        }`}
+                        )}
                       />
                     </div>
                   </Link>
@@ -75,44 +89,38 @@ export function FooterNav() {
                 >
                   {/* アイコンラッパー */}
                   <div
-                    className={`
-                      relative flex items-center justify-center transition-all duration-300 ease-out
-                      ${
-                        isActive
-                          ? "-translate-y-2"
-                          : "translate-y-1 group-hover:translate-y-0"
-                      }
-                    `}
+                    className={cn(
+                      "relative flex items-center justify-center transition-all duration-300 ease-out",
+                      isActive
+                        ? "-translate-y-2"
+                        : "translate-y-1 group-hover:translate-y-0"
+                    )}
                   >
                     {/* 背景のハロー効果 */}
                     <div
-                      className={`
-                        absolute inset-0 rounded-full bg-primary/10 scale-0 transition-transform duration-300
-                        ${isActive ? "scale-150" : ""}
-                      `}
+                      className={cn(
+                        "absolute inset-0 rounded-full bg-primary/10 scale-0 transition-transform duration-300",
+                        isActive && "scale-150"
+                      )}
                     />
                     <Icon
-                      className={`
-                        relative w-6 h-6 transition-all duration-300 z-10
-                        ${
-                          isActive
-                            ? "text-primary stroke-[2.5px]"
-                            : "text-muted-foreground stroke-2 group-hover:text-foreground"
-                        }
-                      `}
+                      className={cn(
+                        "relative w-6 h-6 transition-all duration-300 z-10",
+                        isActive
+                          ? "text-primary stroke-[2.5px]"
+                          : "text-muted-foreground stroke-2 group-hover:text-foreground"
+                      )}
                     />
                   </div>
 
                   {/* ラベルテキスト */}
                   <span
-                    className={`
-                      text-[10px] font-bold tracking-wide mt-1 transition-all duration-300 origin-bottom
-                      ${
-                        isActive
-                          ? "text-primary opacity-100 scale-100 translate-y-0"
-                          : "text-muted-foreground opacity-0 scale-75 translate-y-2"
-                      }
-                    `}
+                    className={cn(
+                      "text-[10px] font-bold tracking-wide mt-1 transition-all duration-300 origin-bottom",
+                      isActive
+                        ? "text-primary opacity-100 scale-100 translate-y-0"
+                        : "text-muted-foreground opacity-0 scale-75 translate-y-2"
+                    )}
                   >
                     {item.label}
                   </span>
