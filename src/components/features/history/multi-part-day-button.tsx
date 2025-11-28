@@ -4,7 +4,8 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
-// useColorThemeは不要になったので削除してOKですが、残っていても問題ありません
+// useColorThemeは不要になったので削除してOKですが、他で使う可能性があれば残しても無害です
+// import { useColorTheme } from "@/components/theme-provider";
 
 interface MultiPartDayButtonProps {
   date: Date;
@@ -15,9 +16,6 @@ interface MultiPartDayButtonProps {
   [key: string]: unknown;
 }
 
-/**
- * 複数部位の日付セルボタンコンポーネント
- */
 function MultiPartDayButton({
   date,
   bodyParts,
@@ -29,6 +27,7 @@ function MultiPartDayButton({
   const dayNumber = date.getDate();
   const numParts = bodyParts.length;
 
+  // const { color } = useColorTheme(); // テーマカラー取得は不要になったため削除
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -55,67 +54,83 @@ function MultiPartDayButton({
     other: "var(--color-other)",
   };
 
-  /** onClick 統合処理 */
-  const { onClick: propsOnClick, ...restProps } = props;
+  /**
+   * 円グラフ（ルーレット）用のスタイルを生成
+   */
+  const getBackgroundStyle = () => {
+    if (bodyParts.length === 0) return {};
+
+    // 1色だけの場合
+    if (bodyParts.length === 1) {
+      const part = bodyParts[0] as string;
+      // 修正: テーマによる分岐を削除し、常に部位カラーを使用
+      const colorVar = partColorVar[part] || "var(--color-other)";
+
+      return { backgroundColor: colorVar };
+    }
+
+    // 複数色の場合: conic-gradientを生成
+    const segmentSize = 100 / bodyParts.length;
+    const gradients = bodyParts.map((part, index) => {
+      const colorVar = partColorVar[part as string] || "var(--color-other)";
+
+      const start = index * segmentSize;
+      const end = (index + 1) * segmentSize;
+      return `${colorVar} ${start}% ${end}%`;
+    });
+
+    return {
+      background: `conic-gradient(${gradients.join(", ")})`,
+    };
+  };
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (onClick) {
-      if (onClick.length === 0) {
-        (onClick as () => void)();
-      } else {
-        (onClick as React.MouseEventHandler<HTMLButtonElement>)(e);
-      }
-    } else if (propsOnClick && typeof propsOnClick === "function") {
-      propsOnClick(e);
+      if (onClick.length === 0) (onClick as () => void)();
+      else (onClick as React.MouseEventHandler<HTMLButtonElement>)(e);
     }
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={handleClick}
-      className={cn(
-        "relative h-full w-full min-w-0 p-0 overflow-hidden rounded-md",
-        // 選択時のリング色はテーマカラー(primary)
-        isSelected && "ring-2 ring-primary ring-offset-0 z-10",
-        className
-      )}
-      {...restProps}
-    >
-      {/* 背景: 部位ごとの色をグリッドで分割表示 */}
-      <div
-        className="absolute inset-0 grid"
-        style={{
-          gridTemplateRows: `repeat(${gridConfig.rows}, 1fr)`,
-          gridTemplateColumns: `repeat(${gridConfig.cols}, 1fr)`,
-        }}
+    <div className="w-full h-full flex items-center justify-center p-[2px]">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleClick}
+        className={cn(
+          "relative w-full h-full aspect-square p-0 overflow-hidden rounded-full shadow-sm transition-all duration-300",
+          "hover:scale-105 active:scale-95",
+          // 選択時のリング色はテーマカラー(primary)のまま
+          isSelected &&
+            "ring-2 ring-primary ring-offset-2 ring-offset-background z-10",
+          className
+        )}
+        {...props}
       >
-        {bodyParts
-          .slice(0, gridConfig.rows * gridConfig.cols)
-          .map((part, index) => {
-            // シンプルテーマでも部位の色分けは維持する（強制グレー化ロジックを削除）
-            const colorVar =
-              partColorVar[part as string] || "var(--color-other)";
+        {/* 背景レイヤー */}
+        <div
+          className="absolute inset-0 transition-opacity duration-300 opacity-60 dark:opacity-80"
+          style={getBackgroundStyle()}
+        />
 
-            return (
-              <div
-                key={`${part}-${index}`}
-                // 修正: dark:opacity-80 に上げて、ダークモード時の発色を強くする
-                className="w-full h-full transition-colors duration-300 opacity-60 dark:opacity-90"
-                style={{
-                  backgroundColor: colorVar,
-                }}
-              />
-            );
-          })}
-      </div>
+        {/* テキストオーバーレイ */}
+        {bodyParts.length > 0 && (
+          <div className="absolute inset-0 bg-background/10 backdrop-blur-[0.5px]" />
+        )}
 
-      {/* 日付番号（前面） */}
-      <span className="relative z-10 text-sm font-medium text-foreground drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-        {dayNumber}
-      </span>
-    </Button>
+        {/* 日付番号 */}
+        <span
+          className={cn(
+            "relative z-10 text-sm font-medium",
+            bodyParts.length > 0
+              ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
+              : "text-foreground"
+          )}
+        >
+          {dayNumber}
+        </span>
+      </Button>
+    </div>
   );
 }
 

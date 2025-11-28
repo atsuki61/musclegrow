@@ -30,7 +30,6 @@ import {
   validateItems,
 } from "@/lib/validations";
 
-// usePreviousRecordフックが返すデータの型定義
 type PreviousRecordData =
   | { type: "workout"; sets: SetRecord[]; date: Date }
   | { type: "cardio"; records: CardioRecord[]; date: Date }
@@ -41,7 +40,6 @@ interface ExerciseRecordModalProps {
   isOpen: boolean;
   onClose: () => void;
   date: Date;
-  // 修正: any を廃止し、具体的な型定義を適用
   prefetchedPreviousRecord?: PreviousRecordData;
 }
 
@@ -58,12 +56,9 @@ export default function ExerciseRecordModal({
   const { record: fetchedPreviousRecord, isLoading: isPreviousLoading } =
     usePreviousRecord(date, exercise);
 
-  // 優先順位: フェッチ完了データ > プリフェッチデータ
   const previousRecord = fetchedPreviousRecord || prefetchedPreviousRecord;
-  // プリフェッチデータがあればローディング表示をスキップ
   const isLoading = isPreviousLoading && !prefetchedPreviousRecord;
 
-  // 初期セット作成ロジック
   const createInitialSet = (): SetRecord => {
     const isTimeBased = exercise ? isTimeBasedExercise(exercise) : false;
     return {
@@ -102,7 +97,6 @@ export default function ExerciseRecordModal({
     createInitialRecord: isCardio ? createInitialCardioRecord : undefined,
   });
 
-  // モーダルが開いたとき、セットが空ならデフォルトで3セット追加
   useEffect(() => {
     if (isOpen && !isCardio && sets.length === 0 && exercise) {
       const isTimeBased = isTimeBasedExercise(exercise);
@@ -178,8 +172,8 @@ export default function ExerciseRecordModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="w-full max-w-lg h-[95dvh] sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl border-0 sm:border">
         {/* 1. ヘッダーエリア */}
-        <div className="bg-background border-b px-4 py-3 flex items-center justify-between shrink-0 z-10 shadow-sm">
-          <div className="flex flex-col gap-0.5 overflow-hidden pr-2">
+        <div className="bg-background border-b px-4 py-3 flex items-center justify-center shrink-0 z-10 shadow-sm relative">
+          <div className="flex flex-col items-center gap-0.5 overflow-hidden">
             <div className="flex items-center gap-2">
               <DialogTitle className="text-lg font-bold truncate leading-tight">
                 {exercise.name}
@@ -204,7 +198,7 @@ export default function ExerciseRecordModal({
             variant="ghost"
             size="icon"
             onClick={handleClose}
-            className="shrink-0 -mr-2 h-9 w-9 rounded-full hover:bg-muted active:scale-90 transition-transform"
+            className="absolute right-2 h-9 w-9 rounded-full hover:bg-muted active:scale-90 transition-transform"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -250,23 +244,27 @@ export default function ExerciseRecordModal({
                       前回記録を読み込み中...
                     </div>
                   ) : previousRecord ? (
-                    <div className="bg-orange-50/50 dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/20 rounded-xl p-3">
+                    // 修正: orange固定色をprimaryに変更
+                    <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1">
+                        {/* 修正: 文字色もprimaryに */}
+                        <span className="text-xs font-bold text-primary flex items-center gap-1">
                           <History className="w-3 h-3" />
                           前回の記録 (
                           {new Date(previousRecord.date).toLocaleDateString()})
                         </span>
+                        {/* 修正: ボタン色もprimaryに */}
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={handleCopyPreviousRecord}
-                          className="h-6 text-[10px] px-2 text-orange-600 hover:text-orange-700 hover:bg-orange-100"
+                          className="h-6 text-[10px] px-2 text-primary hover:text-primary hover:bg-primary/10"
                         >
                           コピーする
                         </Button>
                       </div>
-                      <div className="opacity-80">
+                      {/* 修正: opacity-80を削除して文字をくっきりさせる（薄いのが気になる場合） */}
+                      <div className="text-foreground/90">
                         {previousRecord.type === "cardio" ? (
                           <PreviousCardioRecordCard
                             records={previousRecord.records}
@@ -319,9 +317,10 @@ export default function ExerciseRecordModal({
 
           {/* 4. フッターアクション（固定） */}
           <div className="p-4 border-t bg-background shrink-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            {/* 修正: primary色のボタンを明示的に指定 */}
             <Button
               onClick={handleClose}
-              className="w-full h-11 text-base font-bold shadow-md shadow-primary/20 rounded-xl active:scale-[0.98] transition-all"
+              className="w-full h-11 text-base font-bold shadow-md shadow-primary/20 rounded-xl active:scale-[0.98] transition-all bg-primary text-primary-foreground hover:bg-primary/90"
               size="lg"
             >
               記録を完了する
