@@ -217,8 +217,7 @@ export function ExerciseChart({
                       fill: isSelected ? primaryColor : bgColor,
                       stroke: primaryColor,
                       // ▼ CSSでアニメーション
-                      transition:
-                        "cx 0.5s ease, cy 0.5s ease, r 0.3s ease, fill 0.3s ease",
+                      transition: "r 0.3s ease, fill 0.3s ease",
                     }}
                     strokeWidth={isSelected ? 3 : 2}
                     filter={isSelected ? "url(#shadowPrimary)" : undefined}

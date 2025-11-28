@@ -1,6 +1,6 @@
-//トレーニングを登録した日数の合計を表示するコンポーネント
+"use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Flame } from "lucide-react";
 
 interface TotalDaysBadgeProps {
   days: number;
@@ -8,12 +8,15 @@ interface TotalDaysBadgeProps {
 
 export function TotalDaysBadge({ days }: TotalDaysBadgeProps) {
   return (
-    <div className="flex justify-center py-4">
-      <Badge variant="secondary" className="text-base px-4 py-2">
-        <span className="text-muted-foreground">合計</span>
-        <span className="font-bold text-foreground mx-1">{days}</span>
-        <span className="text-muted-foreground">日</span>
-      </Badge>
+    <div className="flex items-center gap-1.5 bg-card/50 border border-border/50 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-sm">
+      <div className="relative">
+        {/* 炎の光彩エフェクト */}
+        <div className="absolute inset-0 bg-primary/20 blur-md rounded-full" />
+        <Flame className="w-4 h-4 text-primary fill-primary relative z-10" />
+      </div>
+      <span className="text-sm font-bold tabular-nums leading-none">
+        {days}
+      </span>
     </div>
   );
 }

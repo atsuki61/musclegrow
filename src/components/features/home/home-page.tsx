@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import { calculateMaxWeightsFromStorage } from "@/lib/max-weight";
+import { TotalDaysBadge } from "./total-days-badge";
 
 const Big3Progress = dynamic(() =>
   import("./big3-progress").then((mod) => mod.Big3Progress)
@@ -18,10 +19,6 @@ import {
   type Big3Weights,
 } from "@/lib/big3";
 
-/**
- * ローカルストレージから最大重量を取得する
- * 種目IDが一致しない場合でも、ローカルストレージの全ての種目IDから最大重量を取得
- */
 function getLocalMaxWeight(
   exerciseId: string | undefined,
   localMaxWeights: Record<string, number>
@@ -38,9 +35,15 @@ interface HomePageProps {
     squat?: string;
     deadlift?: string;
   };
+  totalDays: number;
 }
 
-export function HomePage({ dbWeights, targets, exerciseIds }: HomePageProps) {
+export function HomePage({
+  dbWeights,
+  targets,
+  exerciseIds,
+  totalDays,
+}: HomePageProps) {
   const [big3Data, setBig3Data] = useState<Big3ProgressData>(() =>
     createBig3Data(dbWeights, targets)
   );
@@ -104,7 +107,15 @@ export function HomePage({ dbWeights, targets, exerciseIds }: HomePageProps) {
   }, [mergeWithLocalData]);
 
   return (
-    <div className="container mx-auto px-4 pt-0 pb-4 space-y-6">
+    <div className="container mx-auto px-4 pt-4 pb-4 space-y-6">
+      {/* ヘッダーエリア */}
+      <div className="flex items-center justify-between px-1">
+        <h1 className="text-xl font-black italic tracking-tighter text-foreground">
+          MuscleGrow
+        </h1>
+        <TotalDaysBadge days={totalDays} />
+      </div>
+
       <Big3Progress
         benchPress={big3Data.benchPress}
         squat={big3Data.squat}
