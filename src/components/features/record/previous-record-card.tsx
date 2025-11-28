@@ -9,7 +9,6 @@ interface PreviousWorkoutRecordCardProps {
   sets: SetRecord[];
   date: Date;
   onCopy: () => void;
-  /** ヘッダー（タイトルとコピーボタン）を隠すかどうか */
   hideHeader?: boolean;
 }
 
@@ -35,11 +34,11 @@ export function PreviousWorkoutRecordCard({
 }: PreviousWorkoutRecordCardProps) {
   return (
     <div className="space-y-1">
-      {/* ヘッダー表示（オプション） */}
       {!hideHeader && (
         <div className="flex items-center justify-between mb-2 pb-2 border-b border-border/50">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-muted-foreground">
+            {/* 修正: text-muted-foreground から text-primary に変更 */}
+            <span className="text-xs font-bold text-primary">
               前回: {formatDate(date)}
             </span>
           </div>
@@ -47,7 +46,8 @@ export function PreviousWorkoutRecordCard({
             variant="ghost"
             size="sm"
             onClick={onCopy}
-            className="h-6 text-xs gap-1 px-2"
+            // 修正: ボタンもprimary色に
+            className="h-6 text-xs gap-1 px-2 text-primary hover:text-primary hover:bg-primary/10"
           >
             <Copy className="w-3 h-3" /> コピー
           </Button>
@@ -124,14 +124,14 @@ export function PreviousCardioRecordCard({
     <div className="space-y-1">
       {!hideHeader && (
         <div className="flex items-center justify-between mb-2 pb-2 border-b border-border/50">
-          <span className="text-xs font-bold text-muted-foreground">
+          <span className="text-xs font-bold text-primary">
             前回: {formatDate(date)}
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={onCopy}
-            className="h-6 text-xs gap-1 px-2"
+            className="h-6 text-xs gap-1 px-2 text-primary hover:text-primary hover:bg-primary/10"
           >
             <Copy className="w-3 h-3" /> コピー
           </Button>
