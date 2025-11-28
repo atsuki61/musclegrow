@@ -183,9 +183,12 @@ export function HistoryPage({
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <div className="pt-8 px-4 pb-2">
+        <h1 className="text-2xl font-bold">履歴</h1>
+      </div>
       {/* フィルター (Sticky) */}
-      <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur px-2">
-        {/* 新しいナビゲーションコンポーネントを使用（showAll=true） */}
+      {/* top-0 だとタイトルと重なるので、スクロール時の挙動としては「タイトルは隠れてフィルターだけ残る」のが一般的 */}
+      <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur px-2 pt-2 pb-1">
         <BodyPartNavigation
           selectedPart={selectedBodyPart}
           onPartChange={setSelectedBodyPart}

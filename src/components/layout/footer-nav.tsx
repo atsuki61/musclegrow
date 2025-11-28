@@ -15,7 +15,7 @@ export function FooterNav() {
     { href: "/", icon: Home, label: "ホーム" },
     { href: "/history", icon: CalendarDays, label: "履歴" },
     { href: "/record", icon: Plus, label: "記録", isSpecial: true },
-    { href: "/stats", icon: BarChart3, label: "分析" },
+    { href: "/stats", icon: BarChart3, label: "グラフ" },
     { href: "/profile", icon: User, label: "設定" },
   ];
 
