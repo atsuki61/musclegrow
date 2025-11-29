@@ -8,12 +8,14 @@ import {
   NotificationSettings,
   AppearanceSettings,
   AccountSettings,
-  DataSettings, // 新規作成
+  DataSettings,
 } from "./settings-views";
 import { SettingsHeader } from "./settings-header";
+import type { User } from "better-auth";
 
 interface ProfilePageProps {
   initialProfile: ProfileResponse | null;
+  user: User;
 }
 
 type ViewState = "menu" | "editor" | ViewStateTarget;
@@ -25,13 +27,13 @@ interface BodyCompositionData {
   muscleMass: number;
 }
 
-export function ProfilePage({ initialProfile }: ProfilePageProps) {
+export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
   const [view, setView] = useState<ViewState>("menu");
   const [profile, setProfile] = useState<ProfileResponse | null>(
     initialProfile
   );
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // error state は使っていないため削除（ESLint警告対応）
 
   useEffect(() => {
     if (initialProfile) {
@@ -42,7 +44,6 @@ export function ProfilePage({ initialProfile }: ProfilePageProps) {
   const handleSave = async (data: BodyCompositionData) => {
     try {
       setIsSaving(true);
-      setError(null);
 
       const response = await fetch("/api/profile", {
         method: "PUT",
@@ -58,11 +59,9 @@ export function ProfilePage({ initialProfile }: ProfilePageProps) {
         setProfile(result.data);
         setView("menu");
       } else {
-        setError(result.error.message);
         console.error(result.error.message);
       }
     } catch (err) {
-      setError("プロフィールの保存に失敗しました");
       console.error(err);
     } finally {
       setIsSaving(false);
@@ -71,7 +70,6 @@ export function ProfilePage({ initialProfile }: ProfilePageProps) {
 
   const goBack = () => setView("menu");
 
-  // 画面のレンダリング振り分け
   switch (view) {
     case "editor":
       return (
@@ -88,8 +86,9 @@ export function ProfilePage({ initialProfile }: ProfilePageProps) {
       return <AppearanceSettings onBack={goBack} />;
     case "account":
       return <AccountSettings onBack={goBack} />;
-    case "data": // 新規: データ管理
-      return <DataSettings onBack={goBack} />;
+    case "data":
+      // ▼ 修正: userIdを渡す
+      return <DataSettings onBack={goBack} userId={user.id} />;
     case "contact":
       return (
         <div className="min-h-screen bg-background">
@@ -114,6 +113,7 @@ export function ProfilePage({ initialProfile }: ProfilePageProps) {
       return (
         <ProfileMenu
           profile={profile}
+          user={user}
           onEditBody={() => setView("editor")}
           onNavigate={(target) => setView(target)}
         />

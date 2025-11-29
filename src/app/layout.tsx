@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { FooterNav } from "@/components/layout/footer-nav";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,8 +21,6 @@ export const metadata: Metadata = {
   ),
   title: "MuscleGrow - 筋トレ記録アプリ",
   description: "筋トレ習慣を可視化し、継続的なモチベーションを提供",
-
-  // PWAアイコンとファビコンの設定
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
@@ -42,16 +41,12 @@ export const metadata: Metadata = {
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
-
-  // PWA用の追加メタデータ
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "MuscleGrow",
   },
-
-  // OGP画像の設定（SNSシェア用）
   openGraph: {
     title: "MuscleGrow - 筋トレ記録アプリ",
     description: "筋トレ習慣を可視化し、継続的なモチベーションを提供",
@@ -68,8 +63,6 @@ export const metadata: Metadata = {
     locale: "ja_JP",
     type: "website",
   },
-
-  // Twitter用のOGP設定
   twitter: {
     card: "summary_large_image",
     title: "MuscleGrow - 筋トレ記録アプリ",
@@ -102,6 +95,8 @@ export default function RootLayout({
         >
           <main className="min-h-screen pb-24">{children}</main>
           <FooterNav />
+          {/* ▼ 追加: トースト通知コンポーネント (上部中央に表示) */}
+          <Toaster position="top-center" />
         </ThemeProvider>
       </body>
     </html>

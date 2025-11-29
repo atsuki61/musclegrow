@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { SettingsHeader } from "./settings-header";
 import { Card } from "@/components/ui/card";
@@ -12,10 +13,13 @@ import {
   Smartphone,
   Download,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useColorTheme, type ColorTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
+import { exportAllData } from "@/lib/actions/data-export"; // 作成したActionをインポート
+import { toast } from "sonner";
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -194,7 +198,6 @@ interface ColorSwatchProps {
 }
 
 function ColorSwatch({ color, active, onClick }: ColorSwatchProps) {
-  // 表示用の色マッピング
   const colorMap: Record<ColorTheme, string> = {
     orange: "bg-orange-500",
     red: "bg-red-500",
@@ -254,16 +257,66 @@ export function AccountSettings({ onBack }: SettingsViewProps) {
 }
 
 // --- データ管理 ---
-export function DataSettings({ onBack }: SettingsViewProps) {
+interface DataSettingsProps extends SettingsViewProps {
+  userId: string;
+}
+
+export function DataSettings({ onBack, userId }: DataSettingsProps) {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      toast.loading("データを準備中...", { id: "export" });
+
+      // サーバーアクション呼び出し
+      const csvData = await exportAllData(userId);
+
+      // BOMを付与して文字化け防止（Excel対応）
+      const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
+      const blob = new Blob([bom, csvData], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+
+      // ダウンロードリンクを作成してクリック
+      const link = document.createElement("a");
+      link.href = url;
+      const dateStr = new Date().toISOString().split("T")[0];
+      link.setAttribute("download", `musclegrow_backup_${dateStr}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("エクスポートが完了しました", { id: "export" });
+    } catch (e) {
+      console.error(e);
+      toast.error("エクスポートに失敗しました", { id: "export" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDelete = () => {
+    toast.info("全データ削除機能は準備中です");
+  };
+
   return (
     <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
       <SettingsHeader title="データ管理" onBack={onBack} />
       <div className="px-4 space-y-4">
         <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
-          <button className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-left">
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <div className="space-y-0.5">
               <div className="text-sm font-bold flex items-center gap-2">
-                <Download className="w-4 h-4 text-primary" />
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 text-primary" />
+                )}
                 データをエクスポート
               </div>
               <div className="text-xs text-muted-foreground">
@@ -272,7 +325,10 @@ export function DataSettings({ onBack }: SettingsViewProps) {
             </div>
           </button>
 
-          <button className="w-full flex items-center justify-between p-3.5 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left group">
+          <button
+            onClick={handleDelete}
+            className="w-full flex items-center justify-between p-3.5 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left group"
+          >
             <div className="space-y-0.5">
               <div className="text-sm font-bold flex items-center gap-2 text-red-600 group-hover:text-red-700">
                 <Trash2 className="w-4 h-4" />

@@ -9,26 +9,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+// ▼ 追加
+import { toast } from "sonner";
 
-//BIG3目標設定ページコンポーネント
 export function GoalsPage() {
   const router = useRouter();
 
-  // State管理
   const [benchPress, setBenchPress] = useState<string>("");
   const [squat, setSquat] = useState<string>("");
   const [deadlift, setDeadlift] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // error, successMessage state は不要なので削除
 
-  // プロフィールデータの取得
   useEffect(() => {
     fetchProfile();
   }, []);
 
-  // プロフィールデータを取得してフォームに設定
   const fetchProfile = async () => {
     try {
       setIsLoading(true);
@@ -40,22 +37,19 @@ export function GoalsPage() {
         setSquat(data.data.big3TargetSquat?.toString() ?? "");
         setDeadlift(data.data.big3TargetDeadlift?.toString() ?? "");
       } else {
-        setError(data.error.message);
+        toast.error(data.error.message); // toastに変更
       }
     } catch (err) {
-      setError("目標データの取得に失敗しました");
+      toast.error("目標データの取得に失敗しました"); // toastに変更
       console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // BIG3目標を保存
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      setError(null);
-      setSuccessMessage(null);
 
       const requestData = {
         big3TargetBenchPress: benchPress ? parseFloat(benchPress) : undefined,
@@ -74,16 +68,16 @@ export function GoalsPage() {
       const data = await response.json();
 
       if (data.success) {
-        setSuccessMessage("目標を保存しました");
-        // 1.5秒後にホーム画面にリダイレクト
+        // ▼ toast.successに変更
+        toast.success("目標を保存しました！");
         setTimeout(() => {
           router.push("/");
-        }, 1500);
+        }, 1000); // 遷移を少し早める
       } else {
-        setError(data.error.message);
+        toast.error(data.error.message); // toast.errorに変更
       }
     } catch (err) {
-      setError("目標の保存に失敗しました");
+      toast.error("目標の保存に失敗しました"); // toast.errorに変更
       console.error(err);
     } finally {
       setIsSaving(false);
@@ -91,20 +85,18 @@ export function GoalsPage() {
   };
 
   const renderNumberInput = (
-    id: string, //フィールドID
-    label: string, //ラベル
-    value: string, //値
-    onChange: (value: string) => void, //変更ハンドラ
-    placeholder: string, //プレースホルダー
-    color: string //色（インジケーター用クラス名）
+    id: string,
+    label: string,
+    value: string,
+    onChange: (value: string) => void,
+    placeholder: string,
+    color: string
   ) => (
-    // 数値入力フィールドを表示
     <div className="space-y-2">
       <Label htmlFor={id} className="text-sm font-medium">
         {label}
       </Label>
       <div className="relative">
-        {/* インジケーターの色 */}
         <div
           className={`absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ${color}`}
         />
@@ -126,7 +118,6 @@ export function GoalsPage() {
     </div>
   );
 
-  // ローディング中の表示
   if (isLoading) {
     return (
       <div className="p-4 space-y-4 pb-20">
@@ -138,7 +129,6 @@ export function GoalsPage() {
 
   return (
     <div className="p-4 bg-background min-h-screen pb-20">
-      {/* ヘッダー */}
       <div className="mb-6">
         <Link href="/">
           <Button variant="ghost" size="sm" className="mb-4 -ml-2">
@@ -155,25 +145,11 @@ export function GoalsPage() {
         </p>
       </div>
 
-      {/* エラーメッセージ */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-md text-sm text-red-600 dark:text-red-400">
-          {error}
-        </div>
-      )}
+      {/* 独自メッセージ表示エリアを削除 (Toastが代わりに出るため) */}
 
-      {/* 成功メッセージ */}
-      {successMessage && (
-        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 rounded-md text-sm text-green-600 dark:text-green-400">
-          {successMessage}
-        </div>
-      )}
-
-      {/* 目標入力カード */}
       <Card className="p-5 mb-4">
         <h3 className="text-base font-semibold mb-4">目標重量</h3>
         <div className="space-y-4">
-          {/* 修正: 全て bg-primary に統一してテーマカラーを反映 */}
           {renderNumberInput(
             "benchPress",
             "ベンチプレス",
@@ -201,7 +177,6 @@ export function GoalsPage() {
         </div>
       </Card>
 
-      {/* 保存ボタン */}
       <Button
         onClick={handleSave}
         disabled={isSaving}

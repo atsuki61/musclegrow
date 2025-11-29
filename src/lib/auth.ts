@@ -6,15 +6,18 @@ import { db } from "../../db";
 import { getBaseURL } from "./get-base-url";
 import * as schema from "../../db/schemas/auth";
 
-// 環境変数の検証
 if (!process.env.BETTER_AUTH_SECRET) {
   throw new Error("BETTER_AUTH_SECRET environment variable is required");
 }
 if (!process.env.BETTER_AUTH_GOOGLE_CLIENT_ID) {
-  throw new Error("BETTER_AUTH_GOOGLE_CLIENT_ID environment variable is required");
+  throw new Error(
+    "BETTER_AUTH_GOOGLE_CLIENT_ID environment variable is required"
+  );
 }
 if (!process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET) {
-  throw new Error("BETTER_AUTH_GOOGLE_CLIENT_SECRET environment variable is required");
+  throw new Error(
+    "BETTER_AUTH_GOOGLE_CLIENT_SECRET environment variable is required"
+  );
 }
 
 export const auth = betterAuth({
@@ -25,7 +28,10 @@ export const auth = betterAuth({
     schema,
   }),
   secret: process.env.BETTER_AUTH_SECRET,
-  // Google OAuth プロバイダーを追加
+  // ▼ 修正: メールアドレス認証を追加
+  emailAndPassword: {
+    enabled: true,
+  },
   socialProviders: {
     google: {
       clientId: process.env.BETTER_AUTH_GOOGLE_CLIENT_ID,
