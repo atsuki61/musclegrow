@@ -84,7 +84,9 @@ export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
     case "appearance":
       return <AppearanceSettings onBack={goBack} />;
     case "account":
-      return <AccountSettings onBack={goBack} userId={user.id} />;
+      return (
+        <AccountSettings onBack={goBack} userId={user.id} email={user.email} />
+      );
     case "data":
       return <DataSettings onBack={goBack} userId={user.id} />;
     case "contact":

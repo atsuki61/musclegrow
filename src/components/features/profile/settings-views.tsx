@@ -15,6 +15,10 @@ import {
   Trash2,
   Loader2,
   UserX,
+  Mail,
+  Lock,
+  Chrome,
+  ChevronRight,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useColorTheme, type ColorTheme } from "@/components/theme-provider";
@@ -257,9 +261,14 @@ function ColorSwatch({ color, active, onClick }: ColorSwatchProps) {
 // --- アカウント設定 ---
 interface AccountSettingsProps extends SettingsViewProps {
   userId?: string;
+  email?: string; // メールアドレスを受け取る
 }
 
-export function AccountSettings({ onBack, userId }: AccountSettingsProps) {
+export function AccountSettings({
+  onBack,
+  userId,
+  email,
+}: AccountSettingsProps) {
   const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -289,26 +298,102 @@ export function AccountSettings({ onBack, userId }: AccountSettingsProps) {
     <>
       <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
         <SettingsHeader title="アカウント設定" onBack={onBack} />
-        <div className="px-4 space-y-4">
-          <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
-            <button
-              onClick={() => setIsDeleteDialogOpen(true)}
-              className="w-full flex items-center justify-between p-3.5 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left group"
-            >
-              <div className="space-y-0.5">
-                <div className="text-sm font-bold flex items-center gap-2 text-red-600 group-hover:text-red-700">
-                  <UserX className="w-4 h-4" />
-                  アカウントを削除
+        <div className="px-4 space-y-6">
+          {/* 1. ログイン情報セクション */}
+          <section className="space-y-2">
+            <h3 className="px-1 text-xs font-bold text-muted-foreground">
+              ログイン情報
+            </h3>
+            <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
+              {/* メールアドレス */}
+              <button
+                onClick={() => toast.info("メールアドレス変更機能は準備中です")}
+                className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">メールアドレス</div>
+                    <div className="text-xs text-muted-foreground">
+                      {email || "未設定"}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  退会し、すべてのデータを完全に削除します
+                <ChevronRight className="w-4 h-4 text-muted-foreground/30" />
+              </button>
+
+              {/* パスワード変更 */}
+              <button
+                onClick={() => toast.info("パスワード変更機能は準備中です")}
+                className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                    <Lock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">パスワードの変更</div>
+                    <div className="text-xs text-muted-foreground">
+                      定期的な変更を推奨します
+                    </div>
+                  </div>
                 </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground/30" />
+              </button>
+            </Card>
+          </section>
+
+          {/* 2. 連携アカウントセクション */}
+          <section className="space-y-2">
+            <h3 className="px-1 text-xs font-bold text-muted-foreground">
+              連携アカウント
+            </h3>
+            <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
+              <div className="flex items-center justify-between p-3.5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                    <Chrome className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                  </div>
+                  <div className="text-sm font-medium">Google</div>
+                </div>
+                {/* 連携状態のスイッチ（仮実装: ONの状態） */}
+                <Switch
+                  defaultChecked
+                  onCheckedChange={() => toast.info("連携解除機能は準備中です")}
+                />
               </div>
-            </button>
-          </Card>
+            </Card>
+          </section>
+
+          {/* 3. 危険なエリア */}
+          <section className="space-y-2">
+            <h3 className="px-1 text-xs font-bold text-red-600/80">
+              Danger Zone
+            </h3>
+            <Card className="border-red-100 dark:border-red-900/30 shadow-sm bg-red-50/30 dark:bg-red-950/10">
+              <button
+                onClick={() => setIsDeleteDialogOpen(true)}
+                className="w-full flex items-center justify-between p-3.5 hover:bg-red-100/50 dark:hover:bg-red-900/20 transition-colors text-left group"
+              >
+                <div className="space-y-0.5">
+                  <div className="text-sm font-bold flex items-center gap-2 text-red-600 group-hover:text-red-700">
+                    <UserX className="w-4 h-4" />
+                    アカウントを削除
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    退会し、すべてのデータを完全に削除します
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-red-300 group-hover:text-red-500" />
+              </button>
+            </Card>
+          </section>
         </div>
       </div>
 
+      {/* 削除確認ダイアログ (そのまま) */}
       <AlertDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
