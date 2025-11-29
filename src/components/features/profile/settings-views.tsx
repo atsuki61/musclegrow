@@ -14,12 +14,26 @@ import {
   Download,
   Trash2,
   Loader2,
+  UserX,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useColorTheme, type ColorTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
-import { exportAllData } from "@/lib/actions/data-export"; // 作成したActionをインポート
+import { exportAllData } from "@/lib/actions/data-export";
+import { deleteUserAllData, deleteUserAccount } from "@/lib/actions/settings";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { signOut } from "@/lib/auth-client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -64,9 +78,7 @@ export function AppearanceSettings({ onBack }: SettingsViewProps) {
   return (
     <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background pb-20">
       <SettingsHeader title="テーマ設定" onBack={onBack} />
-
       <div className="px-4 space-y-6">
-        {/* 1. ダークモード設定 */}
         <section className="space-y-3">
           <h3 className="text-xs font-bold text-muted-foreground px-1">
             モード
@@ -93,7 +105,6 @@ export function AppearanceSettings({ onBack }: SettingsViewProps) {
           </div>
         </section>
 
-        {/* 2. アクセントカラー設定 */}
         <section className="space-y-3">
           <h3 className="text-xs font-bold text-muted-foreground px-1 flex items-center gap-2">
             <Palette className="w-3 h-3" /> アクセントカラー
@@ -139,7 +150,6 @@ export function AppearanceSettings({ onBack }: SettingsViewProps) {
           </Card>
         </section>
 
-        {/* プレビュー */}
         <section className="space-y-3">
           <h3 className="text-xs font-bold text-muted-foreground px-1">
             プレビュー
@@ -245,14 +255,96 @@ function ColorSwatch({ color, active, onClick }: ColorSwatchProps) {
 }
 
 // --- アカウント設定 ---
-export function AccountSettings({ onBack }: SettingsViewProps) {
+interface AccountSettingsProps extends SettingsViewProps {
+  userId?: string;
+}
+
+export function AccountSettings({ onBack, userId }: AccountSettingsProps) {
+  const router = useRouter();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (!userId) return;
+    setIsDeleting(true);
+    try {
+      const result = await deleteUserAccount(userId);
+      if (result.success) {
+        toast.success("アカウントを削除しました");
+        await signOut();
+        router.push("/login");
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("アカウント削除中にエラーが発生しました");
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
   return (
-    <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
-      <SettingsHeader title="アカウント設定" onBack={onBack} />
-      <div className="px-4">
-        <p className="text-sm text-muted-foreground">開発中です...</p>
+    <>
+      <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
+        <SettingsHeader title="アカウント設定" onBack={onBack} />
+        <div className="px-4 space-y-4">
+          <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
+            <button
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="w-full flex items-center justify-between p-3.5 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left group"
+            >
+              <div className="space-y-0.5">
+                <div className="text-sm font-bold flex items-center gap-2 text-red-600 group-hover:text-red-700">
+                  <UserX className="w-4 h-4" />
+                  アカウントを削除
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  退会し、すべてのデータを完全に削除します
+                </div>
+              </div>
+            </button>
+          </Card>
+        </div>
       </div>
-    </div>
+
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600">
+              本当に退会しますか？
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              この操作は取り消せません。
+              <br />
+              あなたのプロフィール、これまでのトレーニング記録、設定など、すべてのデータが永久に削除されます。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              キャンセル
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteAccount();
+              }}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white focus:ring-red-600"
+            >
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              退会する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -263,21 +355,20 @@ interface DataSettingsProps extends SettingsViewProps {
 
 export function DataSettings({ onBack, userId }: DataSettingsProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleExport = async () => {
     try {
       setIsExporting(true);
       toast.loading("データを準備中...", { id: "export" });
 
-      // サーバーアクション呼び出し
       const csvData = await exportAllData(userId);
 
-      // BOMを付与して文字化け防止（Excel対応）
       const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
       const blob = new Blob([bom, csvData], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
 
-      // ダウンロードリンクを作成してクリック
       const link = document.createElement("a");
       link.href = url;
       const dateStr = new Date().toISOString().split("T")[0];
@@ -296,51 +387,107 @@ export function DataSettings({ onBack, userId }: DataSettingsProps) {
     }
   };
 
-  const handleDelete = () => {
-    toast.info("全データ削除機能は準備中です");
+  const handleDeleteData = async () => {
+    setIsDeleting(true);
+    try {
+      const result = await deleteUserAllData(userId);
+      if (result.success) {
+        toast.success("すべての記録を削除しました");
+        setIsDeleteDialogOpen(false);
+      } else {
+        toast.error(result.error);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("データ削除中にエラーが発生しました");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
-      <SettingsHeader title="データ管理" onBack={onBack} />
-      <div className="px-4 space-y-4">
-        <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
-          <button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <div className="space-y-0.5">
-              <div className="text-sm font-bold flex items-center gap-2">
-                {isExporting ? (
-                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4 text-primary" />
-                )}
-                データをエクスポート
+    <>
+      <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
+        <SettingsHeader title="データ管理" onBack={onBack} />
+        <div className="px-4 space-y-4">
+          <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="space-y-0.5">
+                <div className="text-sm font-bold flex items-center gap-2">
+                  {isExporting ? (
+                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 text-primary" />
+                  )}
+                  データをエクスポート
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  全トレーニング記録をCSV形式でダウンロード
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground">
-                全トレーニング記録をCSV形式でダウンロード
-              </div>
-            </div>
-          </button>
+            </button>
 
-          <button
-            onClick={handleDelete}
-            className="w-full flex items-center justify-between p-3.5 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left group"
-          >
-            <div className="space-y-0.5">
-              <div className="text-sm font-bold flex items-center gap-2 text-red-600 group-hover:text-red-700">
-                <Trash2 className="w-4 h-4" />
-                全データを削除
+            <button
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="w-full flex items-center justify-between p-3.5 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left group"
+            >
+              <div className="space-y-0.5">
+                <div className="text-sm font-bold flex items-center gap-2 text-red-600 group-hover:text-red-700">
+                  <Trash2 className="w-4 h-4" />
+                  全データを削除
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  アカウントのすべての記録を完全に削除します
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground">
-                アカウントのすべての記録を完全に削除します
-              </div>
-            </div>
-          </button>
-        </Card>
+            </button>
+          </Card>
+        </div>
       </div>
-    </div>
+
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600">
+              全データを削除しますか？
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              これまでに記録したトレーニングデータ、体重、体脂肪率などの履歴がすべて削除されます。
+              <br />
+              <span className="font-bold">
+                アカウント自体は削除されません。
+              </span>
+              <br />
+              この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              キャンセル
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteData();
+              }}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white focus:ring-red-600"
+            >
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -33,7 +33,6 @@ export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
     initialProfile
   );
   const [isSaving, setIsSaving] = useState(false);
-  // error state は使っていないため削除（ESLint警告対応）
 
   useEffect(() => {
     if (initialProfile) {
@@ -85,9 +84,8 @@ export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
     case "appearance":
       return <AppearanceSettings onBack={goBack} />;
     case "account":
-      return <AccountSettings onBack={goBack} />;
+      return <AccountSettings onBack={goBack} userId={user.id} />;
     case "data":
-      // ▼ 修正: userIdを渡す
       return <DataSettings onBack={goBack} userId={user.id} />;
     case "contact":
       return (
