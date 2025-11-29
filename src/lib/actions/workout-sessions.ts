@@ -63,6 +63,8 @@ export async function saveWorkoutSession(
       sessionId = newSession.id;
 
       // 新規作成時のみ、合計日数のキャッシュを更新する
+      // (既にその日のセッションがあった場合は日数は増えないので不要だが、
+      //  判定が複雑になるので新規作成時は常に無効化してOK)
       revalidateTag(`stats:total-days:${userId}`);
     }
 
@@ -111,7 +113,6 @@ export async function getWorkoutSession(
       .limit(1);
 
     if (!session) {
-      // セッションが存在しない場合はnullを返す（エラーではない）
       return { success: true, data: undefined };
     }
 
@@ -208,7 +209,6 @@ export async function getLastTrainedDatesFromDB(userId: string): Promise<{
   error?: string;
 }> {
   try {
-    // セット記録がある種目の最終日
     const setsResult = (await db.execute(sql`
       SELECT 
         ${sets.exerciseId} as exercise_id,
@@ -219,7 +219,6 @@ export async function getLastTrainedDatesFromDB(userId: string): Promise<{
       GROUP BY ${sets.exerciseId}
     `)) as unknown as SqlResult;
 
-    // 有酸素記録がある種目の最終日
     const cardioResult = (await db.execute(sql`
       SELECT 
         ${cardioRecords.exerciseId} as exercise_id,
@@ -232,7 +231,6 @@ export async function getLastTrainedDatesFromDB(userId: string): Promise<{
 
     const map: Record<string, string> = {};
 
-    // マージ処理
     const processRow = (row: Record<string, unknown>) => {
       if (
         typeof row.exercise_id === "string" &&
