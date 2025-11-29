@@ -7,6 +7,7 @@ import {
   sets,
   workoutSessions,
   exercises,
+  cardioRecords, // 追加
 } from "../../../db/schemas/app";
 import { eq, and, gte, sql, or, isNull } from "drizzle-orm";
 import type {
@@ -256,20 +257,33 @@ export async function getExerciseProgressData(
   }
 }
 
+// クエリ結果の型
+interface CountResult {
+  count: number | string;
+}
+
 /**
  * トレーニング記録がある合計日数を取得する
- * @param userId ユーザーID
+ * 修正: セット記録または有酸素記録が実際に存在するセッションのみをカウントする
+ * これにより、削除漏れで残った空のセッションがカウントされるのを防ぐ
  */
 export async function getTotalWorkoutDays(userId: string): Promise<number> {
   const getCachedTotal = unstable_cache(
     async () => {
-      // workoutSessionsテーブルにある日付の数をカウント
-      const result = await db
-        .select({ count: sql<number>`count(distinct ${workoutSessions.date})` })
-        .from(workoutSessions)
-        .where(eq(workoutSessions.userId, userId));
+      // セット記録(sets)か有酸素記録(cardioRecords)のいずれかが紐付いているセッションのみをカウント
+      const result = await db.execute(sql`
+        SELECT COUNT(DISTINCT ${workoutSessions.date}) as count
+        FROM ${workoutSessions}
+        LEFT JOIN ${sets} ON ${workoutSessions.id} = ${sets.sessionId}
+        LEFT JOIN ${cardioRecords} ON ${workoutSessions.id} = ${cardioRecords.sessionId}
+        WHERE ${workoutSessions.userId} = ${userId}
+          AND (${sets.id} IS NOT NULL OR ${cardioRecords.id} IS NOT NULL)
+      `);
 
-      return Number(result[0]?.count ?? 0);
+      // 結果の型安全性確保
+      const rows = result as unknown as CountResult[];
+      const count = rows[0]?.count ? Number(rows[0].count) : 0;
+      return count;
     },
     [`stats-total-days-${userId}`],
     { tags: [`stats:total-days:${userId}`] }
