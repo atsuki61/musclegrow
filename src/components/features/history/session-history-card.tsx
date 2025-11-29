@@ -11,6 +11,9 @@ import { SwipeableExerciseCard } from "./swipeable-exercise-card";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { getExerciseById } from "@/lib/local-storage-exercises";
 import { motion, AnimatePresence } from "framer-motion";
+import { ShareModal } from "./share-modal";
+import { Share2 } from "lucide-react";
+import { useState } from "react";
 
 interface SessionHistoryCardProps {
   date: Date;
@@ -35,6 +38,7 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
   onExerciseDelete,
   maxWeights = {},
 }: SessionHistoryCardProps) {
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const router = useRouter();
   const formattedDate = format(date, "yyyy年M月d日 (E)", { locale: ja });
   const hasRecords = workoutExercises.length > 0 || cardioExercises.length > 0;
@@ -69,15 +73,27 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
       <div className="flex flex-col gap-3 px-1 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight">{formattedDate}</h2>
-          <Button
-            onClick={handleAddTraining}
-            size="sm"
-            variant="outline"
-            // 修正: border-primary/30 text-primary に変更してテーマ色を反映
-            className="h-8 rounded-full px-4 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground bg-background/50 backdrop-blur-sm"
-          >
-            <Plus className="w-3.5 h-3.5" /> 追加
-          </Button>
+
+          {/* ▼ 修正: 追加ボタンとシェアボタンを並べる */}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setIsShareOpen(true)}
+              className="h-8 w-8 rounded-full p-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
+            >
+              <Share2 className="w-4 h-4" />
+            </Button>
+
+            <Button
+              onClick={handleAddTraining}
+              size="sm"
+              variant="outline"
+              className="h-8 rounded-full px-4 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground bg-background/50 backdrop-blur-sm"
+            >
+              <Plus className="w-3.5 h-3.5" /> 追加
+            </Button>
+          </div>
         </div>
 
         {(durationMinutes || note) && (
@@ -190,6 +206,15 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
           </div>
         </div>
       )}
+      <ShareModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        date={date}
+        workoutExercises={workoutExercises}
+        cardioExercises={cardioExercises}
+        exercises={exercises}
+        maxWeights={maxWeights}
+      />
     </div>
   );
 });
