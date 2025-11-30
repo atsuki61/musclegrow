@@ -114,7 +114,7 @@ export const ShareImage = forwardRef<HTMLDivElement, ShareImageProps>(
             const historicalMax = maxWeights[exerciseId] || 0;
             const isPR = dailyMaxWeight >= historicalMax && historicalMax > 0;
 
-            // ▼ 修正: 1RMの計算ロジックを追加
+            // 1RMの計算ロジック
             const max1RM = Math.max(
               ...sets.map((s) =>
                 s.weight && s.reps ? calculate1RM(s.weight, s.reps) || 0 : 0

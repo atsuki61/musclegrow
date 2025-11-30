@@ -73,8 +73,6 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
       <div className="flex flex-col gap-3 px-1 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight">{formattedDate}</h2>
-
-          {/* ▼ 修正: 追加ボタンとシェアボタンを並べる */}
           <div className="flex gap-2">
             <Button
               size="sm"
