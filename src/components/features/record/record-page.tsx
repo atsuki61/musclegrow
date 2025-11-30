@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { parse } from "date-fns";
-import { Search, Filter, Pencil, Check } from "lucide-react";
+import { Search, Pencil, Check } from "lucide-react"; // TimerIcon削除
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
@@ -22,14 +22,16 @@ import {
   getExercisesWithUserPreferences,
   toggleExerciseVisibility,
 } from "@/lib/actions/user-exercises";
+// useTimer削除
 
 interface RecordPageProps {
   initialExercises?: Exercise[];
 }
 
-export function RecordPage({ initialExercises = [] }: RecordPageProps) {
+export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const searchParams = useSearchParams();
   const { userId } = useAuthSession();
+  // startTimer削除
 
   // --- Date Logic ---
   const getInitialDate = (): Date => {
@@ -69,7 +71,6 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
     selectedExercise
   );
 
-  // 初期ロード: サーバーからユーザー設定込みのデータを取得
   useEffect(() => {
     const loadExercises = async () => {
       if (userId) {
@@ -91,7 +92,6 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
     recalculateStats();
   }, [recalculateStats]);
 
-  // --- Filtering Logic ---
   const filteredExercises = useMemo(() => {
     let result = exercises.filter((e) => e.bodyPart === selectedPart);
 
@@ -107,7 +107,6 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
     return result;
   }, [exercises, selectedPart, searchQuery]);
 
-  // --- Handlers ---
   const handleDateChange = (date: Date) => setSelectedDate(date);
 
   const handlePartChange = (part: BodyPart) => {
@@ -139,16 +138,13 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   };
 
   const handleAddExercise = async (exercise: Exercise) => {
-    // 1. サーバーに「表示する」設定を保存
     await toggleExerciseVisibility(userId, exercise.id, true);
 
-    // 2. カスタム種目ならDB保存 (変更なし)
     if (exercise.tier === "custom") {
       const result = await saveExercise(userId, exercise);
       if (!result.success) console.error("種目保存エラー:", result.error);
     }
 
-    // 3. Stateを更新して即座に画面に反映
     const newExercise = { ...exercise, tier: "initial" as const };
     setExercises((prev) => {
       const exists = prev.some((e) => e.id === exercise.id);
@@ -163,10 +159,8 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   };
 
   const handleRemoveExercise = async (exercise: Exercise) => {
-    // 1. サーバーに「非表示にする」設定を保存
     await toggleExerciseVisibility(userId, exercise.id, false);
 
-    // 2. State更新
     setExercises((prev) =>
       prev.map((e) => (e.id === exercise.id ? { ...e, tier: "selectable" } : e))
     );
@@ -239,14 +233,10 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
         />
       </main>
 
-      <div className="fixed bottom-24 right-5 z-40">
-        <Button
-          size="icon"
-          className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 active:scale-95 transition-all"
-        >
-          <Filter className="h-5 w-5" />
-        </Button>
-      </div>
+      {/* 
+        修正: フローティングタイマーボタンを削除しました。
+        (記録モーダル内から起動するように変更したため)
+      */}
 
       {/* Modals */}
       <ExerciseRecordModal
