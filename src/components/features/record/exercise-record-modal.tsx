@@ -12,7 +12,15 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, History, Info, Dumbbell, Activity } from "lucide-react";
+// ▼ TimerIcon を追加
+import {
+  X,
+  History,
+  Info,
+  Dumbbell,
+  Activity,
+  Timer as TimerIcon,
+} from "lucide-react";
 import { isCardioExercise, isTimeBasedExercise } from "@/lib/utils";
 import { SetRecordForm } from "./set-record-form";
 import { CardioRecordForm } from "./cardio-record-form";
@@ -29,6 +37,8 @@ import {
   cardioRecordSchema,
   validateItems,
 } from "@/lib/validations";
+// ▼ useTimer を追加
+import { useTimer } from "@/lib/timer-context";
 
 type PreviousRecordData =
   | { type: "workout"; sets: SetRecord[]; date: Date }
@@ -50,6 +60,9 @@ export default function ExerciseRecordModal({
   date,
   prefetchedPreviousRecord,
 }: ExerciseRecordModalProps) {
+  // ▼ タイマー機能を取得
+  const { startTimer } = useTimer();
+
   const isCardio = exercise ? isCardioExercise(exercise) : false;
   const [activeTab, setActiveTab] = useState("record");
 
@@ -194,6 +207,20 @@ export default function ExerciseRecordModal({
               {date.toLocaleDateString()} の記録
             </DialogDescription>
           </div>
+
+          {/* ▼ 復活: タイマー起動ボタン (右上に配置) */}
+          <div className="absolute right-12 top-1/2 -translate-y-1/2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => startTimer(60)}
+              className="h-9 w-9 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              title="タイマー開始 (60秒)"
+            >
+              <TimerIcon className="h-5 w-5" />
+            </Button>
+          </div>
+
           <Button
             variant="ghost"
             size="icon"
@@ -244,16 +271,13 @@ export default function ExerciseRecordModal({
                       前回記録を読み込み中...
                     </div>
                   ) : previousRecord ? (
-                    // 修正: orange固定色をprimaryに変更
                     <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-3">
                       <div className="flex items-center justify-between mb-2">
-                        {/* 修正: 文字色もprimaryに */}
                         <span className="text-xs font-bold text-primary flex items-center gap-1">
                           <History className="w-3 h-3" />
                           前回の記録 (
                           {new Date(previousRecord.date).toLocaleDateString()})
                         </span>
-                        {/* 修正: ボタン色もprimaryに */}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -263,7 +287,6 @@ export default function ExerciseRecordModal({
                           コピーする
                         </Button>
                       </div>
-                      {/* 修正: opacity-80を削除して文字をくっきりさせる（薄いのが気になる場合） */}
                       <div className="text-foreground/90">
                         {previousRecord.type === "cardio" ? (
                           <PreviousCardioRecordCard
@@ -317,7 +340,6 @@ export default function ExerciseRecordModal({
 
           {/* 4. フッターアクション（固定） */}
           <div className="p-4 border-t bg-background shrink-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-            {/* 修正: primary色のボタンを明示的に指定 */}
             <Button
               onClick={handleClose}
               className="w-full h-11 text-base font-bold shadow-md shadow-primary/20 rounded-xl active:scale-[0.98] transition-all bg-primary text-primary-foreground hover:bg-primary/90"

@@ -4,6 +4,8 @@ import "./globals.css";
 import { FooterNav } from "@/components/layout/footer-nav";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { TimerProvider } from "@/lib/timer-context";
+import { IntervalTimer } from "@/components/features/timer/interval-timer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -93,10 +95,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <main className="min-h-screen pb-24">{children}</main>
-          <FooterNav />
-          {/* ▼ 追加: トースト通知コンポーネント (上部中央に表示) */}
-          <Toaster position="top-center" />
+          <TimerProvider>
+            <main className="min-h-screen pb-24">{children}</main>
+            <FooterNav />
+            <Toaster position="top-center" />
+            <IntervalTimer />
+          </TimerProvider>
         </ThemeProvider>
       </body>
     </html>
