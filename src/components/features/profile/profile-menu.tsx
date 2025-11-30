@@ -33,7 +33,6 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { ProfileResponse } from "@/types/profile";
 import type { User } from "better-auth";
-// ▼ 追加
 import { toast } from "sonner";
 
 export type ViewStateTarget =
@@ -73,7 +72,6 @@ export function ProfileMenu({
     try {
       await signOut();
       router.push("/login");
-      // ▼ 追加: ログアウト時のフィードバック
       toast.success("ログアウトしました");
     } catch (error) {
       console.error("ログアウトに失敗しました", error);

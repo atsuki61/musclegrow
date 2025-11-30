@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { headers } from "next/headers"; // 追加
+import { headers } from "next/headers";
 import { RecordPage } from "@/components/features/record";
 import { auth } from "@/lib/auth";
 import { getExercises } from "@/lib/api";
