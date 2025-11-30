@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { parse } from "date-fns";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Pencil, Check } from "lucide-react";
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
@@ -15,12 +15,13 @@ import { saveExercise } from "@/lib/api";
 import { useMaxWeights } from "@/hooks/use-max-weights";
 import { useLastTrainedDates } from "@/hooks/use-last-trained";
 import { usePreviousRecord } from "@/hooks/use-previous-record";
-import {
-  loadExercisesWithFallback,
-  addExerciseToStorage,
-} from "@/lib/local-storage-exercises";
 import { useAuthSession } from "@/lib/auth-session-context";
 import type { BodyPart, Exercise } from "@/types/workout";
+import { toast } from "sonner";
+import {
+  getExercisesWithUserPreferences,
+  toggleExerciseVisibility,
+} from "@/lib/actions/user-exercises";
 
 interface RecordPageProps {
   initialExercises?: Exercise[];
@@ -49,6 +50,7 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
     useState<Exclude<BodyPart, "all">>("chest");
   const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Modals & Selection
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
@@ -62,22 +64,23 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
   const { refresh: refreshLastTrained } = useLastTrainedDates();
 
-  // 選択中の種目の前回記録をプリフェッチ
   const { record: prefetchedRecord } = usePreviousRecord(
     selectedDate,
     selectedExercise
   );
 
+  // 初期ロード: サーバーからユーザー設定込みのデータを取得
   useEffect(() => {
     const loadExercises = async () => {
-      const exercisesList = await loadExercisesWithFallback(
-        initialExercises,
-        userId
-      );
-      setExercises(exercisesList);
+      if (userId) {
+        const result = await getExercisesWithUserPreferences(userId);
+        if (result.success && result.data) {
+          setExercises(result.data);
+        }
+      }
     };
     loadExercises();
-  }, [initialExercises, userId]);
+  }, [userId]);
 
   const recalculateStats = useCallback(() => {
     recalculateMaxWeights();
@@ -107,15 +110,18 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   // --- Handlers ---
   const handleDateChange = (date: Date) => setSelectedDate(date);
 
-  // ▼ 修正箇所: 引数の型を BodyPart に変更し、"all" を除外するロジックを追加
-  // これにより BodyPartNavigation の onPartChange 型定義と一致させます
   const handlePartChange = (part: BodyPart) => {
     if (part === "all") return;
     setSelectedPart(part);
-    setSearchQuery(""); // 部位変更時に検索リセット
+    setSearchQuery("");
+    setIsEditMode(false);
   };
 
   const handleExerciseSelect = (exercise: Exercise) => {
+    if (isEditMode) {
+      handleRemoveExercise(exercise);
+      return;
+    }
     setSelectedExercise(exercise);
     setIsModalOpen(true);
   };
@@ -129,27 +135,53 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const handleAddExerciseClick = () => {
     setAddExerciseBodyPart(selectedPart);
     setIsAddExerciseModalOpen(true);
+    setIsEditMode(false);
   };
 
   const handleAddExercise = async (exercise: Exercise) => {
-    addExerciseToStorage(exercise);
+    // 1. サーバーに「表示する」設定を保存
+    await toggleExerciseVisibility(userId, exercise.id, true);
+
+    // 2. カスタム種目ならDB保存 (変更なし)
     if (exercise.tier === "custom") {
       const result = await saveExercise(userId, exercise);
       if (!result.success) console.error("種目保存エラー:", result.error);
     }
-    setExercises((prev) => [...prev, exercise]);
+
+    // 3. Stateを更新して即座に画面に反映
+    const newExercise = { ...exercise, tier: "initial" as const };
+    setExercises((prev) => {
+      const exists = prev.some((e) => e.id === exercise.id);
+      if (exists) {
+        return prev.map((e) => (e.id === exercise.id ? newExercise : e));
+      }
+      return [...prev, newExercise];
+    });
+
     recalculateStats();
+    toast.success("種目をリストに追加しました");
+  };
+
+  const handleRemoveExercise = async (exercise: Exercise) => {
+    // 1. サーバーに「非表示にする」設定を保存
+    await toggleExerciseVisibility(userId, exercise.id, false);
+
+    // 2. State更新
+    setExercises((prev) =>
+      prev.map((e) => (e.id === exercise.id ? { ...e, tier: "selectable" } : e))
+    );
+    toast.success("リストから削除しました", {
+      description: "種目追加画面からいつでも元に戻せます",
+    });
   };
 
   return (
     <div className="flex flex-col min-h-screen pb-20 bg-background">
-      {/* Header (Sticky) */}
+      {/* Header */}
       <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="flex h-14 items-center justify-center px-4">
           <DateSelector date={selectedDate} onDateChange={handleDateChange} />
         </div>
-
-        {/* Navigation */}
         <div className="px-2 pb-1">
           <BodyPartNavigation
             selectedPart={selectedPart}
@@ -160,33 +192,56 @@ export function RecordPage({ initialExercises = [] }: RecordPageProps) {
 
       {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-4 space-y-4">
-        {/* 検索バー */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="種目を検索..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            // 修正: focusリングを orange-500 から primary に変更
-            className="pl-9 bg-muted/40 border-border/50 rounded-xl focus-visible:ring-primary/50"
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="種目を検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-muted/40 border-border/50 rounded-xl focus-visible:ring-primary/50"
+            />
+          </div>
+
+          <Button
+            variant={isEditMode ? "default" : "outline"}
+            size="icon"
+            onClick={() => setIsEditMode(!isEditMode)}
+            className={`rounded-xl transition-all ${
+              isEditMode
+                ? "bg-red-500 hover:bg-red-600 text-white border-red-500"
+                : "border-border/50 text-muted-foreground"
+            }`}
+            title="種目を整理"
+          >
+            {isEditMode ? (
+              <Check className="h-5 w-5" />
+            ) : (
+              <Pencil className="h-5 w-5" />
+            )}
+          </Button>
         </div>
 
-        {/* 種目カード一覧 */}
+        {isEditMode && (
+          <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs px-3 py-2 rounded-lg flex items-center justify-center animate-in fade-in slide-in-from-top-2">
+            <span className="font-bold">編集モード:</span>{" "}
+            タップしてリストから非表示にします
+          </div>
+        )}
+
         <BodyPartCard
           bodyPart={selectedPart}
           exercises={filteredExercises}
           maxWeights={maxWeights}
           onExerciseSelect={handleExerciseSelect}
           onAddExerciseClick={handleAddExerciseClick}
+          isEditMode={isEditMode}
         />
       </main>
 
-      {/* フィルターボタン (Floating Action Button) */}
       <div className="fixed bottom-24 right-5 z-40">
         <Button
           size="icon"
-          // 修正: bg-black から bg-primary に変更し、テーマカラーに合わせる
           className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 active:scale-95 transition-all"
         >
           <Filter className="h-5 w-5" />

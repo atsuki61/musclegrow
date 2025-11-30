@@ -41,7 +41,7 @@ export function loadExercisesFromStorage(): Exercise[] {
 }
 
 /**
- * ローカルストレージに種目を追加
+ * ローカルストレージに種目を追加（tierをinitialに更新）
  */
 export function addExerciseToStorage(exercise: Exercise): void {
   const exercises = loadExercisesFromStorage();
@@ -49,12 +49,28 @@ export function addExerciseToStorage(exercise: Exercise): void {
   // 既存の種目を更新（IDが同じ場合）
   const existingIndex = exercises.findIndex((e) => e.id === exercise.id);
   if (existingIndex !== -1) {
-    exercises[existingIndex] = exercise;
+    // 既存データがある場合は上書き（tier: initial になる）
+    exercises[existingIndex] = { ...exercise, tier: "initial" };
   } else {
-    exercises.push(exercise);
+    // 新規追加
+    exercises.push({ ...exercise, tier: "initial" });
   }
 
   saveExercisesToStorage(exercises);
+}
+
+/**
+ * ▼ 追加: ローカルストレージから種目を「削除」（tierをselectableに戻す）
+ */
+export function removeExerciseFromStorage(exerciseId: string): void {
+  const exercises = loadExercisesFromStorage();
+
+  const index = exercises.findIndex((e) => e.id === exerciseId);
+  if (index !== -1) {
+    // 削除せず、tierを 'selectable' に変更してリストから隠す
+    exercises[index] = { ...exercises[index], tier: "selectable" };
+    saveExercisesToStorage(exercises);
+  }
 }
 
 /**
@@ -76,28 +92,15 @@ function loadMockExercises(): Exercise[] {
 /**
  * データベースから種目を取得して検証
  */
-async function loadExercisesFromDatabase(userId: string | null): Promise<Exercise[] | null> {
+async function loadExercisesFromDatabase(
+  userId: string | null
+): Promise<Exercise[] | null> {
   try {
     const { getExercises } = await import("@/lib/api");
     const result = await getExercises(userId);
 
     if (result.success && result.data && result.data.length > 0) {
-      const exercises = result.data;
-
-      if (hasInitialExercises(exercises)) {
-        console.log(
-          `データベースから種目を読み込みました: ${exercises.length}件`
-        );
-        saveExercisesToStorage(exercises);
-        return exercises;
-      }
-
-      // tier="initial"の種目がない場合は警告
-      if (process.env.NODE_ENV === "development") {
-        console.warn(
-          'データベースから取得した種目にtier="initial"の種目が存在しません。モックデータを使用します。'
-        );
-      }
+      return result.data;
     }
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
@@ -108,58 +111,70 @@ async function loadExercisesFromDatabase(userId: string | null): Promise<Exercis
   return null;
 }
 
+/**
+ * サーバーデータとローカルデータをマージするヘルパー関数
+ */
+function mergeExercises(
+  serverExercises: Exercise[],
+  localExercises: Exercise[]
+): Exercise[] {
+  const merged = serverExercises.map((serverEx) => {
+    const localEx = localExercises.find((e) => e.id === serverEx.id);
+
+    // ローカルでの変更（tierの変更など）があればそれを優先
+    if (localEx) {
+      return localEx;
+    }
+    return serverEx;
+  });
+
+  // サーバーにないがローカルにある種目（カスタム種目など）を追加
+  const serverIds = new Set(serverExercises.map((e) => e.id));
+  const localOnly = localExercises.filter((e) => !serverIds.has(e.id));
+
+  return [...merged, ...localOnly];
+}
+
 export async function loadExercisesWithFallback(
   initialExercises?: Exercise[],
   userId?: string | null
 ): Promise<Exercise[]> {
-  // 0. サーバーから受け取った初期データがあれば最優先で利用
-  if (initialExercises && initialExercises.length > 0) {
-    saveExercisesToStorage(initialExercises);
-    return initialExercises;
-  }
-
-  // 1. まずデータベースから取得を試みる（認証済みユーザーではDBを正とする）
-  const databaseExercises = await loadExercisesFromDatabase(userId ?? null);
-  if (databaseExercises && databaseExercises.length > 0) {
-    return databaseExercises;
-  }
-
-  // 2. データベースから取得できなかった場合、ローカルストレージから取得
+  // 1. ローカルストレージから現在の状態を取得
   const storedExercises = loadExercisesFromStorage();
 
-  if (storedExercises.length > 0) {
-    // tier="initial"の種目が存在する場合は、そのまま使用
-    if (hasInitialExercises(storedExercises)) {
-      console.log(
-        `ローカルストレージから種目を読み込みました: ${storedExercises.length}件`
-      );
-      return storedExercises;
-    }
+  // 2. サーバー初期データがある場合
+  if (initialExercises && initialExercises.length > 0) {
+    const mergedExercises = mergeExercises(initialExercises, storedExercises);
+    saveExercisesToStorage(mergedExercises);
+    return mergedExercises;
+  }
 
-    // tier="initial"の種目が存在しない場合は、開発時のみ警告を出してモックにフォールバック
-    if (process.env.NODE_ENV === "development") {
-      console.warn(
-        `ローカルストレージにtier="initial"の種目が存在しません（${storedExercises.length}件の種目があります）。モックデータを使用します。`
-      );
+  // 3. DBから取得を試みる
+  const databaseExercises = await loadExercisesFromDatabase(userId ?? null);
+  if (databaseExercises && databaseExercises.length > 0) {
+    const mergedExercises = mergeExercises(databaseExercises, storedExercises);
+    saveExercisesToStorage(mergedExercises);
+    return mergedExercises;
+  }
+
+  // 4. ローカルストレージのみ
+  if (storedExercises.length > 0) {
+    if (hasInitialExercises(storedExercises)) {
+      return storedExercises;
     }
   }
 
-  // 3. フォールバック: モックデータを使用（ゲスト利用時など）
+  // 5. フォールバック
   return loadMockExercises();
 }
 
-/**
- * 種目IDから種目情報を取得（propsのexercisesとローカルストレージの両方を検索）
- */
 export function getExerciseById(
   exerciseId: string,
   exercises: Exercise[]
 ): Exercise | undefined {
-  // まずpropsのexercisesから検索
   const exercise = exercises.find((e) => e.id === exerciseId);
   if (exercise) return exercise;
 
-  // propsになければローカルストレージから検索
   const storedExercises = loadExercisesFromStorage();
   return storedExercises.find((e) => e.id === exerciseId);
 }

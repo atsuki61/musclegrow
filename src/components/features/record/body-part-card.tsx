@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
+import { Plus, MinusCircle } from "lucide-react"; // アイコン追加
 import { cn, isCardioExercise } from "@/lib/utils";
 import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
 import type { Exercise, MuscleSubGroup } from "@/types/workout";
@@ -12,6 +12,8 @@ interface BodyPartCardProps {
   maxWeights?: Record<string, number>;
   onExerciseSelect?: (exercise: Exercise) => void;
   onAddExerciseClick?: () => void;
+  // ▼ 追加: 編集モード
+  isEditMode?: boolean;
 }
 
 function filterInitialExercises(exercises: Exercise[]): Exercise[] {
@@ -23,6 +25,7 @@ export function BodyPartCard({
   maxWeights = {},
   onExerciseSelect,
   onAddExerciseClick,
+  isEditMode = false, // デフォルトfalse
 }: BodyPartCardProps) {
   const initialExercises = filterInitialExercises(exercises);
   const [isMounted, setIsMounted] = useState(false);
@@ -45,21 +48,30 @@ export function BodyPartCard({
             <button
               key={exercise.id}
               onClick={() => onExerciseSelect?.(exercise)}
-              className="group relative flex flex-col items-center justify-between aspect-square rounded-2xl border border-border/60 bg-card p-2 shadow-sm 
-                  transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)
-                  hover:scale-[1.03] hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/10 hover:border-primary/40 hover:bg-primary/5
-                  active:scale-90 active:translate-y-0 active:shadow-none active:border-primary active:bg-primary/10
-                  cursor-pointer select-none overflow-hidden"
+              className={cn(
+                "group relative flex flex-col items-center justify-between aspect-square rounded-2xl border border-border/60 bg-card p-2 shadow-sm transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1) cursor-pointer select-none overflow-hidden",
+                // 編集モード時の揺れアニメーションやスタイル変更
+                isEditMode
+                  ? "animate-pulse-slow border-red-200 bg-red-50/10 hover:bg-red-100/20 hover:border-red-300"
+                  : "hover:scale-[1.03] hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/10 hover:border-primary/40 hover:bg-primary/5 active:scale-90 active:translate-y-0 active:shadow-none active:border-primary active:bg-primary/10"
+              )}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-              {!isCardio && (
+              {/* ▼ 編集モード時の削除バッジ */}
+              {isEditMode && (
+                <div className="absolute top-1 right-1 z-20">
+                  <MinusCircle className="w-6 h-6 text-red-500 fill-white dark:fill-background" />
+                </div>
+              )}
+
+              {/* 通常時のMAX重量バッジ */}
+              {!isCardio && !isEditMode && (
                 <div className="relative z-10 w-full flex justify-end h-5">
                   {isMounted && (
                     <span
                       className={cn(
                         "inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-md shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-105",
-                        // 修正: orange固定からprimaryに変更
                         maxWeight
                           ? "bg-primary/10 text-primary border border-primary/20"
                           : "bg-muted text-muted-foreground/60 border border-border"
@@ -76,14 +88,12 @@ export function BodyPartCard({
                 </div>
               )}
 
-              {!isCardio ? null : <div className="h-4" />}
+              {!isCardio && !isEditMode ? null : <div className="h-4" />}
 
-              {/* 修正: 文字色を text-foreground にして視認性向上 (ダークモード対策) */}
               <span className="relative z-10 text-xs font-bold text-center leading-tight line-clamp-2 px-1 w-full text-foreground group-hover:text-primary transition-colors duration-300">
                 {exercise.name}
               </span>
 
-              {/* 修正: バッジ色を primary ベースに変更 */}
               <span className="relative z-10 mt-1 px-2 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted/50 rounded-full transition-colors duration-300 group-hover:bg-primary/10 group-hover:text-primary">
                 {" "}
                 {subGroupLabel || "全体"}
@@ -92,20 +102,22 @@ export function BodyPartCard({
           );
         })}
 
-        {/* 追加カード */}
-        <button
-          onClick={onAddExerciseClick}
-          className="group relative flex flex-col items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 text-primary 
-            transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)
-            hover:scale-[1.03] hover:-translate-y-1 hover:bg-primary/10 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20
-            active:scale-90 active:translate-y-0 active:border-primary active:shadow-none
-            cursor-pointer select-none"
-        >
-          <div className="w-10 h-10 rounded-full bg-white/80 dark:bg-black/20 flex items-center justify-center mb-1 shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90">
-            <Plus className="w-5 h-5 text-primary" />
-          </div>
-          <span className="text-xs font-bold text-primary">追加</span>
-        </button>
+        {/* 追加カード (編集モード中は非表示または無効化) */}
+        {!isEditMode && (
+          <button
+            onClick={onAddExerciseClick}
+            className="group relative flex flex-col items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 text-primary 
+              transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)
+              hover:scale-[1.03] hover:-translate-y-1 hover:bg-primary/10 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20
+              active:scale-90 active:translate-y-0 active:border-primary active:shadow-none
+              cursor-pointer select-none"
+          >
+            <div className="w-10 h-10 rounded-full bg-white/80 dark:bg-black/20 flex items-center justify-center mb-1 shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90">
+              <Plus className="w-5 h-5 text-primary" />
+            </div>
+            <span className="text-xs font-bold text-primary">追加</span>
+          </button>
+        )}
       </div>
 
       {initialExercises.length === 0 && (
