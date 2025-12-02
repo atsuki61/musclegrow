@@ -3,13 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { toPng } from "html-to-image";
 import download from "downloadjs";
-import {
-  Dialog,
-  DialogContent,
-  // DialogHeader, // 削除: 未使用のため
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Share2, Loader2, Download, X } from "lucide-react";
 import { ShareImage } from "./share-image";
@@ -123,19 +117,17 @@ export function ShareModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md w-full h-[95dvh] max-h-[900px] p-0 overflow-hidden bg-slate-950 border-slate-800 flex flex-col">
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-md w-full h-[95dvh] max-h-[900px] p-0 overflow-hidden bg-slate-950 border-slate-800 flex flex-col"
+      >
         {/* ヘッダー */}
         <div className="relative p-4 pb-2 bg-slate-950 text-white border-b border-slate-800 shrink-0 flex items-center justify-between">
           <DialogTitle className="flex items-center gap-2 text-sm">
             <Share2 className="w-4 h-4" /> 記録をシェア
           </DialogTitle>
 
-          {/* 閉じるボタン: 視認性向上 */}
-          {/* DialogFooterを隠し用途で使うのはハック的ですが、配置調整のため維持します */}
-          <DialogFooter className="sm:hidden">
-            {" "}
-            {/* デフォルトの閉じるボタンを隠すためのダミー */}{" "}
-          </DialogFooter>
+          {/* 閉じるボタン */}
           <button
             onClick={onClose}
             className="absolute right-3 top-3 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
