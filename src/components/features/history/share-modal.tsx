@@ -56,7 +56,7 @@ export function ShareModal({
 
   const formattedDate = format(date, "yyyy/MM/dd(E)", { locale: ja });
   const appUrl = "https://musclegrow.vercel.app/";
-  const shareText = `📅 ${formattedDate} のトレーニング記録\n\n今日も頑張りました！💪\n#MuscleGrow #筋トレ`;
+  const shareText = ` ${formattedDate} のトレーニング記録\n\n\n#MuscleGrow `;
 
   useEffect(() => {
     if (typeof navigator !== "undefined") {
