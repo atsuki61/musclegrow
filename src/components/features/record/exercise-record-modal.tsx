@@ -181,9 +181,21 @@ export default function ExerciseRecordModal({
 
   if (!exercise) return null;
 
+  // タイマーカード内のクリックでモーダルが閉じないようにする
+  const handleInteractOutside = (event: Event) => {
+    const target = event.target as HTMLElement;
+    // タイマーカード内のクリックは無視
+    if (target.closest('[data-interval-timer="true"]')) {
+      event.preventDefault();
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-full max-w-lg h-[95dvh] sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl border-0 sm:border">
+      <DialogContent
+        className="w-full max-w-lg h-[95dvh] sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl border-0 sm:border"
+        onInteractOutside={handleInteractOutside}
+      >
         {/* 1. ヘッダーエリア */}
         <div className="bg-background border-b px-4 py-3 flex items-center justify-center shrink-0 z-10 shadow-sm relative">
           <div className="flex flex-col items-center gap-0.5 overflow-hidden">

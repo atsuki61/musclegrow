@@ -63,6 +63,7 @@ export function IntervalTimer() {
           exit={{ opacity: 0, y: 20, scale: 0.8 }}
           className="fixed bottom-24 right-4 z-[100]"
           data-interval-timer="true"
+          onClick={(e) => e.stopPropagation()}
         >
           <Button
             onClick={toggleMinimize}
@@ -85,6 +86,7 @@ export function IntervalTimer() {
           exit={{ opacity: 0, y: 50 }}
           className="fixed bottom-24 left-4 right-4 z-[100] mx-auto max-w-md pointer-events-auto"
           data-interval-timer="true"
+          onClick={(e) => e.stopPropagation()}
         >
           <div className="bg-background/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl p-4 relative overflow-hidden">
             <div className="absolute top-0 left-0 h-1 w-full bg-muted">
