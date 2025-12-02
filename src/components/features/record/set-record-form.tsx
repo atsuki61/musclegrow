@@ -19,6 +19,7 @@ interface SetRecordFormProps {
   exercise: Exercise;
   sets: SetRecord[];
   onSetsChange: (sets: SetRecord[]) => void;
+  isLoading?: boolean;
 }
 
 interface SetRowProps {
@@ -149,6 +150,7 @@ export function SetRecordForm({
   exercise,
   sets,
   onSetsChange,
+  isLoading = false,
 }: SetRecordFormProps) {
   const lastSetRef = useRef<HTMLDivElement>(null);
   const previousSetsLengthRef = useRef<number>(sets.length);
@@ -228,7 +230,7 @@ export function SetRecordForm({
     <div className="space-y-4">
       <Card className="border-none shadow-none sm:border sm:shadow-sm bg-transparent sm:bg-card">
         <div className="p-0 sm:p-4 space-y-2">
-          {sets.length === 0 ? (
+          {isLoading ? null : sets.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-muted rounded-xl bg-muted/10">
               <Dumbbell className="w-8 h-8 text-muted-foreground/20 mb-2" />
               <p className="text-sm font-medium text-muted-foreground">
