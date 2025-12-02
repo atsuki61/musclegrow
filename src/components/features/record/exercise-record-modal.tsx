@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -96,7 +96,13 @@ export default function ExerciseRecordModal({
     date: new Date(),
   });
 
-  const { sets, setSets, saveSets } = useWorkoutSession({
+  const {
+    sets,
+    setSets,
+    saveSets,
+    isLoaded,
+    isLoading: isSetsLoading,
+  } = useWorkoutSession({
     date,
     exerciseId: exercise?.id || null,
     isOpen,
@@ -110,8 +116,37 @@ export default function ExerciseRecordModal({
     createInitialRecord: isCardio ? createInitialCardioRecord : undefined,
   });
 
+  // 初回ロード時に3セット作成を実行したかどうかを追跡するフラグ
+  const hasInitializedRef = useRef(false);
+  const previousExerciseIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (isOpen && !isCardio && sets.length === 0 && exercise) {
+    // モーダルが閉じられたらフラグをリセット
+    if (!isOpen) {
+      hasInitializedRef.current = false;
+      return;
+    }
+
+    // 種目が変更されたらフラグをリセット
+    if (previousExerciseIdRef.current !== exercise?.id) {
+      hasInitializedRef.current = false;
+      previousExerciseIdRef.current = exercise?.id || null;
+    }
+
+    // 初回ロード時のみ、かつ初期セットが1つだけの場合（useWorkoutSessionが作成した初期セット）のみ3セットに置き換える
+    if (
+      isOpen &&
+      !isCardio &&
+      isLoaded &&
+      !hasInitializedRef.current &&
+      sets.length === 1 &&
+      exercise &&
+      // 既存のデータがない場合のみ（weight/reps/durationがすべて0またはundefined）
+      sets[0] &&
+      !sets[0].weight &&
+      sets[0].reps === 0 &&
+      !sets[0].duration
+    ) {
       const isTimeBased = isTimeBasedExercise(exercise);
       const initialSets: SetRecord[] = Array.from({ length: 3 }).map(
         (_, i) => ({
@@ -125,9 +160,10 @@ export default function ExerciseRecordModal({
         })
       );
       setSets(initialSets);
+      hasInitializedRef.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, isLoaded, sets.length, exercise?.id]);
 
   const handleClose = () => {
     if (!exercise) {
@@ -329,6 +365,7 @@ export default function ExerciseRecordModal({
                       exercise={exercise}
                       sets={sets}
                       onSetsChange={setSets}
+                      isLoading={isSetsLoading}
                     />
                   )}
                 </TabsContent>
