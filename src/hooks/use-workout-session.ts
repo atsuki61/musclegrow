@@ -11,17 +11,11 @@ import {
 import { formatDateToYYYYMMDD } from "@/lib/utils";
 import { useAuthSession } from "@/lib/auth-session-context";
 
-/**
- * ローカルストレージのキーを生成
- */
 const getStorageKey = (date: Date, exerciseId: string): string => {
   const dateStr = formatDateToYYYYMMDD(date);
   return `workout_${dateStr}_${exerciseId}`;
 };
 
-/**
- * ローカルストレージからセット記録を取得
- */
 const loadSetsFromStorage = (
   date: Date,
   exerciseId: string
@@ -41,9 +35,6 @@ const loadSetsFromStorage = (
   }
 };
 
-/**
- * ローカルストレージにセット記録を保存
- */
 export const saveSetsToStorage = (
   date: Date,
   exerciseId: string,
@@ -66,9 +57,6 @@ export const saveSetsToStorage = (
   }
 };
 
-/**
- * ローカルストレージからセット記録を削除
- */
 const removeSetsFromStorage = (date: Date, exerciseId: string): void => {
   if (typeof window === "undefined") return;
 
@@ -95,7 +83,6 @@ export function useWorkoutSession({
 }: UseWorkoutSessionOptions) {
   const { userId } = useAuthSession();
 
-  // ▼ 修正: 初期値は空配列（同期的なlocalStorageアクセスを避けるため）
   const [sets, setSets] = useState<SetRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -129,42 +116,45 @@ export function useWorkoutSession({
 
     setIsLoading(true);
 
-    try {
-      const dateStr = formatDateToYYYYMMDD(date);
-      const sessionResult = await getWorkoutSession(userId, dateStr);
+    // 修正: userIdがある場合（ログイン時）のみDBから取得を試みる
+    if (userId) {
+      try {
+        const currentDateStr = formatDateToYYYYMMDD(date);
+        const sessionResult = await getWorkoutSession(userId, currentDateStr);
 
-      if (sessionResult.success && sessionResult.data) {
-        const setsResult = await getSetsFromAPI(userId, {
-          sessionId: sessionResult.data.id,
-          exerciseId,
-        });
+        if (sessionResult.success && sessionResult.data) {
+          const setsResult = await getSetsFromAPI(userId, {
+            sessionId: sessionResult.data.id,
+            exerciseId,
+          });
 
-        if (
-          setsResult.success &&
-          setsResult.data &&
-          setsResult.data.length > 0
-        ) {
-          setSets(setsResult.data);
-          saveSetsToStorage(date, exerciseId, setsResult.data);
-          setIsLoading(false);
-          setIsLoaded(true);
-          return;
+          if (
+            setsResult.success &&
+            setsResult.data &&
+            setsResult.data.length > 0
+          ) {
+            setSets(setsResult.data);
+            saveSetsToStorage(date, exerciseId, setsResult.data);
+            setIsLoading(false);
+            setIsLoaded(true);
+            return;
+          }
         }
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(
-          "データベースからの取得に失敗、ローカルストレージから取得:",
-          error
-        );
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "データベースからの取得に失敗、ローカルストレージから取得:",
+            error
+          );
+        }
       }
     }
 
+    // ローカルストレージから取得（ゲスト、またはDB取得失敗時）
     const loaded = loadSetsFromStorage(date, exerciseId);
     if (loaded && loaded.length > 0) {
       setSets(loaded);
     } else {
-      // ▼ 修正: データがない場合、初期セット作成関数があればそれを使う
       if (createInitialSet) {
         setSets([createInitialSet()]);
       } else {
@@ -174,33 +164,37 @@ export function useWorkoutSession({
 
     setIsLoading(false);
     setIsLoaded(true);
-  }, [date, exerciseId, isOpen, userId, createInitialSet]); // 依存配列に追加
+  }, [date, exerciseId, isOpen, userId, createInitialSet]);
 
   const saveSets = useCallback(
     async (setsToSave: SetRecord[]) => {
       if (!exerciseId) return;
 
+      // ローカルストレージに保存（常に実行）
       saveSetsToStorage(date, exerciseId, setsToSave);
 
-      try {
-        const dateStr = formatDateToYYYYMMDD(date);
-        const sessionResult = await saveWorkoutSession(userId, {
-          date: dateStr,
-        });
-
-        if (sessionResult.success && sessionResult.data) {
-          await saveSetsToAPI(userId, {
-            sessionId: sessionResult.data.id,
-            exerciseId,
-            sets: setsToSave,
+      // 修正: userIdがある場合（ログイン時）のみDBへ保存
+      if (userId) {
+        try {
+          const currentDateStr = formatDateToYYYYMMDD(date);
+          const sessionResult = await saveWorkoutSession(userId, {
+            date: currentDateStr,
           });
-        }
-      } catch (error) {
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            "データベースへの保存に失敗（ローカルストレージは保存済み）:",
-            error
-          );
+
+          if (sessionResult.success && sessionResult.data) {
+            await saveSetsToAPI(userId, {
+              sessionId: sessionResult.data.id,
+              exerciseId,
+              sets: setsToSave,
+            });
+          }
+        } catch (error) {
+          if (process.env.NODE_ENV === "development") {
+            console.warn(
+              "データベースへの保存に失敗（ローカルストレージは保存済み）:",
+              error
+            );
+          }
         }
       }
 
@@ -227,6 +221,7 @@ export function useWorkoutSession({
     setsRef.current = sets;
   }, [sets]);
 
+  // 日付や種目が変わった際の自動保存
   useEffect(() => {
     const dateChanged = previousDateRef.current.getTime() !== date.getTime();
     const exerciseChanged = previousExerciseIdRef.current !== exerciseId;
@@ -243,26 +238,35 @@ export function useWorkoutSession({
         setsRef.current
       );
 
-      (async () => {
-        try {
-          const previousDateStr = formatDateToYYYYMMDD(previousDateRef.current);
-          const sessionResult = await saveWorkoutSession(userId, {
-            date: previousDateStr,
-          });
-
-          if (sessionResult.success && sessionResult.data) {
-            await saveSetsToAPI(userId, {
-              sessionId: sessionResult.data.id,
-              exerciseId: previousExerciseIdRef.current!,
-              sets: setsRef.current,
+      // 修正: userIdがある場合（ログイン時）のみDBへ保存
+      if (userId) {
+        (async () => {
+          try {
+            const previousDateStr = formatDateToYYYYMMDD(
+              previousDateRef.current
+            );
+            const sessionResult = await saveWorkoutSession(userId, {
+              date: previousDateStr,
             });
+
+            if (
+              sessionResult.success &&
+              sessionResult.data &&
+              previousExerciseIdRef.current
+            ) {
+              await saveSetsToAPI(userId, {
+                sessionId: sessionResult.data.id,
+                exerciseId: previousExerciseIdRef.current,
+                sets: setsRef.current,
+              });
+            }
+          } catch (error) {
+            if (process.env.NODE_ENV === "development") {
+              console.warn("日付変更時のデータベース保存に失敗:", error);
+            }
           }
-        } catch (error) {
-          if (process.env.NODE_ENV === "development") {
-            console.warn("日付変更時のデータベース保存に失敗:", error);
-          }
-        }
-      })();
+        })();
+      }
     }
 
     previousDateRef.current = date;
@@ -286,6 +290,6 @@ export function useWorkoutSession({
     saveSets,
     removeSets,
     loadSets,
-    isLoaded, // 追加
+    isLoaded,
   };
 }
