@@ -9,12 +9,14 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, Clock, FileText, Dumbbell, Activity } from "lucide-react";
 import { SwipeableExerciseCard } from "./swipeable-exercise-card";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
-import { getExerciseById } from "@/lib/local-storage-exercises";
+// 修正: local-storage-exercises ではなく utils からインポート
+import { getExerciseById } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShareModal } from "./share-modal";
 import { Share2 } from "lucide-react";
 import { useState } from "react";
 
+// ... (以下、コンポーネントの中身は変更なし)
 interface SessionHistoryCardProps {
   date: Date;
   durationMinutes?: number | null;
@@ -116,7 +118,6 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
       {workoutExercises.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            {/* 修正: アイコン背景色もテーマ色に合わせて調整 (primary/10) */}
             <div className="p-1 bg-primary/10 rounded text-primary">
               <Dumbbell className="w-3.5 h-3.5" />
             </div>
@@ -164,7 +165,6 @@ const SessionHistoryCard = memo(function SessionHistoryCard({
             <Separator className="opacity-50 my-6" />
           )}
           <div className="flex items-center gap-2 px-1">
-            {/* 修正: 有酸素アイコンは青系(テーマと区別)でも良いが、統一感を出すならprimary系でも可。一旦青のまま維持しつつダークモード調整 */}
             <div className="p-1 bg-blue-100 dark:bg-blue-900/30 rounded text-blue-600 dark:text-blue-400">
               <Activity className="w-3.5 h-3.5" />
             </div>

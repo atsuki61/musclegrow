@@ -7,7 +7,6 @@ import { getWorkoutSession } from "@/lib/api";
 import { useMaxWeights } from "@/hooks/use-max-weights";
 import { BodyPartNavigation } from "../record/body-part-navigation";
 import { useHistoryData } from "./hooks/use-history-data";
-import { loadExercisesWithFallback } from "@/lib/local-storage-exercises";
 import {
   deserializeSessionDetails,
   type SerializedSessionDetails,
@@ -43,6 +42,7 @@ interface HistoryPageProps {
   initialBodyPartsByDate: Record<string, BodyPart[]>;
   initialSelectedDate?: string | null;
   initialSessionDetails?: SerializedSessionDetails | null;
+  initialExercises: Exercise[];
 }
 
 export function HistoryPage({
@@ -50,6 +50,7 @@ export function HistoryPage({
   initialBodyPartsByDate,
   initialSelectedDate,
   initialSessionDetails,
+  initialExercises,
 }: HistoryPageProps) {
   const initialMonth = useMemo(
     () => parseISO(initialMonthDate),
@@ -67,7 +68,9 @@ export function HistoryPage({
     [initialSessionDetails]
   );
 
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  //  State管理をやめ、Propsを直接使用
+  const exercises = initialExercises;
+
   const [selectedBodyPart, setSelectedBodyPart] = useState<BodyPart>("all");
   const [currentMonth, setCurrentMonth] = useState<Date>(
     selectedMonthFromSelection(initialSelected) ?? initialMonth
@@ -83,11 +86,7 @@ export function HistoryPage({
   const hasSkippedInitialFetchRef = useRef(false);
   const { userId } = useAuthSession();
 
-  const loadExercises = useCallback(async () => {
-    const items = await loadExercisesWithFallback(undefined, userId);
-    setExercises(items);
-  }, [userId]);
-
+  // マックス重量の計算フック
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
 
   const {
@@ -101,10 +100,7 @@ export function HistoryPage({
     initialSessionDetails: initialSessionDetailsValue,
   });
 
-  useEffect(() => {
-    loadExercises();
-  }, [loadExercises]);
-
+  // 初回マウント時ではなく、月が変わった時だけロードするように制御
   useEffect(() => {
     if (!hasSkippedInitialFetchRef.current) {
       hasSkippedInitialFetchRef.current = true;
@@ -168,6 +164,7 @@ export function HistoryPage({
   const handleCloseModal = useCallback(async () => {
     setEditingExercise(null);
     if (selectedDate) {
+      // 少し待ってから更新（DB反映待ち）
       await new Promise((resolve) => setTimeout(resolve, 300));
       loadSessionDetails(selectedDate);
       loadBodyPartsByDate(currentMonth);
@@ -187,7 +184,6 @@ export function HistoryPage({
         <h1 className="text-2xl font-bold">履歴</h1>
       </div>
       {/* フィルター (Sticky) */}
-      {/* top-0 だとタイトルと重なるので、スクロール時の挙動としては「タイトルは隠れてフィルターだけ残る」のが一般的 */}
       <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur px-2 pt-2 pb-1">
         <BodyPartNavigation
           selectedPart={selectedBodyPart}

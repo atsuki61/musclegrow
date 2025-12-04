@@ -7,6 +7,7 @@ import {
   getBodyPartsByDateRange,
   getSessionDetails,
   getWorkoutSession,
+  getExercises,
 } from "@/lib/api";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { serializeSessionDetails } from "@/components/features/history/types";
@@ -17,9 +18,7 @@ export const metadata: Metadata = {
   description: "トレーニングの履歴を確認します",
 };
 
-// ==========================================
 // 1. メインのページコンポーネント（Shell）
-// ==========================================
 // ここでは「重い処理」を待たず、すぐにSuspense（ローディング画面）を返します。
 export default async function Page({
   searchParams,
@@ -42,10 +41,7 @@ export default async function Page({
   );
 }
 
-// ==========================================
 // 2. データ取得を行う非同期コンポーネント
-// ==========================================
-// 以前Pageコンポーネントにあったロジックをここに移動しました。
 async function HistoryMainContent({
   userId,
   params,
@@ -68,11 +64,12 @@ async function HistoryMainContent({
   };
 
   // 並列データ取得
-  const [bodyPartsResult, sessionResult] = await Promise.all([
+  const [bodyPartsResult, sessionResult, exercisesResult] = await Promise.all([
     getBodyPartsByDateRange(userId, monthRange),
     selectedDateStr
       ? getWorkoutSession(userId, selectedDateStr)
       : Promise.resolve({ success: true, data: null }),
+    getExercises(userId),
   ]);
 
   // セッション詳細の取得
@@ -98,6 +95,7 @@ async function HistoryMainContent({
       initialBodyPartsByDate={bodyPartsResult.data ?? {}}
       initialSelectedDate={selectedDateStr ?? null}
       initialSessionDetails={initialSessionDetails}
+      initialExercises={exercisesResult.data ?? []}
     />
   );
 }

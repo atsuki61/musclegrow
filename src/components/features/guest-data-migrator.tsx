@@ -5,7 +5,6 @@ import { format } from "date-fns";
 import { useAuthSession } from "@/lib/auth-session-context";
 import { parseStorageKey } from "@/lib/local-storage-history";
 import { getSessionDetailsFromStorage } from "@/lib/local-storage-session-details";
-import { loadExercisesFromStorage } from "@/lib/local-storage-exercises";
 import {
   getExercises,
   saveWorkoutSession,
@@ -16,13 +15,14 @@ import {
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 
 const GUEST_DATA_MIGRATED_KEY = "guest_data_migrated";
+const EXERCISES_STORAGE_KEY = "exercises";
 
 export function GuestDataMigrator() {
-  const { userId } = useAuthSession(); // 🔥 ここを変更
+  const { userId } = useAuthSession();
   const hasStartedRef = useRef(false);
 
   useEffect(() => {
-    if (!userId) return; // 🔥 userId がない = 未ログイン
+    if (!userId) return; // userId がない = 未ログイン
     if (hasStartedRef.current) return;
     if (typeof window === "undefined") return;
 
@@ -42,6 +42,17 @@ export function GuestDataMigrator() {
   }, [userId]);
 
   return null;
+}
+
+function loadLocalExercises(): Exercise[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(EXERCISES_STORAGE_KEY);
+    if (!stored) return [];
+    return JSON.parse(stored) as Exercise[];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -272,10 +283,9 @@ async function migrateGuestData(userId: string): Promise<void> {
   if (typeof window === "undefined") return;
 
   try {
-    // ローカルの種目一覧を取得（mock-* ID を含む）
-    const localExercises = loadExercisesFromStorage();
+    // 内部関数を使用
+    const localExercises = loadLocalExercises();
     if (localExercises.length === 0) {
-      // 記録用種目がなければ何もせずに終了
       window.localStorage.setItem(GUEST_DATA_MIGRATED_KEY, "true");
       return;
     }

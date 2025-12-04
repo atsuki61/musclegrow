@@ -6,7 +6,8 @@ import { ja } from "date-fns/locale";
 import { Dumbbell, Flame, Activity, Trophy } from "lucide-react";
 import { cn, calculate1RM } from "@/lib/utils";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
-import { getExerciseById } from "@/lib/local-storage-exercises";
+// 修正: local-storage-exercises ではなく utils からインポート
+import { getExerciseById } from "@/lib/utils";
 
 interface ShareImageProps {
   date: Date;
@@ -31,6 +32,7 @@ export const ShareImage = forwardRef<HTMLDivElement, ShareImageProps>(
     },
     ref
   ) => {
+    // ... (以下、変更なし。元のファイルのままでOKです)
     const themeStyles: Record<string, string> = {
       orange: "from-orange-500 to-red-600",
       blue: "from-blue-500 to-indigo-600",
@@ -114,7 +116,6 @@ export const ShareImage = forwardRef<HTMLDivElement, ShareImageProps>(
             const historicalMax = maxWeights[exerciseId] || 0;
             const isPR = dailyMaxWeight >= historicalMax && historicalMax > 0;
 
-            // 1RMの計算ロジック
             const max1RM = Math.max(
               ...sets.map((s) =>
                 s.weight && s.reps ? calculate1RM(s.weight, s.reps) || 0 : 0
@@ -157,7 +158,6 @@ export const ShareImage = forwardRef<HTMLDivElement, ShareImageProps>(
                         </span>
                       </span>
                     )}
-                    {/* ▼ 修正: 1RMを表示 */}
                     {max1RM > 0 && (
                       <>
                         {!isPR && historicalMax > 0 && (
@@ -253,7 +253,6 @@ export const ShareImage = forwardRef<HTMLDivElement, ShareImageProps>(
             );
           })}
 
-          {/* 有酸素 (そのまま維持) */}
           {cardioExercises.map(({ exerciseId, records }) => {
             const exercise = getExerciseById(exerciseId, exercises);
             if (!exercise) return null;

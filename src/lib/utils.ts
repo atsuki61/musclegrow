@@ -153,3 +153,10 @@ export function isFutureDate(
 ): boolean {
   return isAfter(startOfDay(date), startOfDay(referenceDate));
 }
+
+export function getExerciseById(
+  exerciseId: string,
+  exercises: Exercise[]
+): Exercise | undefined {
+  return exercises.find((e) => e.id === exerciseId);
+}
