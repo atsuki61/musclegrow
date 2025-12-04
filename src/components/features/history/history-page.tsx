@@ -68,7 +68,6 @@ export function HistoryPage({
     [initialSessionDetails]
   );
 
-  //  State管理をやめ、Propsを直接使用
   const exercises = initialExercises;
 
   const [selectedBodyPart, setSelectedBodyPart] = useState<BodyPart>("all");
@@ -86,7 +85,6 @@ export function HistoryPage({
   const hasSkippedInitialFetchRef = useRef(false);
   const { userId } = useAuthSession();
 
-  // マックス重量の計算フック
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
 
   const {
@@ -95,12 +93,12 @@ export function HistoryPage({
     isLoading,
     loadBodyPartsByDate,
     loadSessionDetails,
-  } = useHistoryData(exercises, userId, {
+  } = useHistoryData(exercises, userId ?? "", {
+    // 修正: nullの場合は空文字を渡す
     initialBodyPartsByDate,
     initialSessionDetails: initialSessionDetailsValue,
   });
 
-  // 初回マウント時ではなく、月が変わった時だけロードするように制御
   useEffect(() => {
     if (!hasSkippedInitialFetchRef.current) {
       hasSkippedInitialFetchRef.current = true;
@@ -124,28 +122,35 @@ export function HistoryPage({
   const handleExerciseDelete = useCallback(
     async (exerciseId: string, date: Date) => {
       const dateStr = format(date, "yyyy-MM-dd");
+      // ローカルストレージ削除
       localStorage.removeItem(`workout_${dateStr}_${exerciseId}`);
       localStorage.removeItem(`cardio_${dateStr}_${exerciseId}`);
 
-      try {
-        const sessionResult = await getWorkoutSession(userId, dateStr);
-        if (sessionResult.success && sessionResult.data) {
-          await Promise.all([
-            deleteExerciseSets(userId, {
-              sessionId: sessionResult.data.id,
-              exerciseId,
-            }),
-            deleteCardioRecords(userId, {
-              sessionId: sessionResult.data.id,
-              exerciseId,
-            }),
-          ]);
+      // DB削除（ログイン時のみ）
+      if (userId) {
+        // 修正: userIdがある場合のみ実行
+        try {
+          const sessionResult = await getWorkoutSession(userId, dateStr);
+          if (sessionResult.success && sessionResult.data) {
+            await Promise.all([
+              deleteExerciseSets(userId, {
+                sessionId: sessionResult.data.id,
+                exerciseId,
+              }),
+              deleteCardioRecords(userId, {
+                sessionId: sessionResult.data.id,
+                exerciseId,
+              }),
+            ]);
+          }
+        } catch (error) {
+          if (process.env.NODE_ENV === "development") console.warn(error);
         }
-      } catch (error) {
-        if (process.env.NODE_ENV === "development") console.warn(error);
       }
 
       if (selectedDate) {
+        // 少し待機してから再読み込み（状態反映待ち）
+        await new Promise((resolve) => setTimeout(resolve, 100));
         await loadSessionDetails(selectedDate);
         await loadBodyPartsByDate(currentMonth);
         await recalculateMaxWeights();
@@ -164,7 +169,6 @@ export function HistoryPage({
   const handleCloseModal = useCallback(async () => {
     setEditingExercise(null);
     if (selectedDate) {
-      // 少し待ってから更新（DB反映待ち）
       await new Promise((resolve) => setTimeout(resolve, 300));
       loadSessionDetails(selectedDate);
       loadBodyPartsByDate(currentMonth);
@@ -183,7 +187,6 @@ export function HistoryPage({
       <div className="pt-8 px-4 pb-2">
         <h1 className="text-2xl font-bold">履歴</h1>
       </div>
-      {/* フィルター (Sticky) */}
       <div className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur px-2 pt-2 pb-1">
         <BodyPartNavigation
           selectedPart={selectedBodyPart}
@@ -193,7 +196,6 @@ export function HistoryPage({
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-8">
-        {/* カレンダー */}
         <section>
           <HistoryCalendar
             currentMonth={currentMonth}
@@ -205,7 +207,6 @@ export function HistoryPage({
           />
         </section>
 
-        {/* 選択日の履歴表示 */}
         {selectedDate && (
           <section>
             {isLoading ? (
@@ -229,7 +230,6 @@ export function HistoryPage({
           </section>
         )}
 
-        {/* 編集モーダル */}
         {editingExercise && (
           <ExerciseRecordModal
             exercise={editingExercise.exercise}
