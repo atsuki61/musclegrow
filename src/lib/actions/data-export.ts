@@ -8,7 +8,8 @@ import {
   cardioRecords,
 } from "../../../db/schemas/app";
 import { eq, desc } from "drizzle-orm";
-import { format } from "date-fns";
+// 修正: date-fns の format を削除
+// import { format } from "date-fns";
 
 /**
  * 全トレーニングデータをCSV形式で取得する
@@ -32,7 +33,6 @@ export async function exportAllData(userId: string): Promise<string> {
     .orderBy(desc(workoutSessions.date), sets.setOrder);
 
   // 2. 有酸素記録の取得
-  // (テーブルが存在しない場合の対策などは省略していますが、通常はこれでOK)
   const cardioData = await db
     .select({
       date: workoutSessions.date,

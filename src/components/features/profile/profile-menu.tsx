@@ -56,7 +56,8 @@ export function ProfileMenu({
   const router = useRouter();
 
   const [userName, setUserName] = useState(user.name);
-  const [userImage, setUserImage] = useState(user.image);
+  // 修正: setUserImage を削除 (配列の2つ目を受け取らない)
+  const [userImage] = useState(user.image);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editName, setEditName] = useState(user.name);
