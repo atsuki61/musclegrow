@@ -132,9 +132,8 @@ export function StatsPage({
   };
 
   async function fetchProfileHistory(range: DateRangePreset) {
-    const result = await getProfileHistory(userId, { preset: range });
+    const result = await getProfileHistory(userId ?? "", { preset: range });
     if (result.success && result.data) {
-      // データを更新しつつキャッシュにも保存
       setProfileHistory(result.data);
       profileCache.current[range] = result.data;
     }
