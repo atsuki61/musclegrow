@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { SettingsHeader } from "./settings-header";
+import { BackHeader } from "@/components/layout/back-header";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -47,7 +47,7 @@ interface SettingsViewProps {
 export function NotificationSettings({ onBack }: SettingsViewProps) {
   return (
     <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
-      <SettingsHeader title="通知設定" onBack={onBack} />
+      <BackHeader title="通知設定" onBack={onBack} />
       <div className="px-4 space-y-4">
         <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
           <div className="flex items-center justify-between p-3.5">
@@ -81,7 +81,7 @@ export function AppearanceSettings({ onBack }: SettingsViewProps) {
 
   return (
     <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background pb-20">
-      <SettingsHeader title="テーマ設定" onBack={onBack} />
+      <BackHeader title="テーマ設定" onBack={onBack} />
       <div className="px-4 space-y-6">
         <section className="space-y-3">
           <h3 className="text-xs font-bold text-muted-foreground px-1">
@@ -261,7 +261,7 @@ function ColorSwatch({ color, active, onClick }: ColorSwatchProps) {
 // --- アカウント設定 ---
 interface AccountSettingsProps extends SettingsViewProps {
   userId?: string;
-  email?: string; // メールアドレスを受け取る
+  email?: string;
 }
 
 export function AccountSettings({
@@ -297,7 +297,7 @@ export function AccountSettings({
   return (
     <>
       <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
-        <SettingsHeader title="アカウント設定" onBack={onBack} />
+        <BackHeader title="アカウント設定" onBack={onBack} />
         <div className="px-4 space-y-6">
           {/* 1. ログイン情報セクション */}
           <section className="space-y-2">
@@ -493,7 +493,7 @@ export function DataSettings({ onBack, userId }: DataSettingsProps) {
   return (
     <>
       <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
-        <SettingsHeader title="データ管理" onBack={onBack} />
+        <BackHeader title="データ管理" onBack={onBack} />
         <div className="px-4 space-y-4">
           <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
             <button

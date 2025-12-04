@@ -10,7 +10,6 @@ import {
   AccountSettings,
   DataSettings,
 } from "./settings-views";
-import { SettingsHeader } from "./settings-header";
 import type { User } from "better-auth";
 
 interface ProfilePageProps {
@@ -89,24 +88,6 @@ export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
       );
     case "data":
       return <DataSettings onBack={goBack} userId={user.id} />;
-    case "contact":
-      return (
-        <div className="min-h-screen bg-background">
-          <SettingsHeader title="お問い合わせ" onBack={goBack} />
-          <div className="p-4">
-            <p className="text-muted-foreground">フォーム準備中...</p>
-          </div>
-        </div>
-      );
-    case "terms":
-      return (
-        <div className="min-h-screen bg-background">
-          <SettingsHeader title="利用規約・ポリシー" onBack={goBack} />
-          <div className="p-4">
-            <p className="text-muted-foreground">規約準備中...</p>
-          </div>
-        </div>
-      );
 
     case "menu":
     default:

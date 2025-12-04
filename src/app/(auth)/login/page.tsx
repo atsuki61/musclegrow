@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn, signUp } from "@/lib/auth-client";
+import Link from "next/link";
+import { signIn } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,19 +13,15 @@ import {
   Loader2,
   Mail,
   Lock,
-  User,
   Eye,
   EyeOff,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 // --- Components ---
 
-/**
- * エネルギッシュな背景コンポーネント
- */
 const Background = () => (
   <div className="fixed inset-0 -z-10 overflow-hidden bg-gray-50 dark:bg-background">
     <div className="absolute -top-[30%] -left-[10%] w-[70%] h-[70%] rounded-full bg-orange-200/30 dark:bg-orange-900/10 blur-3xl" />
@@ -33,9 +30,6 @@ const Background = () => (
   </div>
 );
 
-/**
- * アイコン付きカスタム入力フィールド
- */
 interface CustomInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   icon: LucideIcon;
@@ -97,9 +91,6 @@ const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
 );
 CustomInput.displayName = "CustomInput";
 
-/**
- * Googleアイコン SVG
- */
 const GoogleIcon = ({ className }: { className?: string }) => (
   <svg
     className={className}
@@ -129,31 +120,38 @@ const GoogleIcon = ({ className }: { className?: string }) => (
 
 // --- Main Page ---
 
-export default function AuthPage() {
+export default function LoginPage() {
   const router = useRouter();
-  const [view, setView] = useState<"login" | "signup">("login");
-
-  // Form State
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  // UI State
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // バリデーション
-  const validate = () => {
-    if (view === "signup") {
-      if (password.length < 6) return "パスワードは6文字以上で入力してください";
-      if (password !== confirmPassword) return "パスワードが一致しません";
+  const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await signIn.email({ email, password });
+      if (result.error) {
+        const msg = result.error.message;
+        if (msg && msg.includes("Invalid"))
+          setError("メールアドレスまたはパスワードが違います");
+        else setError("ログインに失敗しました");
+      } else {
+        router.push("/");
+        router.refresh();
+      }
+    } catch (err) {
+      setError("予期せぬエラーが発生しました");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
-    return null;
   };
 
-  // Google認証
   const handleGoogleAuth = async () => {
     setIsGoogleLoading(true);
     setError(null);
@@ -169,55 +167,6 @@ export default function AuthPage() {
     }
   };
 
-  // メール認証
-  const handleEmailAuth = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      if (view === "login") {
-        // ログイン処理
-        const result = await signIn.email({ email, password });
-        if (result.error) {
-          const msg = result.error.message;
-          if (msg && msg.includes("Invalid"))
-            setError("メールアドレスまたはパスワードが違います");
-          else setError("ログインに失敗しました");
-        } else {
-          router.push("/");
-          router.refresh();
-        }
-      } else {
-        // 新規登録処理
-        const result = await signUp.email({ email, password, name });
-        if (result.error) {
-          setError(result.error.message || "登録に失敗しました");
-        } else {
-          router.push("/");
-          router.refresh();
-        }
-      }
-    } catch (err) {
-      setError("予期せぬエラーが発生しました");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // モード切り替え時にエラーをクリア
-  const switchView = (newView: "login" | "signup") => {
-    setView(newView);
-    setError(null);
-  };
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center py-6 px-4 relative">
       <Background />
@@ -225,7 +174,6 @@ export default function AuthPage() {
       {/* ヘッダーエリア */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md mb-6 text-center z-10">
         <div className="flex justify-center mb-4">
-          {/* ロゴアイコン: 傾きとシャドウで立体感を出す */}
           <div className="h-14 w-14 bg-gradient-to-br from-primary to-orange-600 rounded-xl flex items-center justify-center shadow-xl shadow-primary/30 transform -rotate-6 ring-4 ring-background">
             <Dumbbell className="w-7 h-7 text-white" />
           </div>
@@ -234,159 +182,131 @@ export default function AuthPage() {
           MuscleGrow
         </h2>
         <p className="mt-2 text-xs font-medium text-muted-foreground">
-          {view === "login"
-            ? "さあ、今日のワークアウトを始めましょう。"
-            : "理想の体への第一歩を踏み出しましょう。"}
+          さあ、今日のワークアウトを始めましょう。
         </p>
       </div>
 
       {/* カード本体 */}
-      <div className="w-full max-w-[400px] min-h-[580px] flex flex-col z-10">
-        <div className="bg-card/80 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none rounded-3xl overflow-hidden transition-all duration-300 flex flex-col h-full">
-          {/* フォーム部分 (Framer Motionで切り替え) */}
-          <div className="p-6 flex-1">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={view}
-                initial={{ opacity: 0, x: view === "login" ? -20 : 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: view === "login" ? 20 : -20 }}
-                transition={{ duration: 0.2 }}
-                className="h-full flex flex-col"
-              >
-                <form onSubmit={handleEmailAuth} className="space-y-1">
-                  {view === "signup" && (
-                    <CustomInput
-                      label="ユーザーネーム"
-                      placeholder="トレーニー名"
-                      icon={User}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                    />
-                  )}
+      <div className="w-full max-w-[400px] flex flex-col z-10">
+        <div className="bg-card/80 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none rounded-3xl overflow-hidden transition-all duration-300 flex flex-col">
+          <div className="p-6 pb-2">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <form onSubmit={handleEmailLogin} className="space-y-1">
+                <CustomInput
+                  label="メールアドレス"
+                  type="email"
+                  placeholder="fitness@example.com"
+                  icon={Mail}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
 
+                <div className="relative">
                   <CustomInput
-                    label="メールアドレス"
-                    type="email"
-                    placeholder="fitness@example.com"
-                    icon={Mail}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    label="パスワード"
+                    placeholder="••••••••"
+                    icon={Lock}
+                    isPassword
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                   />
-
-                  <div className="relative">
-                    <CustomInput
-                      label="パスワード"
-                      placeholder="••••••••"
-                      icon={Lock}
-                      isPassword
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                    {/* ログイン時のみパスワード忘れリンク */}
-                    {view === "login" && (
-                      <div className="absolute top-0 right-0">
-                        <button
-                          type="button"
-                          className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors"
-                          onClick={() => alert("未実装です")}
-                        >
-                          お忘れですか？
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {view === "signup" && (
-                    <CustomInput
-                      label="パスワード（確認）"
-                      placeholder="確認用"
-                      icon={Lock}
-                      isPassword
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                  )}
-
-                  {/* エラーメッセージ */}
-                  {error && (
-                    <div className="p-3 mb-3 text-xs font-medium text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg animate-in fade-in">
-                      {error}
-                    </div>
-                  )}
-
-                  <div className="pt-4">
-                    <Button
-                      type="submit"
-                      disabled={isLoading || isGoogleLoading}
-                      className="w-full h-11 font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all active:scale-[0.98]"
+                  <div className="absolute top-0 right-0">
+                    <button
+                      type="button"
+                      className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors"
+                      onClick={() => alert("未実装です")}
                     >
-                      {isLoading && (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      )}
-                      {view === "login"
-                        ? "ワークアウトを再開 (ログイン)"
-                        : "メンバー登録して開始"}
-                    </Button>
-                  </div>
-                </form>
-
-                {/* 区切り線 */}
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <Separator className="bg-border/60" />
-                  </div>
-                  <div className="relative flex justify-center text-[10px] font-medium uppercase tracking-wider">
-                    <span className="bg-background/0 backdrop-blur-xl px-2 text-muted-foreground">
-                      または
-                    </span>
+                      お忘れですか？
+                    </button>
                   </div>
                 </div>
 
-                {/* Googleボタン */}
-                <div>
+                {error && (
+                  <div className="p-3 mb-3 text-xs font-medium text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg animate-in fade-in">
+                    {error}
+                  </div>
+                )}
+
+                <div className="pt-4">
                   <Button
-                    variant="outline"
-                    type="button"
-                    className="w-full h-11 font-bold bg-card hover:bg-muted/50 border-border/60 transition-all"
-                    onClick={handleGoogleAuth}
-                    disabled={isGoogleLoading || isLoading}
+                    type="submit"
+                    disabled={isLoading || isGoogleLoading}
+                    className="w-full h-11 font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all active:scale-[0.98]"
                   >
-                    {isGoogleLoading ? (
+                    {isLoading && (
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : (
-                      <GoogleIcon className="w-4 h-4 mr-2" />
                     )}
-                    Googleで{view === "login" ? "ログイン" : "登録"}
+                    ワークアウトを再開 (ログイン)
                   </Button>
                 </div>
-              </motion.div>
-            </AnimatePresence>
+              </form>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="bg-border/60" />
+                </div>
+                <div className="relative flex justify-center text-[10px] font-medium uppercase tracking-wider">
+                  <span className="bg-background/0 backdrop-blur-xl px-2 text-muted-foreground">
+                    または
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="w-full h-11 font-bold bg-card hover:bg-muted/50 border-border/60 transition-all"
+                  onClick={handleGoogleAuth}
+                  disabled={isGoogleLoading || isLoading}
+                >
+                  {isGoogleLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <GoogleIcon className="w-4 h-4 mr-2" />
+                  )}
+                  Googleでログイン
+                </Button>
+              </div>
+            </motion.div>
           </div>
 
-          {/* フッターリンク (固定) */}
-          <div className="p-6 pt-2 border-t border-border/30 bg-muted/30 text-center mt-auto">
+          <div className="p-6 pt-2 border-t border-border/30 bg-muted/30 text-center mt-6">
             <p className="text-xs text-muted-foreground">
-              {view === "login" ? "初めてですか？" : "すでにメンバーですか？"}{" "}
-              <button
-                onClick={() =>
-                  switchView(view === "login" ? "signup" : "login")
-                }
+              初めてですか？{" "}
+              <Link
+                href="/signup"
                 className="font-bold text-primary hover:underline ml-1 transition-colors"
               >
-                {view === "login" ? "新規登録 (無料)" : "ログイン"}
-              </button>
+                新規登録 (無料)
+              </Link>
             </p>
           </div>
         </div>
       </div>
 
-      {/* コピーライト */}
-      <p className="text-[10px] text-muted-foreground/40 text-center mt-8 z-10">
+      {/* 固定ページへのリンク */}
+      <div className="mt-8 flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-[10px] text-muted-foreground font-medium z-10">
+        <Link href="/terms" className="hover:text-primary transition-colors">
+          利用規約
+        </Link>
+        <span className="text-muted-foreground/40">・</span>
+        <Link href="/privacy" className="hover:text-primary transition-colors">
+          プライバシーポリシー
+        </Link>
+        <span className="text-muted-foreground/40">・</span>
+        <Link href="/contact" className="hover:text-primary transition-colors">
+          お問い合わせ
+        </Link>
+      </div>
+
+      <p className="text-[10px] text-muted-foreground/40 text-center mt-4 z-10">
         &copy; 2024 MuscleGrow Inc. All rights reserved.
       </p>
     </div>

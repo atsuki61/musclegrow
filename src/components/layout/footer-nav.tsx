@@ -8,8 +8,11 @@ import { isAuthPage, cn } from "@/lib/utils";
 export function FooterNav() {
   const pathname = usePathname();
 
-  // ログインページ等では表示しない
-  if (isAuthPage(pathname)) return null;
+  // フッターを非表示にするパス（固定ページを追加）
+  const hiddenPaths = ["/terms", "/privacy", "/contact"];
+
+  // ログインページ等、または固定ページでは表示しない
+  if (isAuthPage(pathname) || hiddenPaths.includes(pathname)) return null;
 
   const navItems = [
     { href: "/", icon: Home, label: "ホーム" },
@@ -27,11 +30,10 @@ export function FooterNav() {
           "pointer-events-auto relative w-full max-w-[380px]",
           "bg-background/90 backdrop-blur-xl",
           "border border-border/50",
-          // ▼ 修正: ダークモード時にボーダーをテーマカラーにし、薄く光らせる
           "dark:border-primary/40",
           "shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
           "dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)]",
-          "dark:shadow-primary/10", // ほんのり色味を足して立体感を出す
+          "dark:shadow-primary/10",
           "rounded-3xl px-2 py-3 transition-all duration-300"
         )}
       >
@@ -40,7 +42,6 @@ export function FooterNav() {
             const Icon = item.icon;
             const isActive = pathname === item.href;
 
-            // ▼ 中央の特別な「記録」ボタン
             if (item.isSpecial) {
               return (
                 <li
@@ -52,7 +53,6 @@ export function FooterNav() {
                     aria-label={item.label}
                     className="group relative flex items-center justify-center w-16 h-16 rounded-full transition-transform active:scale-95 focus:outline-none"
                   >
-                    {/* 光るエフェクト */}
                     <div
                       className={cn(
                         "absolute inset-0 rounded-full bg-primary/40 blur-xl transition-opacity duration-500",
@@ -61,8 +61,6 @@ export function FooterNav() {
                           : "opacity-40 group-hover:opacity-70"
                       )}
                     />
-
-                    {/* ボタン本体 */}
                     <div className="relative flex items-center justify-center w-full h-full rounded-full bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/30 border-[4px] border-background group-hover:scale-105 transition-all duration-300">
                       <Plus
                         className={cn(
@@ -76,7 +74,6 @@ export function FooterNav() {
               );
             }
 
-            // ▼ 通常のメニュー項目
             return (
               <li
                 key={item.href}
@@ -87,7 +84,6 @@ export function FooterNav() {
                   aria-label={item.label}
                   className="group flex flex-col items-center justify-end w-full h-12 outline-none touch-manipulation"
                 >
-                  {/* アイコンラッパー */}
                   <div
                     className={cn(
                       "relative flex items-center justify-center transition-all duration-300 ease-out",
@@ -96,7 +92,6 @@ export function FooterNav() {
                         : "translate-y-1 group-hover:translate-y-0"
                     )}
                   >
-                    {/* 背景のハロー効果 */}
                     <div
                       className={cn(
                         "absolute inset-0 rounded-full bg-primary/10 scale-0 transition-transform duration-300",
@@ -112,8 +107,6 @@ export function FooterNav() {
                       )}
                     />
                   </div>
-
-                  {/* ラベルテキスト */}
                   <span
                     className={cn(
                       "text-[10px] font-bold tracking-wide mt-1 transition-all duration-300 origin-bottom",
@@ -124,8 +117,6 @@ export function FooterNav() {
                   >
                     {item.label}
                   </span>
-
-                  {/* ホバー時のドットインジケーター */}
                   {!isActive && (
                     <span className="absolute bottom-1 w-1 h-1 rounded-full bg-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   )}

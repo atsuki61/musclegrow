@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  User as UserIcon,
   Settings,
   Bell,
   Moon,
@@ -39,9 +38,7 @@ export type ViewStateTarget =
   | "notifications"
   | "appearance"
   | "account"
-  | "data"
-  | "contact"
-  | "terms";
+  | "data";
 
 interface ProfileMenuProps {
   profile: ProfileResponse | null;
@@ -91,11 +88,9 @@ export function ProfileMenu({
       setUserName(editName);
       setIsEditOpen(false);
       router.refresh();
-      // ▼ 変更: alert -> toast
       toast.success("プロフィールを更新しました");
     } catch (error) {
       console.error("プロフィールの更新に失敗しました", error);
-      // ▼ 変更: alert -> toast
       toast.error("更新に失敗しました");
     } finally {
       setIsUpdating(false);
@@ -243,12 +238,12 @@ export function ProfileMenu({
                 <SettingItem
                   icon={Mail}
                   label="お問い合わせ"
-                  onClick={() => onNavigate("contact")}
+                  onClick={() => router.push("/contact")}
                 />
                 <SettingItem
                   icon={FileText}
                   label="利用規約・ポリシー"
-                  onClick={() => onNavigate("terms")}
+                  onClick={() => router.push("/terms")}
                 />
               </Card>
             </section>
