@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:4000"
   ),
   title: "MuscleGrow - 筋トレ記録アプリ",
   description: "筋トレ習慣を可視化し、継続的なモチベーションを提供",
@@ -43,7 +43,6 @@ export const metadata: Metadata = {
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
-  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
