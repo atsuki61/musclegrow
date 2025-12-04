@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { parse } from "date-fns";
-import { Search, Pencil, Check } from "lucide-react"; // TimerIcon削除
+import { Search, Pencil, Check } from "lucide-react";
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
@@ -22,7 +22,11 @@ import {
   getExercisesWithUserPreferences,
   toggleExerciseVisibility,
 } from "@/lib/actions/user-exercises";
-// useTimer削除
+import {
+  getGuestExercises,
+  toggleGuestExerciseVisibility,
+  saveGuestCustomExercise,
+} from "@/lib/local-storage-guest";
 
 interface RecordPageProps {
   initialExercises?: Exercise[];
@@ -31,7 +35,6 @@ interface RecordPageProps {
 export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const searchParams = useSearchParams();
   const { userId } = useAuthSession();
-  // startTimer削除
 
   // --- Date Logic ---
   const getInitialDate = (): Date => {
@@ -71,17 +74,27 @@ export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
     selectedExercise
   );
 
+  //データ読み込みロジック (ゲスト対応)
   useEffect(() => {
     const loadExercises = async () => {
       if (userId) {
+        // ログインユーザー: DBから取得
         const result = await getExercisesWithUserPreferences(userId);
         if (result.success && result.data) {
           setExercises(result.data);
         }
+      } else {
+        //ゲストユーザー: ローカルストレージとマージ
+        // initialExercises (サーバーマスタ) をベースに、LSの設定を適用
+        const guestExercises = getGuestExercises(initialExercises);
+        setExercises(guestExercises);
       }
     };
     loadExercises();
-  }, [userId]);
+    // initialExercises を依存配列に入れると無限ループの可能性があるため、
+    // ここでは userId の変化のみをトリガーにするか、適切に制御します。
+    // 今回は userId と initialExercises の変更を監視します。
+  }, [userId, initialExercises]);
 
   const recalculateStats = useCallback(() => {
     recalculateMaxWeights();
@@ -137,12 +150,21 @@ export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
     setIsEditMode(false);
   };
 
+  // ゲスト対応
   const handleAddExercise = async (exercise: Exercise) => {
-    await toggleExerciseVisibility(userId, exercise.id, true);
-
-    if (exercise.tier === "custom") {
-      const result = await saveExercise(userId, exercise);
-      if (!result.success) console.error("種目保存エラー:", result.error);
+    if (userId) {
+      // ログイン時
+      await toggleExerciseVisibility(userId, exercise.id, true);
+      if (exercise.tier === "custom") {
+        const result = await saveExercise(userId, exercise);
+        if (!result.success) console.error("種目保存エラー:", result.error);
+      }
+    } else {
+      // ゲスト時
+      toggleGuestExerciseVisibility(exercise.id, true);
+      if (exercise.tier === "custom") {
+        saveGuestCustomExercise(exercise);
+      }
     }
 
     const newExercise = { ...exercise, tier: "initial" as const };
@@ -158,8 +180,15 @@ export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
     toast.success("種目をリストに追加しました");
   };
 
+  // 削除ロジック (ゲスト対応)
   const handleRemoveExercise = async (exercise: Exercise) => {
-    await toggleExerciseVisibility(userId, exercise.id, false);
+    if (userId) {
+      // ログイン時
+      await toggleExerciseVisibility(userId, exercise.id, false);
+    } else {
+      // ▼ ゲスト時
+      toggleGuestExerciseVisibility(exercise.id, false);
+    }
 
     setExercises((prev) =>
       prev.map((e) => (e.id === exercise.id ? { ...e, tier: "selectable" } : e))
@@ -232,11 +261,6 @@ export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
           isEditMode={isEditMode}
         />
       </main>
-
-      {/* 
-        修正: フローティングタイマーボタンを削除しました。
-        (記録モーダル内から起動するように変更したため)
-      */}
 
       {/* Modals */}
       <ExerciseRecordModal

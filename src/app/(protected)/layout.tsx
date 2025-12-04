@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { getAuthSession } from "@/lib/auth-session-server";
 import { AuthSessionProvider } from "@/lib/auth-session-context";
@@ -11,14 +10,11 @@ interface ProtectedLayoutProps {
 export default async function ProtectedLayout({
   children,
 }: ProtectedLayoutProps) {
-  // 共通のキャッシュ関数を使用（これで page.tsx と結果が共有される）
+  // 共通のキャッシュ関数を使用
   const session = await getAuthSession();
 
-  if (!session) {
-    redirect("/login");
-  }
-
-  const userId = session.user.id;
+  // 修正: sessionがない場合も null として許容し、リダイレクトしない
+  const userId = session?.user?.id ?? null;
 
   return (
     <AuthSessionProvider userId={userId}>
