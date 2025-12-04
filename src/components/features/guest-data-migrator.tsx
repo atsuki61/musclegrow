@@ -11,106 +11,188 @@ import {
   saveSets,
   saveCardioRecords,
   getSessionDetails,
+  saveExercise,
 } from "@/lib/api";
+import { toggleExerciseVisibility } from "@/lib/actions/user-exercises";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
+// 追加: プロフィール用ユーティリティ
+import { getGuestProfile } from "@/lib/local-storage-profile";
 
+// ストレージキー定義
 const GUEST_DATA_MIGRATED_KEY = "guest_data_migrated";
-const EXERCISES_STORAGE_KEY = "exercises";
+const OLD_EXERCISES_KEY = "exercises"; // 旧仕様のキー
+const GUEST_CUSTOM_EXERCISES_KEY = "musclegrow_guest_custom_exercises"; // 新仕様のキー
+const GUEST_SETTINGS_KEY = "musclegrow_guest_settings"; // 新仕様の設定キー
+const GUEST_PROFILE_KEY = "musclegrow_guest_profile"; // 追加: プロフィールキー
 
 export function GuestDataMigrator() {
   const { userId } = useAuthSession();
   const hasStartedRef = useRef(false);
 
   useEffect(() => {
-    if (!userId) return; // userId がない = 未ログイン
+    // 未ログイン、または既に処理開始済み、またはサーバーサイドなら何もしない
+    if (!userId) return;
     if (hasStartedRef.current) return;
     if (typeof window === "undefined") return;
 
+    // 既に移行済みフラグがあれば何もしない（初回のみ実行のガード）
     const migratedFlag = window.localStorage.getItem(GUEST_DATA_MIGRATED_KEY);
     if (migratedFlag === "true") {
       hasStartedRef.current = true;
       return;
     }
 
+    // 移行処理開始
     hasStartedRef.current = true;
 
     (async () => {
-      await migrateGuestData(userId);
-    })().catch((error) => {
-      console.error("ゲストデータ移行中にエラー:", error);
-    });
+      try {
+        await migrateGuestData(userId);
+      } catch (error) {
+        console.error("ゲストデータ移行中にエラーが発生しました:", error);
+      }
+    })();
   }, [userId]);
 
   return null;
 }
 
-function loadLocalExercises(): Exercise[] {
+/**
+ * ローカルストレージからカスタム種目を読み込む
+ */
+function loadLocalCustomExercises(): Exercise[] {
   if (typeof window === "undefined") return [];
+  const exercises: Exercise[] = [];
+  const ids = new Set<string>();
+
   try {
-    const stored = localStorage.getItem(EXERCISES_STORAGE_KEY);
-    if (!stored) return [];
-    return JSON.parse(stored) as Exercise[];
+    // 1. 旧キーから読み込み
+    const oldStored = localStorage.getItem(OLD_EXERCISES_KEY);
+    if (oldStored) {
+      const parsed = JSON.parse(oldStored) as Exercise[];
+      parsed.forEach((ex) => {
+        if (!ex.id.startsWith("mock-") && !ids.has(ex.id)) {
+          exercises.push(ex);
+          ids.add(ex.id);
+        }
+      });
+    }
+
+    // 2. 新キーから読み込み
+    const newStored = localStorage.getItem(GUEST_CUSTOM_EXERCISES_KEY);
+    if (newStored) {
+      const parsed = JSON.parse(newStored) as Exercise[];
+      parsed.forEach((ex) => {
+        if (!ids.has(ex.id)) {
+          exercises.push(ex);
+          ids.add(ex.id);
+        }
+      });
+    }
   } catch {
-    return [];
+    // ignore json parse error
+  }
+  return exercises;
+}
+
+/**
+ * ゲスト時の種目設定（表示/非表示）をDBへ移行
+ */
+async function migrateExerciseSettings(userId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const settingsRaw = localStorage.getItem(GUEST_SETTINGS_KEY);
+    if (!settingsRaw) return;
+
+    const settings = JSON.parse(settingsRaw) as Record<string, boolean>;
+    const promises = Object.entries(settings).map(([exerciseId, isVisible]) =>
+      toggleExerciseVisibility(userId, exerciseId, isVisible)
+    );
+
+    await Promise.all(promises);
+  } catch (e) {
+    console.error("設定の移行に失敗:", e);
   }
 }
 
 /**
- * 種目名と部位からマップ用のキーを生成する
+ * ゲスト時のカスタム種目をDBへ保存
  */
-function createNameBodyPartKey(
-  name: string,
-  bodyPart: Exercise["bodyPart"]
-): string {
-  return `${name}__${bodyPart}`;
+async function migrateCustomExercises(
+  userId: string,
+  localExercises: Exercise[]
+) {
+  for (const exercise of localExercises) {
+    try {
+      await saveExercise(userId, exercise);
+    } catch (e) {
+      console.warn(`カスタム種目(${exercise.name})の移行スキップ:`, e);
+    }
+  }
 }
 
 /**
- * ローカルストレージから記録が存在する日付一覧を収集する
+ * ゲスト時のプロフィールをDBへ移行 (追加)
  */
+async function migrateProfile() {
+  if (typeof window === "undefined") return;
+
+  const guestProfile = getGuestProfile();
+  if (!guestProfile) return;
+
+  // DB保存用データに変換
+  const data = {
+    height: guestProfile.height,
+    weight: guestProfile.weight,
+    bodyFat: guestProfile.bodyFat,
+    muscleMass: guestProfile.muscleMass,
+    big3TargetBenchPress: guestProfile.big3TargetBenchPress,
+    big3TargetSquat: guestProfile.big3TargetSquat,
+    big3TargetDeadlift: guestProfile.big3TargetDeadlift,
+  };
+
+  try {
+    // API経由で保存 (PUT /api/profile)
+    await fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  } catch (e) {
+    console.error("プロフィール移行エラー:", e);
+  }
+}
+
+// --- 既存のヘルパー関数群 ---
+
+function createNameBodyPartKey(name: string, bodyPart: string): string {
+  return `${name}__${bodyPart}`;
+}
+
 function collectRecordedDatesFromStorage(): string[] {
   if (typeof window === "undefined") return [];
-
   const dates = new Set<string>();
-
   try {
     for (let i = 0; i < window.localStorage.length; i++) {
       const key = window.localStorage.key(i);
       if (!key) continue;
-
       const parsed = parseStorageKey(key);
       if (!parsed) continue;
-
       dates.add(parsed.dateStr);
     }
-  } catch (error) {
-    console.error(
-      "ローカルストレージから日付一覧を取得中にエラーが発生しました:",
-      error
-    );
+  } catch (e) {
+    console.error(e);
   }
-
   return Array.from(dates).sort();
 }
 
-/**
- * 種目IDマッピング用のデータ構造を作成する
- */
 function createExerciseMappingData(
   localExercises: Exercise[],
   dbExercises: Exercise[]
-): {
-  localExerciseById: Map<string, Exercise>;
-  dbExerciseIds: Set<string>;
-  dbExerciseIdByNameAndBodyPart: Map<string, string>;
-} {
-  // ローカル種目ID -> 種目情報のマップ
+) {
   const localExerciseById = new Map<string, Exercise>();
-  localExercises.forEach((ex) => {
-    localExerciseById.set(ex.id, ex);
-  });
+  localExercises.forEach((ex) => localExerciseById.set(ex.id, ex));
 
-  // DB種目IDセットと (name, bodyPart) -> ID のマップ
   const dbExerciseIds = new Set<string>();
   const dbExerciseIdByNameAndBodyPart = new Map<string, string>();
 
@@ -122,285 +204,174 @@ function createExerciseMappingData(
     }
   });
 
-  return {
-    localExerciseById,
-    dbExerciseIds,
-    dbExerciseIdByNameAndBodyPart,
-  };
+  return { localExerciseById, dbExerciseIds, dbExerciseIdByNameAndBodyPart };
 }
 
-/**
- * ローカルの種目IDをDBの種目IDにマッピングする
- */
 function createExerciseIdMapper(
   localExerciseById: Map<string, Exercise>,
   dbExerciseIds: Set<string>,
   dbExerciseIdByNameAndBodyPart: Map<string, string>,
   dbExercises: Exercise[]
-): (localExerciseId: string) => string | null {
+) {
   return (localExerciseId: string): string | null => {
-    // すでにDB由来のIDであれば、そのまま使えるか確認
     if (
       !localExerciseId.startsWith("mock-") &&
       dbExerciseIds.has(localExerciseId)
     ) {
       return localExerciseId;
     }
-
     const localExercise = localExerciseById.get(localExerciseId);
-    if (!localExercise) {
-      // ローカル種目一覧に存在しないIDはマッピング不可
-      return null;
-    }
+    if (!localExercise) return null;
 
-    // 名前＋部位でマッピング
     const key = createNameBodyPartKey(
       localExercise.name,
       localExercise.bodyPart
     );
     const mappedId = dbExerciseIdByNameAndBodyPart.get(key);
-    if (mappedId) {
-      return mappedId;
-    }
+    if (mappedId) return mappedId;
 
-    // 部位が変わっている可能性も考慮し、名前だけで最初に一致したものをフォールバックとして使用
     const fallback = dbExercises.find((ex) => ex.name === localExercise.name);
     return fallback ? fallback.id : null;
   };
 }
 
-/**
- * 既存のDB記録から種目IDセットを取得する
- */
-async function getExistingExerciseIds(
-  userId: string,
-  sessionId: string
-): Promise<{
-  workoutExerciseIds: Set<string>;
-  cardioExerciseIds: Set<string>;
-}> {
-  const existingWorkoutExerciseIds = new Set<string>();
-  const existingCardioExerciseIds = new Set<string>();
-
-  const existingDetailsResult = await getSessionDetails(userId, sessionId);
-  if (existingDetailsResult.success && existingDetailsResult.data) {
-    existingDetailsResult.data.workoutExercises.forEach(({ exerciseId }) => {
-      existingWorkoutExerciseIds.add(exerciseId);
-    });
-    existingDetailsResult.data.cardioExercises.forEach(({ exerciseId }) => {
-      existingCardioExerciseIds.add(exerciseId);
-    });
+async function getExistingExerciseIds(userId: string, sessionId: string) {
+  const workoutExerciseIds = new Set<string>();
+  const cardioExerciseIds = new Set<string>();
+  const details = await getSessionDetails(userId, sessionId);
+  if (details.success && details.data) {
+    details.data.workoutExercises.forEach((e) =>
+      workoutExerciseIds.add(e.exerciseId)
+    );
+    details.data.cardioExercises.forEach((e) =>
+      cardioExerciseIds.add(e.exerciseId)
+    );
   }
-
-  return {
-    workoutExerciseIds: existingWorkoutExerciseIds,
-    cardioExerciseIds: existingCardioExerciseIds,
-  };
+  return { workoutExerciseIds, cardioExerciseIds };
 }
 
-/**
- * 1日分の記録を移行する
- */
 async function migrateDateRecords(
   userId: string,
   dateStr: string,
-  mapExerciseId: (localExerciseId: string) => string | null,
+  mapExerciseId: (id: string) => string | null,
   workoutExercises: Array<{ exerciseId: string; sets: SetRecord[] }>,
   cardioExercises: Array<{ exerciseId: string; records: CardioRecord[] }>
-): Promise<boolean> {
-  try {
-    // セッションを保存/取得
-    const sessionResult = await saveWorkoutSession(userId, {
-      date: dateStr,
-    });
+) {
+  const sessionResult = await saveWorkoutSession(userId, { date: dateStr });
+  if (!sessionResult.success || !sessionResult.data) return false;
+  const sessionId = sessionResult.data.id;
 
-    if (!sessionResult.success || !sessionResult.data) {
-      return false;
-    }
+  const { workoutExerciseIds, cardioExerciseIds } =
+    await getExistingExerciseIds(userId, sessionId);
 
-    const sessionId = sessionResult.data.id;
-
-    // 既存のDB記録を取得し、同じ日付・種目があればスキップするためのセットを作成
-    const { workoutExerciseIds, cardioExerciseIds } =
-      await getExistingExerciseIds(userId, sessionId);
-
-    // 筋トレ記録の移行
-    for (const { exerciseId: localExerciseId, sets } of workoutExercises) {
-      const mappedExerciseId = mapExerciseId(localExerciseId);
-      if (!mappedExerciseId) {
-        continue;
-      }
-
-      // 既にDBに記録がある場合はDBを優先し、ローカル分は無視
-      if (workoutExerciseIds.has(mappedExerciseId)) {
-        continue;
-      }
-
-      const saveResult = await saveSets(userId, {
-        sessionId,
-        exerciseId: mappedExerciseId,
-        sets,
-      });
-
-      if (!saveResult.success) {
-        return false;
-      }
-    }
-
-    // 有酸素記録の移行
-    for (const { exerciseId: localExerciseId, records } of cardioExercises) {
-      const mappedExerciseId = mapExerciseId(localExerciseId);
-      if (!mappedExerciseId) {
-        continue;
-      }
-
-      if (cardioExerciseIds.has(mappedExerciseId)) {
-        continue;
-      }
-
-      const saveResult = await saveCardioRecords(userId, {
-        sessionId,
-        exerciseId: mappedExerciseId,
-        records,
-      });
-
-      if (!saveResult.success) {
-        return false;
-      }
-    }
-
-    return true;
-  } catch (error) {
-    console.error("ゲストデータ移行中の保存エラー:", error);
-    return false;
+  // 筋トレ移行
+  for (const { exerciseId, sets } of workoutExercises) {
+    const mappedId = mapExerciseId(exerciseId);
+    if (!mappedId || workoutExerciseIds.has(mappedId)) continue;
+    await saveSets(userId, { sessionId, exerciseId: mappedId, sets });
   }
+
+  // 有酸素移行
+  for (const { exerciseId, records } of cardioExercises) {
+    const mappedId = mapExerciseId(exerciseId);
+    if (!mappedId || cardioExerciseIds.has(mappedId)) continue;
+    await saveCardioRecords(userId, {
+      sessionId,
+      exerciseId: mappedId,
+      records,
+    });
+  }
+  return true;
 }
 
 /**
- * ローカルストレージのゲスト記録をデータベースへ移行する
+ * メイン移行プロセス
  */
 async function migrateGuestData(userId: string): Promise<void> {
   if (typeof window === "undefined") return;
 
-  try {
-    // 内部関数を使用
-    const localExercises = loadLocalExercises();
-    if (localExercises.length === 0) {
-      window.localStorage.setItem(GUEST_DATA_MIGRATED_KEY, "true");
-      return;
-    }
+  // 1. ローカルのカスタム種目をリストアップ
+  const localCustomExercises = loadLocalCustomExercises();
 
-    // データベースの種目一覧を取得
-    const exercisesResult = await getExercises(userId);
-    const dbExercises: Exercise[] =
-      exercisesResult.success && exercisesResult.data
-        ? exercisesResult.data
-        : [];
+  // 2. カスタム種目をDBへ保存
+  if (localCustomExercises.length > 0) {
+    await migrateCustomExercises(userId, localCustomExercises);
+  }
 
-    if (dbExercises.length === 0) {
-      // DB側に種目がない場合は移行しても保存できないため、何もせずに終了
-      if (process.env.NODE_ENV === "development") {
-        console.warn(
-          "ゲストデータ移行をスキップしました。データベースに種目マスタが存在しません。"
-        );
-      }
-      return;
-    }
+  // 3. 設定（表示/非表示）をDBへ移行
+  await migrateExerciseSettings(userId);
 
-    // 種目IDマッピング用のデータ構造を作成
-    const { localExerciseById, dbExerciseIds, dbExerciseIdByNameAndBodyPart } =
-      createExerciseMappingData(localExercises, dbExercises);
+  // 4. プロフィールをDBへ移行 (追加)
+  await migrateProfile();
 
-    // ローカルの種目IDをDBの種目IDにマッピングするヘルパー
-    const mapExerciseId = createExerciseIdMapper(
-      localExerciseById,
-      dbExerciseIds,
-      dbExerciseIdByNameAndBodyPart,
-      dbExercises
+  // 5. 最新のDB種目一覧を取得
+  const exercisesResult = await getExercises(userId);
+  const dbExercises =
+    exercisesResult.success && exercisesResult.data ? exercisesResult.data : [];
+  if (dbExercises.length === 0) return;
+
+  // 6. マッピング準備
+  const localExerciseById = new Map<string, Exercise>();
+  localCustomExercises.forEach((ex) => localExerciseById.set(ex.id, ex));
+
+  const { dbExerciseIds, dbExerciseIdByNameAndBodyPart } =
+    createExerciseMappingData([], dbExercises);
+
+  const { mockInitialExercises } = await import("@/lib/mock-exercises");
+  mockInitialExercises.forEach((ex) => localExerciseById.set(ex.id, ex));
+
+  const mapExerciseId = createExerciseIdMapper(
+    localExerciseById,
+    dbExerciseIds,
+    dbExerciseIdByNameAndBodyPart,
+    dbExercises
+  );
+
+  // 7. 記録データの移行
+  const dates = collectRecordedDatesFromStorage();
+  let hadError = false;
+
+  for (const dateStr of dates) {
+    const date = new Date(`${dateStr}T00:00:00`);
+    const { workoutExercises, cardioExercises } = getSessionDetailsFromStorage({
+      date,
+    });
+    if (workoutExercises.length === 0 && cardioExercises.length === 0) continue;
+
+    const yyyyMMdd = format(date, "yyyy-MM-dd");
+    const success = await migrateDateRecords(
+      userId,
+      yyyyMMdd,
+      mapExerciseId,
+      workoutExercises,
+      cardioExercises
     );
+    if (!success) hadError = true;
+  }
 
-    // ローカルストレージ内の全キーから、記録が存在する日付一覧を取得
-    const dates = collectRecordedDatesFromStorage();
-    if (dates.length === 0) {
-      // 記録がなければ種目だけの問題なので、モック種目を上書きするためにフラグだけ立てる
-      window.localStorage.setItem(GUEST_DATA_MIGRATED_KEY, "true");
-      return;
-    }
-
-    let hadError = false;
-
-    for (const dateStr of dates) {
-      const date = new Date(`${dateStr}T00:00:00`);
-
-      // ローカルのセッション詳細を取得
-      const { workoutExercises, cardioExercises } =
-        getSessionDetailsFromStorage({
-          date,
-        });
-
-      if (workoutExercises.length === 0 && cardioExercises.length === 0) {
-        continue;
-      }
-
-      const yyyyMMdd = format(date, "yyyy-MM-dd");
-
-      // 1日分の記録を移行
-      const success = await migrateDateRecords(
-        userId,
-        yyyyMMdd,
-        mapExerciseId,
-        workoutExercises,
-        cardioExercises
-      );
-
-      if (!success) {
-        hadError = true;
-      }
-    }
-
-    // エラーがなければ、対象のローカルストレージキーをクリーンアップしてフラグを立てる
-    if (!hadError) {
-      cleanupGuestLocalStorage();
-      window.localStorage.setItem(GUEST_DATA_MIGRATED_KEY, "true");
-    } else if (process.env.NODE_ENV === "development") {
-      console.warn(
-        "ゲストデータ移行は一部エラーにより完了していません。ローカルデータは保持されています。"
-      );
-    }
-  } catch (error) {
-    console.error("ゲストデータ移行処理でエラーが発生しました:", error);
+  // 8. 完了処理
+  if (!hadError) {
+    cleanupGuestLocalStorage();
+    window.localStorage.setItem(GUEST_DATA_MIGRATED_KEY, "true");
   }
 }
 
-/**
- * ゲスト時代の記録に関連するローカルストレージのキーをクリーンアップする
- */
-function cleanupGuestLocalStorage(): void {
+function cleanupGuestLocalStorage() {
   if (typeof window === "undefined") return;
-
-  try {
-    const keysToRemove: string[] = [];
-
-    for (let i = 0; i < window.localStorage.length; i++) {
-      const key = window.localStorage.key(i);
-      if (!key) continue;
-
-      if (
-        key.startsWith("workout_") ||
-        key.startsWith("cardio_") ||
-        key === "exercises"
-      ) {
-        keysToRemove.push(key);
-      }
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < window.localStorage.length; i++) {
+    const key = window.localStorage.key(i);
+    if (!key) continue;
+    if (
+      key.startsWith("workout_") ||
+      key.startsWith("cardio_") ||
+      key === OLD_EXERCISES_KEY ||
+      key === GUEST_CUSTOM_EXERCISES_KEY ||
+      key === GUEST_SETTINGS_KEY ||
+      key === GUEST_PROFILE_KEY // 追加
+    ) {
+      keysToRemove.push(key);
     }
-
-    keysToRemove.forEach((key) => {
-      window.localStorage.removeItem(key);
-    });
-  } catch (error) {
-    console.error(
-      "ゲストデータ移行後のローカルストレージクリーンアップ中にエラー:",
-      error
-    );
   }
+  keysToRemove.forEach((k) => window.localStorage.removeItem(k));
 }

@@ -2,43 +2,45 @@ import { HomePage } from "@/components/features/home";
 import { getBig3MaxWeights } from "@/lib/actions/big3-progress";
 import { getBig3TargetValues } from "@/lib/actions/profile";
 import { getTotalWorkoutDays } from "@/lib/actions/stats";
-import {
-  DEFAULT_BIG3_TARGETS,
-  type Big3Targets,
-  type Big3Weights,
-} from "@/lib/big3";
-import { getAuthUserId } from "@/lib/auth-session-server";
-import { redirect } from "next/navigation";
+import { getAuthSession } from "@/lib/auth-session-server";
+import { identifyBig3Exercises } from "@/lib/utils/stats";
+import { getExercises } from "@/lib/api";
 
-export default async function Page() {
-  const userId = await getAuthUserId();
+export default async function Home() {
+  const session = await getAuthSession();
+  // 修正: userIdがない場合（ゲスト）は null として扱う
+  const userId = session?.user?.id ?? null;
 
-  // 認証チェック: ユーザーIDがない場合はログイン画面へ
-  if (!userId) {
-    redirect("/login");
-  }
+  // 並列でデータを取得
+  const [big3Result, targetsResult, totalDays, exercisesResult] =
+    await Promise.all([
+      getBig3MaxWeights(userId),
+      getBig3TargetValues(userId),
+      userId ? getTotalWorkoutDays(userId) : Promise.resolve(0),
+      getExercises(userId),
+    ]);
 
-  const [big3Result, targetResult, totalDays] = await Promise.all([
-    getBig3MaxWeights(userId),
-    getBig3TargetValues(userId),
-    getTotalWorkoutDays(userId),
-  ]);
+  // Big3種目のIDを特定
+  const exercises =
+    exercisesResult.success && exercisesResult.data ? exercisesResult.data : [];
+  const big3Ids = identifyBig3Exercises(exercises.filter((ex) => ex.isBig3));
 
-  const dbWeights: Big3Weights = {
+  const dbWeights = {
     benchPress: big3Result.data?.benchPress.maxWeight ?? 0,
     squat: big3Result.data?.squat.maxWeight ?? 0,
     deadlift: big3Result.data?.deadlift.maxWeight ?? 0,
   };
 
-  const targets: Big3Targets =
-    targetResult.success && targetResult.data
-      ? targetResult.data
-      : DEFAULT_BIG3_TARGETS;
+  const targets = targetsResult.data ?? {
+    benchPress: 100,
+    squat: 120,
+    deadlift: 140,
+  };
 
   const exerciseIds = {
-    benchPress: big3Result.data?.benchPress.exerciseId,
-    squat: big3Result.data?.squat.exerciseId,
-    deadlift: big3Result.data?.deadlift.exerciseId,
+    benchPress: big3Ids.benchPressId,
+    squat: big3Ids.squatId,
+    deadlift: big3Ids.deadliftId,
   };
 
   return (

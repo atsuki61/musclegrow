@@ -13,6 +13,8 @@ import {
   FileText,
   Pencil,
   Loader2,
+  UserPlus,
+  LogIn,
   type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -33,6 +35,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { ProfileResponse } from "@/types/profile";
 import type { User } from "better-auth";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export type ViewStateTarget =
   | "notifications"
@@ -42,7 +45,7 @@ export type ViewStateTarget =
 
 interface ProfileMenuProps {
   profile: ProfileResponse | null;
-  user: User;
+  user: User | null;
   onEditBody: () => void;
   onNavigate: (target: ViewStateTarget) => void;
 }
@@ -54,13 +57,11 @@ export function ProfileMenu({
   onNavigate,
 }: ProfileMenuProps) {
   const router = useRouter();
+  const isGuest = !user;
 
-  const [userName, setUserName] = useState(user.name);
-  // 修正: setUserImage を削除 (配列の2つ目を受け取らない)
-  const [userImage] = useState(user.image);
-
+  const [userName, setUserName] = useState(user?.name ?? "ゲスト");
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editName, setEditName] = useState(user.name);
+  const [editName, setEditName] = useState(userName);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const weight = profile?.weight ? `${profile.weight}` : "--";
@@ -77,19 +78,23 @@ export function ProfileMenu({
     }
   };
 
-  // 名前更新処理
   const handleUpdateProfile = async () => {
     if (!editName.trim()) return;
     setIsUpdating(true);
     try {
-      await authClient.updateUser({
-        name: editName,
-      });
-
-      setUserName(editName);
-      setIsEditOpen(false);
-      router.refresh();
-      toast.success("プロフィールを更新しました");
+      if (isGuest) {
+        // ゲスト時は名前変更できない（あるいはローカル保存するならここに実装）
+        toast.info("ゲストユーザーの名前は変更できません");
+        setIsEditOpen(false);
+      } else {
+        await authClient.updateUser({
+          name: editName,
+        });
+        setUserName(editName);
+        setIsEditOpen(false);
+        router.refresh();
+        toast.success("プロフィールを更新しました");
+      }
     } catch (error) {
       console.error("プロフィールの更新に失敗しました", error);
       toast.error("更新に失敗しました");
@@ -107,29 +112,31 @@ export function ProfileMenu({
             {/* アバターアイコン */}
             <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-br from-primary to-primary/60 shadow-xl shadow-primary/20 ring-4 ring-background overflow-hidden">
               <Avatar className="w-full h-full rounded-full border-2 border-background">
-                {userImage ? (
+                {!isGuest && user?.image && (
                   <AvatarImage
-                    src={userImage}
+                    src={user.image}
                     alt={userName}
                     className="object-cover"
                   />
-                ) : null}
+                )}
                 <AvatarFallback className="bg-background text-primary font-bold text-2xl">
                   {userName.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             </div>
 
-            {/* 編集ボタン */}
-            <button
-              onClick={() => {
-                setEditName(userName);
-                setIsEditOpen(true);
-              }}
-              className="absolute bottom-0 right-0 p-2 bg-background rounded-full shadow-sm border border-border/50 text-muted-foreground hover:text-primary hover:border-primary transition-colors cursor-pointer"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
+            {/* 編集ボタン (ゲスト時は非表示) */}
+            {!isGuest && (
+              <button
+                onClick={() => {
+                  setEditName(userName);
+                  setIsEditOpen(true);
+                }}
+                className="absolute bottom-0 right-0 p-2 bg-background rounded-full shadow-sm border border-border/50 text-muted-foreground hover:text-primary hover:border-primary transition-colors cursor-pointer"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           <div className="text-center space-y-1">
@@ -137,7 +144,7 @@ export function ProfileMenu({
               {userName}
             </h2>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary">
-              ベーシックプラン
+              {isGuest ? "ゲストユーザー" : "ベーシックプラン"}
             </span>
           </div>
         </div>
@@ -211,24 +218,58 @@ export function ProfileMenu({
               </Card>
             </section>
 
-            {/* グループ2: アカウント・データ */}
-            <section className="space-y-2">
-              <h3 className="px-2 text-xs font-bold text-muted-foreground/70 uppercase tracking-wider">
-                アカウント・データ
-              </h3>
-              <Card className="border border-border/60 rounded-2xl overflow-hidden divide-y divide-border/40 shadow-sm">
-                <SettingItem
-                  icon={Settings}
-                  label="アカウント設定"
-                  onClick={() => onNavigate("account")}
-                />
-                <SettingItem
-                  icon={Database}
-                  label="データ管理"
-                  onClick={() => onNavigate("data")}
-                />
-              </Card>
-            </section>
+            {/* グループ2: アカウント・データ (ログイン時のみ) */}
+            {!isGuest && (
+              <section className="space-y-2">
+                <h3 className="px-2 text-xs font-bold text-muted-foreground/70 uppercase tracking-wider">
+                  アカウント・データ
+                </h3>
+                <Card className="border border-border/60 rounded-2xl overflow-hidden divide-y divide-border/40 shadow-sm">
+                  <SettingItem
+                    icon={Settings}
+                    label="アカウント設定"
+                    onClick={() => onNavigate("account")}
+                  />
+                  <SettingItem
+                    icon={Database}
+                    label="データ管理"
+                    onClick={() => onNavigate("data")}
+                  />
+                </Card>
+              </section>
+            )}
+
+            {/* ゲスト時の登録導線 */}
+            {isGuest && (
+              <section className="space-y-2">
+                <h3 className="px-2 text-xs font-bold text-muted-foreground/70 uppercase tracking-wider">
+                  アカウント連携
+                </h3>
+                <Card className="p-4 border border-primary/20 bg-primary/5 rounded-2xl space-y-3">
+                  <div className="text-sm text-muted-foreground">
+                    データをクラウドに保存して、機種変更時も安心。
+                  </div>
+                  <div className="flex gap-2">
+                    <Button className="flex-1 font-bold" asChild>
+                      <Link href="/signup">
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        登録
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 font-bold"
+                      asChild
+                    >
+                      <Link href="/login">
+                        <LogIn className="w-4 h-4 mr-2" />
+                        ログイン
+                      </Link>
+                    </Button>
+                  </div>
+                </Card>
+              </section>
+            )}
 
             {/* グループ3: サポート */}
             <section className="space-y-2">
@@ -250,15 +291,17 @@ export function ProfileMenu({
             </section>
           </div>
 
-          {/* 4. ログアウト */}
-          <Button
-            variant="ghost"
-            onClick={handleSignOut}
-            className="w-full h-14 text-sm font-bold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 active:bg-red-100 dark:active:bg-red-900/40 rounded-xl transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer select-none"
-          >
-            <LogOut className="w-4 h-4" />
-            ログアウト
-          </Button>
+          {/* 4. ログアウト (ログイン時のみ) */}
+          {!isGuest && (
+            <Button
+              variant="ghost"
+              onClick={handleSignOut}
+              className="w-full h-14 text-sm font-bold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 active:bg-red-100 dark:active:bg-red-900/40 rounded-xl transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer select-none"
+            >
+              <LogOut className="w-4 h-4" />
+              ログアウト
+            </Button>
+          )}
         </div>
       </div>
 
@@ -269,23 +312,6 @@ export function ProfileMenu({
             <DialogTitle>プロフィールの編集</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="flex flex-col items-center gap-4">
-              {/* 画像変更エリア (現在はダミー) */}
-              <div className="relative group cursor-not-allowed opacity-80">
-                <Avatar className="w-20 h-20">
-                  <AvatarImage src={userImage || ""} />
-                  <AvatarFallback>
-                    {userName.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                {/* 将来的にここに画像アップロード機能を追加 */}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-[10px] text-white font-bold">
-                    変更不可
-                  </span>
-                </div>
-              </div>
-            </div>
             <div className="space-y-2">
               <Label htmlFor="name">ユーザー名</Label>
               <Input

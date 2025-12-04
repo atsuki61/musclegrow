@@ -11,10 +11,12 @@ import {
   DataSettings,
 } from "./settings-views";
 import type { User } from "better-auth";
+import { toast } from "sonner";
+import { getGuestProfile, saveGuestProfile } from "@/lib/local-storage-profile";
 
 interface ProfilePageProps {
   initialProfile: ProfileResponse | null;
-  user: User;
+  user: User | null; // null許容に変更
 }
 
 type ViewState = "menu" | "editor" | ViewStateTarget;
@@ -33,40 +35,64 @@ export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
   );
   const [isSaving, setIsSaving] = useState(false);
 
+  // 初期ロード時、ゲストならローカルストレージから読み込む
   useEffect(() => {
-    if (initialProfile) {
-      setProfile(initialProfile);
+    if (!user && !initialProfile) {
+      const guestProfile = getGuestProfile();
+      if (guestProfile) {
+        setProfile(guestProfile);
+      }
     }
-  }, [initialProfile]);
+  }, [user, initialProfile]);
 
   const handleSave = async (data: BodyCompositionData) => {
+    setIsSaving(true);
     try {
-      setIsSaving(true);
+      if (user) {
+        // ログイン時: サーバーへ保存
+        const response = await fetch("/api/profile", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
 
-      const response = await fetch("/api/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+        const result = await response.json();
 
-      const result = await response.json();
-
-      if (result.success) {
-        setProfile(result.data);
-        setView("menu");
+        if (result.success) {
+          setProfile(result.data);
+          setView("menu");
+          toast.success("プロフィールを更新しました");
+        } else {
+          console.error(result.error.message);
+          toast.error("更新に失敗しました");
+        }
       } else {
-        console.error(result.error.message);
+        // ゲスト時: ローカルストレージへ保存
+        const updated = saveGuestProfile(data);
+        setProfile(updated);
+        setView("menu");
+        toast.success("プロフィールを保存しました（ゲスト）");
       }
     } catch (err) {
       console.error(err);
+      toast.error("エラーが発生しました");
     } finally {
       setIsSaving(false);
     }
   };
 
   const goBack = () => setView("menu");
+
+  // ゲストの場合、特定の設定画面へは遷移させない
+  const handleNavigate = (target: ViewStateTarget) => {
+    if (!user && (target === "account" || target === "data")) {
+      toast.info("この機能を利用するにはログインが必要です");
+      return;
+    }
+    setView(target);
+  };
 
   switch (view) {
     case "editor":
@@ -83,10 +109,29 @@ export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
     case "appearance":
       return <AppearanceSettings onBack={goBack} />;
     case "account":
+      // userがnullの場合はここには来ないはずだが、念のためガード
+      if (!user)
+        return (
+          <ProfileMenu
+            profile={profile}
+            user={user}
+            onEditBody={() => setView("editor")}
+            onNavigate={handleNavigate}
+          />
+        );
       return (
         <AccountSettings onBack={goBack} userId={user.id} email={user.email} />
       );
     case "data":
+      if (!user)
+        return (
+          <ProfileMenu
+            profile={profile}
+            user={user}
+            onEditBody={() => setView("editor")}
+            onNavigate={handleNavigate}
+          />
+        );
       return <DataSettings onBack={goBack} userId={user.id} />;
 
     case "menu":
@@ -96,7 +141,7 @@ export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
           profile={profile}
           user={user}
           onEditBody={() => setView("editor")}
-          onNavigate={(target) => setView(target)}
+          onNavigate={handleNavigate}
         />
       );
   }

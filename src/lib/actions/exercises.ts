@@ -10,14 +10,16 @@ type ExerciseRow = typeof exercises.$inferSelect;
 
 const fetchExercisesForUser = unstable_cache(
   async (userKey: string): Promise<Exercise[]> => {
-    if (userKey === "guest") {
-      return [];
-    }
+    // 修正: "guest" の場合も空配列を返さず、共通マスタを取得する
 
     const exercisesList = await db
       .select()
       .from(exercises)
-      .where(or(isNull(exercises.userId), eq(exercises.userId, userKey)))
+      .where(
+        userKey === "guest"
+          ? isNull(exercises.userId) // ゲスト: 共通マスタのみ
+          : or(isNull(exercises.userId), eq(exercises.userId, userKey)) // ログイン: 共通 + 自分用
+      )
       .orderBy(exercises.createdAt);
 
     return exercisesList.map(mapExerciseRow);
@@ -45,19 +47,13 @@ function mapExerciseRow(ex: ExerciseRow): Exercise {
 
 /**
  * 種目IDのバリデーションと認証チェックを行う共通関数
- * @param userId ユーザーID
- * @param exerciseId 種目ID
- * @returns バリデーション結果（成功時はuserId、失敗時はエラー情報）
  */
 export async function validateExerciseIdAndAuth(
   userId: string,
   exerciseId: string
 ): Promise<
-  | { success: true; userId: string }
-  | { success: false; error: string }
+  { success: true; userId: string } | { success: false; error: string }
 > {
-
-  // exerciseIdがモックID（mock-で始まる）の場合はエラーを返す
   if (exerciseId.startsWith("mock-")) {
     return {
       success: false,
@@ -65,7 +61,6 @@ export async function validateExerciseIdAndAuth(
     };
   }
 
-  // exerciseIdがデータベースに存在するか確認
   const [exercise] = await db
     .select()
     .from(exercises)
@@ -92,8 +87,6 @@ export async function validateExerciseIdAndAuth(
 
 /**
  * 種目を保存する（カスタム種目）
- * @param userId ユーザーID
- * @param exercise 種目データ
  */
 export async function saveExercise(
   userId: string,
@@ -104,8 +97,6 @@ export async function saveExercise(
   data?: Exercise;
 }> {
   try {
-
-    // カスタム種目をデータベースに保存
     const [savedExercise] = await db
       .insert(exercises)
       .values({
@@ -117,7 +108,7 @@ export async function saveExercise(
         primaryEquipment: exercise.primaryEquipment ?? null,
         tier: exercise.tier,
         isBig3: exercise.isBig3,
-        userId: userId, // ユーザー独自種目として保存
+        userId: userId,
       })
       .returning();
 
@@ -143,9 +134,7 @@ export async function saveExercise(
  * 種目一覧を取得する（共通マスタ + ユーザー独自種目）
  * @param userId ユーザーID（nullの場合はゲスト）
  */
-export async function getExercises(
-  userId: string | null
-): Promise<{
+export async function getExercises(userId: string | null): Promise<{
   success: boolean;
   error?: string;
   data?: Exercise[];
@@ -159,11 +148,9 @@ export async function getExercises(
       data: exercisesData,
     };
   } catch (error: unknown) {
-    // 開発環境でのみエラーをログに出力
     if (process.env.NODE_ENV === "development") {
       console.error("種目取得エラー:", error);
     }
-    // エラー時は空の配列を返す（クライアント側でモックデータを使用）
     return {
       success: true,
       data: [],

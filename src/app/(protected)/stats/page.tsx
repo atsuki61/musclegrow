@@ -7,18 +7,24 @@ import { getAuthUserId } from "@/lib/auth-session-server";
 
 export default async function Page() {
   const userId = await getAuthUserId();
-  if (!userId) {
-    throw new Error("認証が必要です");
-  }
+
+  // 未ログイン(null)の場合も許容して処理を進める
+  // userIdが空文字の場合、各アクションは空データを返却する想定
+  const safeUserId = userId ?? "";
 
   const defaultProfileRange: DateRangePreset = "month";
   const defaultTrainingRange: DateRangePreset = "month";
 
-  const [profileHistoryResult, exercisesResult, big3Result] = await Promise.all([
-    getProfileHistory(userId, { preset: defaultProfileRange }),
-    getExercises(userId),
-    getBig3ProgressData(userId, { preset: defaultTrainingRange }),
-  ]);
+  const [profileHistoryResult, exercisesResult, big3Result] = await Promise.all(
+    [
+      getProfileHistory(safeUserId, { preset: defaultProfileRange }),
+      // getExercises は内部で "guest" 文字列として処理される分岐があるため safeUserId を渡す
+      // または getExercises(userId) として null を渡してもよい（実装による）
+      // ここでは安全に空文字を渡しておく
+      getExercises(userId),
+      getBig3ProgressData(safeUserId, { preset: defaultTrainingRange }),
+    ]
+  );
 
   const initialProfileHistory =
     profileHistoryResult.success && profileHistoryResult.data
@@ -56,4 +62,3 @@ export default async function Page() {
     />
   );
 }
-

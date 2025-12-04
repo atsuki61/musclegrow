@@ -2,7 +2,6 @@ import { Metadata } from "next";
 import { Suspense } from "react";
 import { HistoryPage } from "@/components/features/history";
 import { getAuthUserId } from "@/lib/auth-session-server";
-import { redirect } from "next/navigation";
 import {
   getBodyPartsByDateRange,
   getSessionDetails,
@@ -11,37 +10,30 @@ import {
 } from "@/lib/api";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { serializeSessionDetails } from "@/components/features/history/types";
-import Loading from "./loading"; // 既存のloading.tsxをインポートして再利用
+import Loading from "./loading";
 
 export const metadata: Metadata = {
   title: "履歴 | MuscleGrow",
   description: "トレーニングの履歴を確認します",
 };
 
-// 1. メインのページコンポーネント（Shell）
-// ここでは「重い処理」を待たず、すぐにSuspense（ローディング画面）を返します。
 export default async function Page({
   searchParams,
 }: {
   searchParams: Promise<{ date?: string; month?: string }>;
 }) {
-  // 認証チェック（キャッシュ済みなので一瞬で終わる）
-  const userId = await getAuthUserId();
-  if (!userId) redirect("/login");
+  // 認証チェックを削除し、IDがなければ空文字として扱う
+  const userId = (await getAuthUserId()) ?? "";
 
-  // パラメータの解決
   const resolvedParams = await searchParams;
 
   return (
-    // Suspenseで囲むことで、中身(HistoryMainContent)の準備ができるまで
-    // fallback(Loading)を表示しつつ、ヘッダーなどは即座に描画します。
     <Suspense fallback={<Loading />}>
       <HistoryMainContent userId={userId} params={resolvedParams} />
     </Suspense>
   );
 }
 
-// 2. データ取得を行う非同期コンポーネント
 async function HistoryMainContent({
   userId,
   params,
@@ -52,7 +44,6 @@ async function HistoryMainContent({
   const today = new Date();
   const selectedDateStr = params.date;
 
-  // 月の決定
   const monthStr = params.month || format(today, "yyyy-MM");
   const currentMonth = new Date(monthStr);
 
@@ -63,16 +54,16 @@ async function HistoryMainContent({
     endDate: format(end, "yyyy-MM-dd"),
   };
 
-  // 並列データ取得
+  // userId が空文字の場合、DBからは空の結果が返り、
+  // クライアント側の hooks でローカルストレージのデータを読み込む挙動になる
   const [bodyPartsResult, sessionResult, exercisesResult] = await Promise.all([
     getBodyPartsByDateRange(userId, monthRange),
     selectedDateStr
       ? getWorkoutSession(userId, selectedDateStr)
       : Promise.resolve({ success: true, data: null }),
-    getExercises(userId),
+    getExercises(userId === "" ? null : userId), // getExercisesは null を許容する設計のため
   ]);
 
-  // セッション詳細の取得
   let initialSessionDetails = null;
   if (sessionResult.success && sessionResult.data) {
     const detailsResult = await getSessionDetails(

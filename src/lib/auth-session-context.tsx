@@ -4,10 +4,10 @@ import { createContext, useContext, type ReactNode } from "react";
 
 /**
  * AuthSessionContextの型定義
- * userIdのみを管理（sessionは不要）
+ * userIdは未ログイン時に null となる
  */
 interface AuthSessionContextType {
-  userId: string;
+  userId: string | null;
 }
 
 const AuthSessionContext = createContext<AuthSessionContextType | null>(null);
@@ -17,7 +17,7 @@ const AuthSessionContext = createContext<AuthSessionContextType | null>(null);
  */
 interface AuthSessionProviderProps {
   children: ReactNode;
-  userId: string;
+  userId: string | null;
 }
 
 /**
