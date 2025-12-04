@@ -3,7 +3,6 @@
 import React, { useCallback } from "react";
 import { format, isSameMonth, isSameDay } from "date-fns";
 import { ja } from "date-fns/locale";
-import { DayButton } from "react-day-picker";
 import type { DayButtonProps } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { cn, isFutureDate } from "@/lib/utils";
