@@ -256,3 +256,72 @@ export function getBodyPartsByDateRangeFromStorage({
 
   return convertSetsToArrays(bodyPartsByDate);
 }
+
+/**
+ * 特定種目の過去の履歴をローカルストレージから取得する
+ */
+export function getExerciseHistoryFromStorage(exerciseId: string, limit = 10) {
+  if (typeof window === "undefined") return [];
+
+  const history: Array<{
+    date: Date;
+    sets: Array<{
+      weight: number | null;
+      reps: number;
+      duration: number | null;
+      setOrder: number;
+    }>;
+  }> = [];
+
+  try {
+    // 1. ローカルストレージの全キーを走査
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+
+      // キーを解析
+      const keyInfo = parseStorageKey(key);
+
+      // 2. 「ワークアウト記録」かつ「この種目のデータ」だけを対象にする
+      if (
+        !keyInfo ||
+        keyInfo.type !== "workout" ||
+        keyInfo.exerciseId !== exerciseId
+      ) {
+        continue;
+      }
+
+      // 3. データを取得してパース
+      const storedValue = localStorage.getItem(key);
+      if (!storedValue) continue;
+
+      const sets = JSON.parse(storedValue) as SetRecord[];
+
+      // 有効なセットのみ抽出（重量、回数、時間のいずれか）
+      const validSets = sets.filter(
+        (s) => (s.weight ?? 0) > 0 || s.reps > 0 || (s.duration ?? 0) > 0
+      );
+
+      if (validSets.length === 0) continue;
+
+      // 4. 整形してリストに追加
+      history.push({
+        date: new Date(keyInfo.dateStr), // 文字列の日付をDate型に変換
+        sets: validSets.map((s) => ({
+          weight: s.weight ?? null,
+          reps: s.reps,
+          duration: s.duration ?? null,
+          setOrder: s.setOrder,
+        })),
+      });
+    }
+
+    // 5. 日付の新しい順に並び替えて、指定件数だけ返す
+    return history
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, limit);
+  } catch (error) {
+    console.error("ローカル履歴の取得に失敗:", error);
+    return [];
+  }
+}

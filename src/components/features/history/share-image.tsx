@@ -68,20 +68,20 @@ export const ShareImage = forwardRef<HTMLDivElement, ShareImageProps>(
         {/* 背景装飾 */}
         <div
           className={cn(
-            "absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r",
+            "absolute top-0 left-0 w-full h-1.5 bg-linear-to-r",
             gradientClass
           )}
         />
         <div
           className={cn(
-            "absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl bg-gradient-to-br",
+            "absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl bg-linear-to-br",
             gradientClass,
             isDarkMode ? "opacity-10" : "opacity-5"
           )}
         />
         <div
           className={cn(
-            "absolute -bottom-24 -left-24 w-64 h-64 rounded-full blur-3xl bg-gradient-to-tr",
+            "absolute -bottom-24 -left-24 w-64 h-64 rounded-full blur-3xl bg-linear-to-tr",
             gradientClass,
             isDarkMode ? "opacity-10" : "opacity-5"
           )}
@@ -334,7 +334,7 @@ export const ShareImage = forwardRef<HTMLDivElement, ShareImageProps>(
             <div className="flex items-center gap-1 mb-0.5">
               <div
                 className={cn(
-                  "w-4 h-4 rounded flex items-center justify-center bg-gradient-to-br",
+                  "w-4 h-4 rounded flex items-center justify-center bg-linear-to-br",
                   gradientClass
                 )}
               >

@@ -7,7 +7,7 @@ import {
   exercises,
   workoutSessions,
 } from "../../../db/schemas/app";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import type { SetRecord, CardioRecord } from "@/types/workout";
 import type { BodyPart } from "@/types/workout";
 import { unstable_cache } from "next/cache";
@@ -304,5 +304,71 @@ export async function getBodyPartsByDateRange(
       success: false,
       error: errorMessage,
     };
+  }
+}
+
+export async function getExerciseHistory(
+  userId: string,
+  exerciseId: string,
+  limit = 10
+) {
+  try {
+    // 1. データベースからデータを取得
+    const historyData = await db
+      .select({
+        date: workoutSessions.date, // 日付 (sessionsテーブルから)
+        weight: sets.weight, // 重量 (setsテーブルから)
+        reps: sets.reps, // 回数
+        setOrder: sets.setOrder, // 何セット目か
+      })
+      .from(sets) // メインは「セット記録」
+      // 2. セッション情報をくっつける (IDが一致するもの)
+      .innerJoin(workoutSessions, eq(sets.sessionId, workoutSessions.id))
+      // 3. 条件で絞り込む
+      .where(
+        and(
+          eq(workoutSessions.userId, userId), // このユーザーのデータで
+          eq(sets.exerciseId, exerciseId) // この種目のデータだけ
+        )
+      )
+      // 4. 並び替え (日付の新しい順 -> セット順)
+      .orderBy(desc(workoutSessions.date), sets.setOrder)
+      // 5. 取得件数を制限 (大量データ防止)
+      // セット数ではなく「日付数」で制限するのが理想ですが、
+      // 簡易実装として一旦「レコード数(セット数)」で制限をかけ、
+      .limit(limit * 5); // 1日平均5セットと仮定して、limit日分くらい取得
+
+    // 6. 日付ごとにデータをまとめる (グルーピング)
+    const groupedHistory: Record<string, typeof historyData> = {};
+
+    historyData.forEach((record) => {
+      const dateStr = record.date;
+      if (!groupedHistory[dateStr]) {
+        groupedHistory[dateStr] = [];
+      }
+      groupedHistory[dateStr].push(record);
+    });
+
+    // 7. オブジェクトを配列に変換して返す
+    const result = Object.entries(groupedHistory).map(([date, sets]) => ({
+      date: new Date(date),
+      sets: sets.map((s) => ({
+        weight: s.weight ? parseFloat(s.weight) : null,
+        reps: s.reps,
+        duration: null,
+        setOrder: s.setOrder,
+      })),
+    }));
+
+    // 日付順にソート（新しい順）して、指定件数だけ返す
+    return {
+      success: true,
+      data: result
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .slice(0, limit),
+    };
+  } catch (error) {
+    console.error("履歴取得エラー:", error);
+    return { success: false, error: "履歴の取得に失敗しました" };
   }
 }
