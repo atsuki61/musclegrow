@@ -88,6 +88,8 @@ export async function saveSets(
     }
 
     // トランザクションで既存のセット記録を削除してから新規保存
+    // db.transactionはトランザクションを管理する関数
+    // txはデータベース操作を行うための関数を提供する
     await db.transaction(async (tx) => {
       // 既存のセット記録を削除
       await tx

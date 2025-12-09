@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "../../../db";
-// ▼ 修正: 複数のファイルから正しくインポート
 import { workoutSessions, profileHistory } from "../../../db/schemas/app";
 import { users } from "../../../db/schemas/auth";
 import { eq } from "drizzle-orm";

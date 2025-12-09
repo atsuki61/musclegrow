@@ -129,7 +129,7 @@ export function useCardioSession({
 
     setIsLoading(true);
 
-    // 修正: userIdがある場合（ログイン時）のみDBから取得を試みる
+    // ログイン時のみDBから取得を試みる
     if (userId) {
       try {
         const currentDateStr = formatDateToYYYYMMDD(date);
@@ -186,7 +186,7 @@ export function useCardioSession({
       // ローカルストレージに保存（常に実行）
       saveCardioRecordsToStorage(date, exerciseId, recordsToSave);
 
-      // 修正: userIdがある場合（ログイン時）のみDBへ保存
+      // userIdがある場合（ログイン時）のみDBへ保存
       if (userId) {
         try {
           const currentDateStr = formatDateToYYYYMMDD(date);
@@ -251,7 +251,7 @@ export function useCardioSession({
         recordsRef.current
       );
 
-      // 修正: userIdがある場合（ログイン時）のみDBへ保存
+      // userIdがある場合（ログイン時）のみDBへ保存
       if (userId) {
         (async () => {
           try {

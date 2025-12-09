@@ -59,7 +59,7 @@ export function ExerciseCard({
                 key={set.id || index}
                 className={cn(
                   "flex items-center justify-between text-sm py-1.5 px-2 rounded-lg transition-colors",
-                  // 修正: MAX記録時の背景色をprimary系に変更
+                  //MAX記録時の背景色をprimary系に変更
                   isMaxWeight
                     ? "bg-primary/10 dark:bg-primary/20"
                     : "hover:bg-muted/30"
@@ -74,7 +74,7 @@ export function ExerciseCard({
                     <span
                       className={cn(
                         "font-bold tabular-nums text-base",
-                        // 修正: 文字色をprimaryに変更
+                        //文字色をprimaryに変更
                         isMaxWeight
                           ? "text-primary font-black"
                           : "text-foreground"
@@ -96,7 +96,7 @@ export function ExerciseCard({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* 修正: MAXバッジの色とアイコンfillをprimaryに変更 */}
+                  {/*MAXバッジの色とアイコンfillをprimaryに変更 */}
                   {isMaxWeight && (
                     <span className="flex items-center gap-0.5 text-[9px] font-bold text-primary bg-primary/10 dark:bg-primary/30 px-1.5 py-0.5 rounded-full shadow-sm animate-in fade-in zoom-in duration-300">
                       <Trophy className="w-2.5 h-2.5 fill-primary text-primary" />{" "}

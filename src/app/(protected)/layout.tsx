@@ -13,7 +13,7 @@ export default async function ProtectedLayout({
   // 共通のキャッシュ関数を使用
   const session = await getAuthSession();
 
-  // 修正: sessionがない場合も null として許容し、リダイレクトしない
+  //sessionがない場合も null として許容し、リダイレクトしない
   const userId = session?.user?.id ?? null;
 
   return (

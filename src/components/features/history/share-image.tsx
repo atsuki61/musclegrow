@@ -6,7 +6,6 @@ import { ja } from "date-fns/locale";
 import { Dumbbell, Flame, Activity, Trophy } from "lucide-react";
 import { cn, calculate1RM } from "@/lib/utils";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
-// 修正: local-storage-exercises ではなく utils からインポート
 import { getExerciseById } from "@/lib/utils";
 
 interface ShareImageProps {

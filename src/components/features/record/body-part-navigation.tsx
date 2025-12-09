@@ -103,7 +103,7 @@ export function BodyPartNavigation({
                 backgroundColor: isSelected
                   ? colorVar
                   : `color-mix(in srgb, ${colorVar} 15%, transparent)`,
-                // ▼ 修正: 選択時は専用の文字色変数を使う
+                //  選択時は専用の文字色変数を使う
                 color: isSelected ? textVar : colorVar,
                 borderColor: isSelected
                   ? "transparent"

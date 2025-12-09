@@ -28,7 +28,7 @@ export const auth = betterAuth({
     schema,
   }),
   secret: process.env.BETTER_AUTH_SECRET,
-  // ▼ 修正: メールアドレス認証を追加
+  //メールアドレス認証を追加
   emailAndPassword: {
     enabled: true,
   },

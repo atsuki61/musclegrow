@@ -46,11 +46,11 @@ export function BodyCompositionEditor({
     return null;
   }, [height, weight]);
 
-  // ▼ 修正: BMIに応じたカラースタイルを決定 ▼
+  //  BMIに応じたカラースタイルを決定 ▼
   const bmiColorStyles = useMemo(() => {
     if (!bmiData) return null;
 
-    // 修正: 型エラー回避のため Number() で変換（元がnumberでもstringでも動作します）
+    //  型エラー回避のため Number() で変換（元がnumberでもstringでも動作します）
     const bmi = Number(bmiData.bmi);
 
     // 18.5未満 (低体重): シアン〜ブルー (冷たい色)

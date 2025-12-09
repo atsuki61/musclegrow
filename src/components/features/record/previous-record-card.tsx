@@ -37,7 +37,7 @@ export function PreviousWorkoutRecordCard({
       {!hideHeader && (
         <div className="flex items-center justify-between mb-2 pb-2 border-b border-border/50">
           <div className="flex items-center gap-2">
-            {/* 修正: text-muted-foreground から text-primary に変更 */}
+            {/*  text-muted-foreground から text-primary に変更 */}
             <span className="text-xs font-bold text-primary">
               前回: {formatDate(date)}
             </span>
@@ -46,7 +46,7 @@ export function PreviousWorkoutRecordCard({
             variant="ghost"
             size="sm"
             onClick={onCopy}
-            // 修正: ボタンもprimary色に
+            //ボタンもprimary色に
             className="h-6 text-xs gap-1 px-2 text-primary hover:text-primary hover:bg-primary/10"
           >
             <Copy className="w-3 h-3" /> コピー

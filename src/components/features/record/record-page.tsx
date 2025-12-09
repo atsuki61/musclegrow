@@ -201,7 +201,7 @@ export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
   return (
     <div className="flex flex-col min-h-screen pb-20 bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+      <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b">
         <div className="flex h-14 items-center justify-center px-4">
           <DateSelector date={selectedDate} onDateChange={handleDateChange} />
         </div>

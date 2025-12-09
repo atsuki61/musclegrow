@@ -8,7 +8,7 @@ import {
   cardioRecords,
 } from "../../../db/schemas/app";
 import { eq, desc } from "drizzle-orm";
-// 修正: date-fns の format を削除
+// date-fns の format を削除
 // import { format } from "date-fns";
 
 /**
