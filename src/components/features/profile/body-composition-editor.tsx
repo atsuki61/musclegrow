@@ -116,7 +116,7 @@ export function BodyCompositionEditor({
         {/* 2. BMI ビジュアルカード (動的カラー版) */}
         {bmiData && bmiColorStyles && (
           <div
-            className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${bmiColorStyles.bg} p-5 text-white shadow-lg ${bmiColorStyles.shadow} transition-colors duration-500`}
+            className={`relative overflow-hidden rounded-2xl bg-linear-to-br ${bmiColorStyles.bg} p-5 text-white shadow-lg ${bmiColorStyles.shadow} transition-colors duration-500`}
           >
             {/* 背景装飾 */}
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
@@ -142,7 +142,7 @@ export function BodyCompositionEditor({
                 style={{ width: `${bmiData.percentage}%` }}
               >
                 {/* シマー効果 */}
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white to-transparent -skew-x-12 animate-shimmer opacity-70" />
+                <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-white to-transparent -skew-x-12 animate-shimmer opacity-70" />
               </div>
             </div>
 
@@ -185,7 +185,7 @@ export function BodyCompositionEditor({
                   className="h-full bg-emerald-500 rounded-full transition-all duration-700 ease-out relative overflow-hidden"
                   style={{ width: `${composition.muscleMassPercentage}%` }}
                 >
-                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-shimmer" />
+                  <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-shimmer" />
                 </div>
               </div>
             </div>
@@ -208,7 +208,7 @@ export function BodyCompositionEditor({
                   className="h-full bg-orange-500 rounded-full transition-all duration-700 ease-out relative overflow-hidden"
                   style={{ width: `${composition.fatMassPercentage}%` }}
                 >
-                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-shimmer" />
+                  <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-shimmer" />
                 </div>
               </div>
             </div>
@@ -231,7 +231,7 @@ export function BodyCompositionEditor({
                   className="h-full bg-blue-400 rounded-full transition-all duration-700 ease-out relative overflow-hidden"
                   style={{ width: `${composition.otherMassPercentage}%` }}
                 >
-                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-shimmer" />
+                  <div className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-white/30 to-transparent -skew-x-12 animate-shimmer" />
                 </div>
               </div>
             </div>

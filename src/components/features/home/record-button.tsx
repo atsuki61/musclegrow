@@ -14,7 +14,7 @@ export function RecordButton() {
            グラデーションの色をCSS変数ベースに変更
           via-orange-500 -> via-primary/80 などのように、primaryを基準にする
         */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/80 to-primary bg-[length:200%_100%] bg-left transition-[background-position] duration-500 group-hover:bg-right group-active:bg-right" />
+        <div className="absolute inset-0 bg-linear-to-r from-primary via-primary/80 to-primary bg-size-[200%_100%] bg-left transition-[background-position] duration-500 group-hover:bg-right group-active:bg-right" />
 
         <div className="relative py-4 px-6 flex items-center justify-center gap-3 text-primary-foreground">
           <div className="p-1 bg-white/20 rounded-full backdrop-blur-sm">

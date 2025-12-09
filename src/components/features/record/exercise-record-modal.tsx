@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { nanoid } from "nanoid";
+import { HistoryTabContent } from "./history-tab-content";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -370,11 +372,10 @@ export default function ExerciseRecordModal({
                   )}
                 </TabsContent>
 
-                <TabsContent value="history" className="mt-0 py-8 text-center">
-                  <History className="w-10 h-10 opacity-20 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    過去の履歴機能は準備中です
-                  </p>
+                <TabsContent value="history" className="mt-0">
+                  <div className="p-4">
+                    <HistoryTabContent exerciseId={exercise.id} />
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="info" className="mt-0 py-8 text-center">
