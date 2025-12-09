@@ -264,8 +264,8 @@ interface CountResult {
 
 /**
  * トレーニング記録がある合計日数を取得する
- * 修正: セット記録または有酸素記録が実際に存在するセッションのみをカウントする
- * これにより、削除漏れで残った空のセッションがカウントされるのを防ぐ
+ * セット記録または有酸素記録が実際に存在するセッションのみをカウントする
+ * 削除漏れで残った空のセッションがカウントされるのを防ぐ
  */
 export async function getTotalWorkoutDays(userId: string): Promise<number> {
   const getCachedTotal = unstable_cache(

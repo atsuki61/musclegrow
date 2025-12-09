@@ -57,7 +57,7 @@ async function handleTableNotExistsError<T>(
 
 /**
  * セッションIDでそのセッションの全種目とセット記録を取得する
- * 修正: 日付、メモ、時間などのメタデータも返すように変更
+ * 日付、メモ、時間などのメタデータも返すように変更
  */
 export async function getSessionDetails(
   userId: string,
@@ -81,7 +81,7 @@ export async function getSessionDetails(
   };
 }> {
   try {
-    // 修正: セッションのメタデータ（日付、メモ、時間）も取得する
+    // セッションのメタデータ（日付、メモ、時間）も取得する
     const [session] = await db
       .select({
         id: workoutSessions.id,

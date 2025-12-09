@@ -11,7 +11,7 @@ export function RecordButton() {
         className="relative group w-full max-w-sm overflow-hidden rounded-2xl shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.02] active:scale-95 active:shadow-sm"
       >
         {/* 
-          修正: グラデーションの色をCSS変数ベースに変更
+           グラデーションの色をCSS変数ベースに変更
           via-orange-500 -> via-primary/80 などのように、primaryを基準にする
         */}
         <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/80 to-primary bg-[length:200%_100%] bg-left transition-[background-position] duration-500 group-hover:bg-right group-active:bg-right" />

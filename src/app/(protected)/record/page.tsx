@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  // 修正: authを関数としてではなく、APIメソッドとして呼び出す
+  //authを関数としてではなく、APIメソッドとして呼び出す
   const session = await auth.api.getSession({
     headers: await headers(),
   });

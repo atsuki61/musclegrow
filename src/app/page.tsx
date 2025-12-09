@@ -8,7 +8,6 @@ import { getExercises } from "@/lib/api";
 
 export default async function Home() {
   const session = await getAuthSession();
-  // 修正: userIdがない場合（ゲスト）は null として扱う
   const userId = session?.user?.id ?? null;
 
   // 並列でデータを取得

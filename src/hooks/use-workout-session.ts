@@ -116,7 +116,7 @@ export function useWorkoutSession({
 
     setIsLoading(true);
 
-    // 修正: userIdがある場合（ログイン時）のみDBから取得を試みる
+    //userIdがある場合（ログイン時）のみDBから取得を試みる
     if (userId) {
       try {
         const currentDateStr = formatDateToYYYYMMDD(date);
@@ -173,7 +173,7 @@ export function useWorkoutSession({
       // ローカルストレージに保存（常に実行）
       saveSetsToStorage(date, exerciseId, setsToSave);
 
-      // 修正: userIdがある場合（ログイン時）のみDBへ保存
+      //userIdがある場合（ログイン時）のみDBへ保存
       if (userId) {
         try {
           const currentDateStr = formatDateToYYYYMMDD(date);
@@ -238,7 +238,7 @@ export function useWorkoutSession({
         setsRef.current
       );
 
-      // 修正: userIdがある場合（ログイン時）のみDBへ保存
+      //userIdがある場合（ログイン時）のみDBへ保存
       if (userId) {
         (async () => {
           try {

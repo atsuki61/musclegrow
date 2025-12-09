@@ -9,14 +9,12 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, Clock, FileText, Dumbbell, Activity } from "lucide-react";
 import { SwipeableExerciseCard } from "./swipeable-exercise-card";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
-// 修正: local-storage-exercises ではなく utils からインポート
 import { getExerciseById } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShareModal } from "./share-modal";
 import { Share2 } from "lucide-react";
 import { useState } from "react";
 
-// ... (以下、コンポーネントの中身は変更なし)
 interface SessionHistoryCardProps {
   date: Date;
   durationMinutes?: number | null;

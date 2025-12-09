@@ -94,7 +94,7 @@ export function HistoryPage({
     loadBodyPartsByDate,
     loadSessionDetails,
   } = useHistoryData(exercises, userId ?? "", {
-    // 修正: nullの場合は空文字を渡す
+    //nullの場合は空文字を渡す
     initialBodyPartsByDate,
     initialSessionDetails: initialSessionDetailsValue,
   });
@@ -128,7 +128,6 @@ export function HistoryPage({
 
       // DB削除（ログイン時のみ）
       if (userId) {
-        // 修正: userIdがある場合のみ実行
         try {
           const sessionResult = await getWorkoutSession(userId, dateStr);
           if (sessionResult.success && sessionResult.data) {

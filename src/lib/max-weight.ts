@@ -43,10 +43,6 @@ export function saveMaxWeightsCache(maxWeights: MaxWeightsMap): void {
   }
 }
 
-/**
- * localStorage をスキャンして最大重量を計算
- * 修正: anyを使用せず、unknown型と型チェックを使用
- */
 export function calculateMaxWeightsFromStorage(): MaxWeightsMap {
   if (typeof window === "undefined") return {};
 

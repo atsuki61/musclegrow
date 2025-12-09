@@ -123,7 +123,7 @@ export function Big3Progress({
                 <div className="h-2 w-full bg-muted/80 rounded-full overflow-hidden relative">
                   <div
                     className="h-full rounded-full relative transition-all duration-[1500ms] ease-[cubic-bezier(0.22,1,0.36,1)] 
-                    bg-gradient-to-r from-primary to-primary/80" // 修正: orange-600固定からprimary系グラデに変更
+                    bg-gradient-to-r from-primary to-primary/80"
                     style={{ width: mounted ? `${progress}%` : "0%" }}
                   >
                     <div className="absolute inset-0 w-full h-full -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/40 to-transparent z-10" />

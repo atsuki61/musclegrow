@@ -207,7 +207,7 @@ export function ExerciseChart({
                 if (cx === undefined || cy === undefined) return <></>;
 
                 return (
-                  // 修正: 標準のcircleに戻し、CSS transitionで制御
+                  //標準のcircleに戻し、CSS transitionで制御
                   <circle
                     key={`dot-${index}`}
                     cx={cx}
