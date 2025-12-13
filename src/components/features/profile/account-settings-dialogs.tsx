@@ -15,10 +15,12 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { setUserPassword } from "@/lib/actions/settings";
 
 interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  hasPassword?: boolean;
 }
 
 // --- メールアドレス変更ダイアログ ---
@@ -35,7 +37,7 @@ export function ChangeEmailDialog({ open, onOpenChange }: DialogProps) {
     try {
       const { error } = await authClient.changeEmail({
         newEmail,
-        callbackURL: "/profile", // 変更後のリダイレクト先（必要に応じて）
+        callbackURL: "/profile",
       });
 
       if (error) {
@@ -101,13 +103,24 @@ export function ChangeEmailDialog({ open, onOpenChange }: DialogProps) {
   );
 }
 
-// --- パスワード変更ダイアログ ---
-export function ChangePasswordDialog({ open, onOpenChange }: DialogProps) {
+// --- パスワード変更/設定ダイアログ ---
+export function ChangePasswordDialog({
+  open,
+  onOpenChange,
+  hasPassword = true,
+}: DialogProps) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // モード判定
+  const isSetupMode = !hasPassword;
+  const title = isSetupMode ? "パスワードの設定" : "パスワードの変更";
+  const description = isSetupMode
+    ? "ログイン用のパスワードを新しく設定します。"
+    : "現在のパスワードと新しいパスワードを入力してください。";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,20 +137,37 @@ export function ChangePasswordDialog({ open, onOpenChange }: DialogProps) {
     setError(null);
 
     try {
-      const { error } = await authClient.changePassword({
-        currentPassword,
-        newPassword,
-        revokeOtherSessions: true, // 他のデバイスからログアウトさせるオプション（推奨）
-      });
+      if (isSetupMode) {
+        // パスワード設定モード (Server Action)
+        const result = await setUserPassword(newPassword);
 
-      if (error) {
-        setError(error.message || "パスワードの変更に失敗しました");
+        if (!result.success) {
+          setError(result.error || "処理に失敗しました");
+        } else {
+          toast.success("パスワードを設定しました");
+          onOpenChange(false);
+          setCurrentPassword("");
+          setNewPassword("");
+          setConfirmPassword("");
+          window.location.reload();
+        }
       } else {
-        toast.success("パスワードを変更しました");
-        onOpenChange(false);
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
+        // パスワード変更モード (Client API)
+        const { error: changeError } = await authClient.changePassword({
+          currentPassword,
+          newPassword,
+          revokeOtherSessions: true,
+        });
+
+        if (changeError) {
+          setError(changeError.message || "パスワードの変更に失敗しました");
+        } else {
+          toast.success("パスワードを変更しました");
+          onOpenChange(false);
+          setCurrentPassword("");
+          setNewPassword("");
+          setConfirmPassword("");
+        }
       }
     } catch {
       setError("予期せぬエラーが発生しました");
@@ -150,24 +180,28 @@ export function ChangePasswordDialog({ open, onOpenChange }: DialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>パスワードの変更</DialogTitle>
-          <DialogDescription>
-            現在のパスワードと新しいパスワードを入力してください。
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          {/* 変更モードの場合のみ現在のパスワードを表示 */}
+          {!isSetupMode && (
+            <div className="space-y-2">
+              <Label htmlFor="current-password">現在のパスワード</Label>
+              <Input
+                id="current-password"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="current-password">現在のパスワード</Label>
-            <Input
-              id="current-password"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="new-password">新しいパスワード</Label>
+            <Label htmlFor="new-password">
+              {isSetupMode ? "パスワード" : "新しいパスワード"}
+            </Label>
             <Input
               id="new-password"
               type="password"
@@ -207,13 +241,13 @@ export function ChangePasswordDialog({ open, onOpenChange }: DialogProps) {
               type="submit"
               disabled={
                 isLoading ||
-                !currentPassword ||
+                (!isSetupMode && !currentPassword) || // 変更モードなら現在PW必須
                 !newPassword ||
                 !confirmPassword
               }
             >
               {isLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              変更する
+              {isSetupMode ? "設定する" : "変更する"}
             </Button>
           </DialogFooter>
         </form>

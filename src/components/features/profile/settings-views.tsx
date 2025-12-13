@@ -13,6 +13,9 @@ import { deleteUserAllData, deleteUserAccount } from "@/lib/actions/settings";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
+import { checkUserHasPassword } from "@/lib/actions/settings";
+import { useEffect } from "react";
+
 import {
   Moon,
   Sun,
@@ -279,6 +282,20 @@ export function AccountSettings({
   //ダイアログの開閉状態を管理
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  // パスワード有無の状態管理
+  const [hasPassword, setHasPassword] = useState<boolean>(true); // （パスワードがある場合はtrue、ない場合はfalse）
+  const [isCheckingPassword, setIsCheckingPassword] = useState(true);
+
+  useEffect(() => {
+    const checkPassword = async () => {
+      if (userId) {
+        const result = await checkUserHasPassword(userId);
+        setHasPassword(result);
+      }
+      setIsCheckingPassword(false);
+    };
+    checkPassword();
+  }, [userId]);
 
   const handleDeleteAccount = async () => {
     if (!userId) return;
@@ -333,17 +350,27 @@ export function AccountSettings({
 
               {/* パスワード変更 */}
               <button
-                onClick={() => setIsPasswordDialogOpen(true)} //ダイアログを開く
+                onClick={() => setIsPasswordDialogOpen(true)}
                 className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-left"
+                disabled={isCheckingPassword} // チェック中は押せないようにする
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                     <Lock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                   </div>
                   <div className="space-y-0.5">
-                    <div className="text-sm font-medium">パスワードの変更</div>
+                    {/* 文言の切り替え */}
+                    <div className="text-sm font-medium">
+                      {isCheckingPassword
+                        ? "読み込み中..."
+                        : hasPassword
+                        ? "パスワードの変更"
+                        : "パスワードの設定"}
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      定期的な変更を推奨します
+                      {hasPassword
+                        ? "定期的な変更を推奨します"
+                        : "ログイン用のパスワードを設定します"}
                     </div>
                   </div>
                 </div>
@@ -446,6 +473,7 @@ export function AccountSettings({
       <ChangePasswordDialog
         open={isPasswordDialogOpen}
         onOpenChange={setIsPasswordDialogOpen}
+        hasPassword={hasPassword}
       />
     </>
   );
