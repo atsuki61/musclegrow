@@ -62,6 +62,105 @@
                    └────────────┘
 ```
 
+## ディレクトリ構成
+
+```
+musclegrow/
+├── src/                          # ソースコード
+│   ├── app/                      # Next.js App Router
+│   │   ├── (auth)/              # 認証関連ページ
+│   │   │   ├── login/
+│   │   │   └── signup/
+│   │   ├── (protected)/         # 認証必須ページ
+│   │   │   ├── goals/           # 目標設定
+│   │   │   ├── history/         # 履歴画面
+│   │   │   ├── profile/         # プロフィール
+│   │   │   ├── record/          # 記録画面
+│   │   │   └── stats/           # 統計・グラフ
+│   │   ├── (static)/            # 静的ページ
+│   │   │   ├── contact/
+│   │   │   ├── privacy/
+│   │   │   └── terms/
+│   │   ├── api/                 # API ルート
+│   │   │   ├── auth/
+│   │   │   ├── check-env/
+│   │   │   └── profile/
+│   │   ├── layout.tsx
+│   │   └── page.tsx             # ホーム画面
+│   ├── components/              # React コンポーネント
+│   │   ├── features/            # 機能別コンポーネント
+│   │   │   ├── goals/           # 目標設定関連
+│   │   │   ├── history/         # 履歴関連
+│   │   │   ├── home/            # ホーム画面関連
+│   │   │   ├── profile/         # プロフィール関連
+│   │   │   ├── record/          # 記録関連
+│   │   │   ├── stats/           # 統計・グラフ関連
+│   │   │   └── timer/           # タイマー機能
+│   │   ├── layout/              # レイアウトコンポーネント
+│   │   │   ├── header.tsx
+│   │   │   └── footer-nav.tsx
+│   │   ├── ui/                  # shadcn/ui コンポーネント
+│   │   └── theme-provider.tsx
+│   ├── lib/                     # ユーティリティ・ロジック
+│   │   ├── actions/             # サーバーアクション
+│   │   │   ├── big3-progress.ts
+│   │   │   ├── exercises.ts
+│   │   │   ├── history.ts
+│   │   │   ├── profile.ts
+│   │   │   ├── stats.ts
+│   │   │   └── workout-sessions.ts
+│   │   ├── utils/               # ユーティリティ関数
+│   │   │   ├── bmi.ts
+│   │   │   ├── body-composition.ts
+│   │   │   └── stats.ts
+│   │   ├── auth.ts              # 認証設定
+│   │   ├── auth-client.ts       # クライアント認証
+│   │   ├── auth-session-server.ts
+│   │   ├── data-source.ts       # データソース管理
+│   │   ├── local-storage-*.ts   # localStorage 管理
+│   │   └── validations.ts       # バリデーション
+│   ├── hooks/                   # カスタムフック
+│   │   ├── use-cardio-session.ts
+│   │   ├── use-last-trained.ts
+│   │   ├── use-max-weights.ts
+│   │   └── use-workout-session.ts
+│   ├── types/                   # TypeScript 型定義
+│   │   ├── profile.ts
+│   │   ├── stats.ts
+│   │   ├── user.ts
+│   │   └── workout.ts
+│   └── supabase/                # Supabase 設定
+│       ├── browser-client.ts
+│       └── server-client.ts
+├── db/                          # データベース関連
+│   ├── schemas/                 # Drizzle スキーマ
+│   │   ├── app.ts               # アプリケーションスキーマ
+│   │   └── auth.ts              # 認証スキーマ
+│   ├── index.ts                 # DB 接続
+│   ├── schema.ts                # スキーマエクスポート
+│   └── seed.ts                  # シードデータ
+├── drizzle/                     # Drizzle マイグレーション
+│   ├── *.sql                    # SQL マイグレーションファイル
+│   └── meta/                    # マイグレーションメタデータ
+├── scripts/                     # スクリプト
+│   ├── add-big3-targets-migration.ts
+│   └── run-migration.ts
+├── supabase/                    # Supabase 設定
+│   ├── config.toml
+│   └── docker/
+├── public/                      # 静的ファイル
+│   ├── favicon.ico
+│   └── *.png                    # アイコン・画像
+├── .github/                     # GitHub 設定
+│   └── workflows/
+│       └── migrate.yml          # CI/CD ワークフロー
+├── drizzle.config.ts            # Drizzle 設定
+├── next.config.ts               # Next.js 設定
+├── package.json                 # 依存関係
+├── tsconfig.json                # TypeScript 設定
+└── README.md                    # このファイル
+```
+
 ## 機能一覧
 
 ### コア機能
