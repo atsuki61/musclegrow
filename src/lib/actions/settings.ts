@@ -96,3 +96,48 @@ export async function setUserPassword(password: string) {
     return { success: false, error: message };
   }
 }
+
+//Google連携の状態を確認する
+export async function checkGoogleConnection(userId: string): Promise<boolean> {
+  try {
+    const account = await db
+      .select()
+      .from(accounts)
+      .where(
+        and(eq(accounts.userId, userId), eq(accounts.providerId, "google"))
+      )
+      .limit(1);
+
+    return account.length > 0;
+  } catch (error) {
+    console.error("Google連携確認エラー:", error);
+    return false;
+  }
+}
+
+//Google連携を解除する
+export async function unlinkGoogleAccount(userId: string) {
+  try {
+    // 1. パスワード設定済みか確認（安全策）
+    const hasPassword = await checkUserHasPassword(userId);
+    if (!hasPassword) {
+      return {
+        success: false,
+        error:
+          "パスワードが設定されていないため、連携を解除できません。先にパスワードを設定してください。",
+      };
+    }
+
+    // 2. Googleの連携情報を削除
+    await db
+      .delete(accounts)
+      .where(
+        and(eq(accounts.userId, userId), eq(accounts.providerId, "google"))
+      );
+
+    return { success: true };
+  } catch (error) {
+    console.error("Google連携解除エラー:", error);
+    return { success: false, error: "連携の解除に失敗しました" };
+  }
+}

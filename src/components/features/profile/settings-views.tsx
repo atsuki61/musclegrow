@@ -13,8 +13,13 @@ import { deleteUserAllData, deleteUserAccount } from "@/lib/actions/settings";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
-import { checkUserHasPassword } from "@/lib/actions/settings";
+import {
+  checkUserHasPassword,
+  checkGoogleConnection,
+  unlinkGoogleAccount,
+} from "@/lib/actions/settings";
 import { useEffect } from "react";
+import { authClient } from "@/lib/auth-client";
 
 import {
   Moon,
@@ -279,23 +284,70 @@ export function AccountSettings({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  //ダイアログの開閉状態を管理
+  // パスワードダイアログ用
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
-  // パスワード有無の状態管理
-  const [hasPassword, setHasPassword] = useState<boolean>(true); // （パスワードがある場合はtrue、ない場合はfalse）
+
+  const [hasPassword, setHasPassword] = useState<boolean>(true);
   const [isCheckingPassword, setIsCheckingPassword] = useState(true);
 
+  // Google連携用
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // 初期状態の確認
   useEffect(() => {
-    const checkPassword = async () => {
+    const checkStatus = async () => {
       if (userId) {
-        const result = await checkUserHasPassword(userId);
-        setHasPassword(result);
+        // パスワードとGoogle連携の状態を並列で確認
+        const [hasPw, hasGoogle] = await Promise.all([
+          checkUserHasPassword(userId),
+          checkGoogleConnection(userId),
+        ]);
+        setHasPassword(hasPw);
+        setIsGoogleConnected(hasGoogle);
       }
       setIsCheckingPassword(false);
     };
-    checkPassword();
+    checkStatus();
   }, [userId]);
+
+  // Google連携切り替えハンドラ
+  const handleToggleGoogle = async (checked: boolean) => {
+    if (!userId) return;
+    setIsGoogleLoading(true);
+
+    if (checked) {
+      // ONにする場合: Google連携を開始
+      try {
+        await authClient.signIn.social({
+          provider: "google",
+          callbackURL: "/profile", // 連携後にプロフィール画面に戻る
+        });
+        // 成功するとリダイレクトされる
+      } catch (e) {
+        console.error(e);
+        toast.error("Google連携に失敗しました");
+        setIsGoogleLoading(false);
+      }
+    } else {
+      // OFFにする場合: 連携解除
+      try {
+        const result = await unlinkGoogleAccount(userId);
+        if (result.success) {
+          setIsGoogleConnected(false);
+          toast.success("Google連携を解除しました");
+        } else {
+          toast.error(result.error || "解除に失敗しました");
+        }
+      } catch (e) {
+        console.error(e);
+        toast.error("エラーが発生しました");
+      } finally {
+        setIsGoogleLoading(false);
+      }
+    }
+  };
 
   const handleDeleteAccount = async () => {
     if (!userId) return;
@@ -331,7 +383,7 @@ export function AccountSettings({
             <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
               {/* メールアドレス */}
               <button
-                onClick={() => setIsEmailDialogOpen(true)} //ダイアログを開く
+                onClick={() => setIsEmailDialogOpen(true)}
                 className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-left"
               >
                 <div className="flex items-center gap-3">
@@ -352,14 +404,13 @@ export function AccountSettings({
               <button
                 onClick={() => setIsPasswordDialogOpen(true)}
                 className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-left"
-                disabled={isCheckingPassword} // チェック中は押せないようにする
+                disabled={isCheckingPassword}
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                     <Lock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                   </div>
                   <div className="space-y-0.5">
-                    {/* 文言の切り替え */}
                     <div className="text-sm font-medium">
                       {isCheckingPassword
                         ? "読み込み中..."
@@ -392,17 +443,17 @@ export function AccountSettings({
                   </div>
                   <div className="text-sm font-medium">Google</div>
                 </div>
+                {/* Google連携スイッチ */}
                 <Switch
-                  defaultChecked
-                  onCheckedChange={() =>
-                    toast.info("連携解除機能は現在サポートされていません")
-                  }
+                  checked={isGoogleConnected}
+                  onCheckedChange={handleToggleGoogle}
+                  disabled={isGoogleLoading || isCheckingPassword}
                 />
               </div>
             </Card>
           </section>
 
-          {/* アカウント削除ダイアログ */}
+          {/* 3. 危険なエリア */}
           <section className="space-y-2">
             <h3 className="px-1 text-xs font-bold text-red-600/80">
               Danger Zone
@@ -465,7 +516,7 @@ export function AccountSettings({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/*メールアドレス変更ダイアログ */}
+      {/* 変更用ダイアログ */}
       <ChangeEmailDialog
         open={isEmailDialogOpen}
         onOpenChange={setIsEmailDialogOpen}
@@ -478,7 +529,6 @@ export function AccountSettings({
     </>
   );
 }
-
 // --- データ管理 ---
 interface DataSettingsProps extends SettingsViewProps {
   userId: string;
