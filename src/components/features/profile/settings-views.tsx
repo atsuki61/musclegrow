@@ -5,6 +5,14 @@ import type { LucideIcon } from "lucide-react";
 import { BackHeader } from "@/components/layout/back-header";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { useTheme } from "next-themes";
+import { useColorTheme, type ColorTheme } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
+import { exportAllData } from "@/lib/actions/data-export";
+import { deleteUserAllData, deleteUserAccount } from "@/lib/actions/settings";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { signOut } from "@/lib/auth-client";
 import {
   Moon,
   Sun,
@@ -20,14 +28,6 @@ import {
   Chrome,
   ChevronRight,
 } from "lucide-react";
-import { useTheme } from "next-themes";
-import { useColorTheme, type ColorTheme } from "@/components/theme-provider";
-import { cn } from "@/lib/utils";
-import { exportAllData } from "@/lib/actions/data-export";
-import { deleteUserAllData, deleteUserAccount } from "@/lib/actions/settings";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { signOut } from "@/lib/auth-client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +38,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
+import {
+  ChangeEmailDialog,
+  ChangePasswordDialog,
+} from "./account-settings-dialogs";
 interface SettingsViewProps {
   onBack: () => void;
 }
@@ -273,6 +276,10 @@ export function AccountSettings({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  //ダイアログの開閉状態を管理
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+
   const handleDeleteAccount = async () => {
     if (!userId) return;
     setIsDeleting(true);
@@ -307,7 +314,7 @@ export function AccountSettings({
             <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
               {/* メールアドレス */}
               <button
-                onClick={() => toast.info("メールアドレス変更機能は準備中です")}
+                onClick={() => setIsEmailDialogOpen(true)} //ダイアログを開く
                 className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-left"
               >
                 <div className="flex items-center gap-3">
@@ -326,7 +333,7 @@ export function AccountSettings({
 
               {/* パスワード変更 */}
               <button
-                onClick={() => toast.info("パスワード変更機能は準備中です")}
+                onClick={() => setIsPasswordDialogOpen(true)} //ダイアログを開く
                 className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition-colors text-left"
               >
                 <div className="flex items-center gap-3">
@@ -358,16 +365,17 @@ export function AccountSettings({
                   </div>
                   <div className="text-sm font-medium">Google</div>
                 </div>
-                {/* 連携状態のスイッチ（仮実装: ONの状態） */}
                 <Switch
                   defaultChecked
-                  onCheckedChange={() => toast.info("連携解除機能は準備中です")}
+                  onCheckedChange={() =>
+                    toast.info("連携解除機能は現在サポートされていません")
+                  }
                 />
               </div>
             </Card>
           </section>
 
-          {/* 3. 危険なエリア */}
+          {/* アカウント削除ダイアログ */}
           <section className="space-y-2">
             <h3 className="px-1 text-xs font-bold text-red-600/80">
               Danger Zone
@@ -393,7 +401,7 @@ export function AccountSettings({
         </div>
       </div>
 
-      {/* 削除確認ダイアログ (そのまま) */}
+      {/* 削除確認ダイアログ */}
       <AlertDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
@@ -429,6 +437,16 @@ export function AccountSettings({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/*メールアドレス変更ダイアログ */}
+      <ChangeEmailDialog
+        open={isEmailDialogOpen}
+        onOpenChange={setIsEmailDialogOpen}
+      />
+      <ChangePasswordDialog
+        open={isPasswordDialogOpen}
+        onOpenChange={setIsPasswordDialogOpen}
+      />
     </>
   );
 }
