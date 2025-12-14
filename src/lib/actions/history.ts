@@ -67,9 +67,9 @@ export async function getSessionDetails(
   error?: string;
   data?: {
     id: string;
-    date: string; // 追加
-    durationMinutes: number | null; // 追加
-    note: string | null; // 追加
+    date: string;
+    durationMinutes: number | null;
+    note: string | null;
     workoutExercises: Array<{
       exerciseId: string;
       sets: SetRecord[];

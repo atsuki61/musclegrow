@@ -87,7 +87,6 @@ function SetRow({
                 onChange={(e) =>
                   onSetChange(set.id, "weight", parseFloat(e.target.value))
                 }
-                // h-12 -> h-10, text-lg -> text-base でコンパクト化
                 className="h-10 text-center text-base font-bold bg-muted/30 border-transparent focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all rounded-lg pr-6"
                 placeholder={isBodyweight ? "-" : "0"}
               />
@@ -192,15 +191,36 @@ export function SetRecordForm({
     }));
     onSetsChange(reordered);
   };
-
+  //入力変更時のハンドラー
   const handleSetChange = (
     setId: string,
     field: keyof SetRecord,
     value: number | string | boolean
   ) => {
+    // 1. まず現在のセットを更新
     const updatedSets = sets.map((set) =>
       set.id === setId ? { ...set, [field]: value } : set
     );
+
+    // 2. 自動追加の判定
+    // 編集中のセットが最後の行か調べる
+    const targetSetIndex = sets.findIndex((s) => s.id === setId);
+    const isLastSet = targetSetIndex === sets.length - 1;
+
+    // 重量、回数、時間のどれかが入力されて、それが0より大きい値になったら
+    if (
+      isLastSet &&
+      (field === "weight" || field === "reps" || field === "duration")
+    ) {
+      const numValue = Number(value);
+      if (!isNaN(numValue) && numValue > 0) {
+        // 50セット以内なら新しいセットを追加
+        if (updatedSets.length < 50) {
+          updatedSets.push(createNewSet(updatedSets.length + 1));
+        }
+      }
+    }
+
     onSetsChange(updatedSets);
   };
 

@@ -168,7 +168,7 @@ export const cardioRecords = pgTable("cardio_records", {
   heartRate: integer("heart_rate"), // 心拍数（bpm）
   incline: numeric("incline", { precision: 4, scale: 1 }), // 傾斜（%）例: 5.0
   notes: text("notes"), // メモ
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(), //記録日時
 });
 
 // ⑥ user_exercise_settings テーブル - ユーザーごとの種目表示設定
@@ -178,11 +178,11 @@ export const userExerciseSettings = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    exerciseId: text("exercise_id")
+    exerciseId: text("exercise_id") //種目ID
       .notNull()
       .references(() => exercises.id, { onDelete: "cascade" }),
     isVisible: boolean("is_visible").notNull(), // true: リストに表示(initial), false: 隠す(selectable)
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(), //更新日時
   },
   (table) => ({
     pk: primaryKey({ columns: [table.userId, table.exerciseId] }), // 複合主キー
