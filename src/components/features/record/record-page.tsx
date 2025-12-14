@@ -154,11 +154,17 @@ export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const handleAddExercise = async (exercise: Exercise) => {
     if (userId) {
       // ログイン時
-      await toggleExerciseVisibility(userId, exercise.id, true);
+      // カスタム種目の場合は、まずexercisesテーブルに保存する
       if (exercise.tier === "custom") {
         const result = await saveExercise(userId, exercise);
-        if (!result.success) console.error("種目保存エラー:", result.error);
+        if (!result.success) {
+          console.error("種目保存エラー:", result.error);
+          toast.error("種目の保存に失敗しました");
+          return; // エラー時は処理を中断
+        }
       }
+      //種目が存在することを確認してから、表示設定を保存
+      await toggleExerciseVisibility(userId, exercise.id, true);
     } else {
       // ゲスト時
       toggleGuestExerciseVisibility(exercise.id, true);
@@ -166,7 +172,6 @@ export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
         saveGuestCustomExercise(exercise);
       }
     }
-
     const newExercise = { ...exercise, tier: "initial" as const };
     setExercises((prev) => {
       const exists = prev.some((e) => e.id === exercise.id);
