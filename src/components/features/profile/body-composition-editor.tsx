@@ -46,11 +46,11 @@ export function BodyCompositionEditor({
     return null;
   }, [height, weight]);
 
-  //  BMIに応じたカラースタイルを決定 ▼
+  //  BMIに応じたカラースタイルを決定
   const bmiColorStyles = useMemo(() => {
     if (!bmiData) return null;
 
-    //  型エラー回避のため Number() で変換（元がnumberでもstringでも動作します）
+    //  型エラー回避のため Number() で変換（元がnumberでもstringでも動作）
     const bmi = Number(bmiData.bmi);
 
     // 18.5未満 (低体重): シアン〜ブルー (冷たい色)
@@ -85,6 +85,7 @@ export function BodyCompositionEditor({
     };
   }, [bmiData]);
 
+  // 体組成データを計算
   const composition = useMemo(() => {
     if (isBodyCompositionValid(weight, bodyFat, muscleMass)) {
       return calculateBodyComposition(weight, bodyFat, muscleMass);
@@ -92,6 +93,7 @@ export function BodyCompositionEditor({
     return null;
   }, [weight, bodyFat, muscleMass]);
 
+  // 保存ハンドラー
   const handleSave = async () => {
     await onSave({ height, weight, bodyFat, muscleMass });
   };
