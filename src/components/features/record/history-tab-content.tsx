@@ -2,10 +2,9 @@
 
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { CalendarDays, Clock, Dumbbell } from "lucide-react";
+import { CalendarDays, Clock } from "lucide-react";
 import { useExerciseHistory } from "./hooks/use-exercise-history";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface HistoryTabContentProps {
   exerciseId: string;
@@ -54,7 +53,7 @@ export function HistoryTabContent({ exerciseId }: HistoryTabContentProps) {
         >
           {/* 日付ヘッダー */}
           <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/40">
-            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-center min-w-[3rem]">
+            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-center min-w-12">
               {format(record.date, "M/d")}
             </span>
             <span className="text-xs text-muted-foreground font-medium">
