@@ -6,6 +6,15 @@ import { sets, workoutSessions } from "../../../db/schemas/app";
 import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
 import { eq, and, max, lt, desc } from "drizzle-orm";
 import type { SetRecord } from "@/types/workout";
+
+function isValidSet(set: SetRecord): boolean {
+  const hasReps = set.reps > 0;
+  // durationが null/undefined の場合は 0 として扱う
+  const hasDuration = (set.duration ?? 0) > 0;
+
+  return hasReps || hasDuration;
+}
+
 /**
  * セット記録を保存する（既存のセット記録を削除してから新規保存）
  * @param userId ユーザーID
@@ -14,6 +23,7 @@ import type { SetRecord } from "@/types/workout";
  * @param setsToSave セット記録の配列
  * @returns 保存結果
  */
+
 export async function saveSets(
   userId: string,
   {
@@ -64,15 +74,7 @@ export async function saveSets(
       };
     }
 
-    // 有効なセットのみをフィルタリング（重量または回数または時間が0より大きい）
-    const validSets = setsToSave.filter(
-      (set) =>
-        (set.weight !== undefined && set.weight !== null && set.weight > 0) ||
-        set.reps > 0 ||
-        (set.duration !== undefined &&
-          set.duration !== null &&
-          set.duration > 0)
-    );
+    const validSets = setsToSave.filter(isValidSet);
 
     // 有効なセットがない場合は、既存のセット記録を削除して終了
     if (validSets.length === 0) {
@@ -87,18 +89,16 @@ export async function saveSets(
       };
     }
 
-    // トランザクションで既存のセット記録を削除してから新規保存
-    // db.transactionはトランザクションを管理する関数
-    // txはデータベース操作を行うための関数を提供する
+    // 1. トランザクション開始（途中で失敗したら全部なかったことにする）
     await db.transaction(async (tx) => {
-      // 既存のセット記録を削除
+      // 2. 既存のセット記録を削除
       await tx
         .delete(sets)
         .where(
           and(eq(sets.sessionId, sessionId), eq(sets.exerciseId, exerciseId))
         );
 
-      // 新しいセット記録を保存
+      // 3. 新しい記録を一括挿入
       // データベーススキーマではweightが必須なので、weightがnull/undefinedの場合は0を使用
       // numeric型のフィールド（weight, rpe）は文字列として扱う必要がある
       const setsToInsert = validSets.map((set) => ({
@@ -211,7 +211,6 @@ export async function getSets(
       restSeconds: set.restSeconds ?? null,
       notes: set.notes ?? null,
       failure: set.failure ?? undefined,
-      // durationはデータベースに保存されていないため、nullを返す
       duration: null,
     }));
 

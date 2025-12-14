@@ -38,7 +38,7 @@ const loadSetsFromStorage = (
 export const saveSetsToStorage = (
   date: Date,
   exerciseId: string,
-  sets: SetRecord[]
+  sets: SetRecord[] //１種目の全セット
 ): void => {
   if (typeof window === "undefined") return;
 
@@ -116,7 +116,7 @@ export function useWorkoutSession({
 
     setIsLoading(true);
 
-    //userIdがある場合（ログイン時）のみDBから取得を試みる
+    // 2. ログインしている場合だけ、サーバーにも保存しにいく
     if (userId) {
       try {
         const currentDateStr = formatDateToYYYYMMDD(date);
@@ -170,22 +170,24 @@ export function useWorkoutSession({
     async (setsToSave: SetRecord[]) => {
       if (!exerciseId) return;
 
-      // ローカルストレージに保存（常に実行）
+      // 1.ローカルストレージに常に保存
       saveSetsToStorage(date, exerciseId, setsToSave);
 
-      //userIdがある場合（ログイン時）のみDBへ保存
+      // 2. ログインしている場合にのみ、サーバーにも保存しにいく
       if (userId) {
         try {
+          // 2-1. まず「今日」というセッションを作る/取得する
           const currentDateStr = formatDateToYYYYMMDD(date);
           const sessionResult = await saveWorkoutSession(userId, {
             date: currentDateStr,
           });
 
+          // 2-2. セッションができたら、その中にセット記録を保存する
           if (sessionResult.success && sessionResult.data) {
             await saveSetsToAPI(userId, {
               sessionId: sessionResult.data.id,
               exerciseId,
-              sets: setsToSave,
+              sets: setsToSave, //セット記録の配列
             });
           }
         } catch (error) {

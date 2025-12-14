@@ -17,7 +17,7 @@ export async function saveWorkoutSession(
     note,
     durationMinutes,
   }: {
-    date: string; // YYYY-MM-DD形式
+    date: string;
     note?: string | null;
     durationMinutes?: number | null;
   }
@@ -27,9 +27,9 @@ export async function saveWorkoutSession(
   data?: { id: string; date: string };
 }> {
   try {
-    // 既存のセッションを確認
+    // 1. 「その日」のセッションが既に存在するかチェック
     const [existingSession] = await db
-      .select()
+      .select() //セッションIDを取得
       .from(workoutSessions)
       .where(
         and(eq(workoutSessions.userId, userId), eq(workoutSessions.date, date))
@@ -39,7 +39,7 @@ export async function saveWorkoutSession(
     let sessionId: string;
 
     if (existingSession) {
-      // 更新
+      // 2a. あれば更新（メモとかが変わったかもしれないので）
       await db
         .update(workoutSessions)
         .set({
@@ -50,7 +50,7 @@ export async function saveWorkoutSession(
         .where(eq(workoutSessions.id, existingSession.id));
       sessionId = existingSession.id;
     } else {
-      // 新規作成
+      // 2b. なければ新規作成
       const [newSession] = await db
         .insert(workoutSessions)
         .values({
@@ -59,12 +59,9 @@ export async function saveWorkoutSession(
           note: note ?? null,
           durationMinutes: durationMinutes ?? null,
         })
-        .returning({ id: workoutSessions.id });
+        .returning({ id: workoutSessions.id }); // 作ったIDを返す
       sessionId = newSession.id;
 
-      // 新規作成時のみ、合計日数のキャッシュを更新する
-      // (既にその日のセッションがあった場合は日数は増えないので不要だが、
-      //  判定が複雑になるので新規作成時は常に無効化してOK)
       revalidateTag(`stats:total-days:${userId}`);
     }
 

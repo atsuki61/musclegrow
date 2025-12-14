@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-// ▼ TimerIcon を追加
 import {
   X,
   History,
@@ -39,8 +38,13 @@ import {
   cardioRecordSchema,
   validateItems,
 } from "@/lib/validations";
-// ▼ useTimer を追加
 import { useTimer } from "@/lib/timer-context";
+
+function isValidSet(set: SetRecord): boolean {
+  const hasReps = set.reps > 0;
+  const hasDuration = (set.duration ?? 0) > 0;
+  return hasReps || hasDuration;
+}
 
 type PreviousRecordData =
   | { type: "workout"; sets: SetRecord[]; date: Date }
@@ -135,35 +139,6 @@ export default function ExerciseRecordModal({
       previousExerciseIdRef.current = exercise?.id || null;
     }
 
-    // 初回ロード時のみ、かつ初期セットが1つだけの場合（useWorkoutSessionが作成した初期セット）のみ3セットに置き換える
-    if (
-      isOpen &&
-      !isCardio &&
-      isLoaded &&
-      !hasInitializedRef.current &&
-      sets.length === 1 &&
-      exercise &&
-      // 既存のデータがない場合のみ（weight/reps/durationがすべて0またはundefined）
-      sets[0] &&
-      !sets[0].weight &&
-      sets[0].reps === 0 &&
-      !sets[0].duration
-    ) {
-      const isTimeBased = isTimeBasedExercise(exercise);
-      const initialSets: SetRecord[] = Array.from({ length: 3 }).map(
-        (_, i) => ({
-          id: nanoid(),
-          setOrder: i + 1,
-          weight: undefined,
-          reps: 0,
-          duration: isTimeBased ? 0 : undefined,
-          isWarmup: false,
-          failure: false,
-        })
-      );
-      setSets(initialSets);
-      hasInitializedRef.current = true;
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, isLoaded, sets.length, exercise?.id]);
 
@@ -186,12 +161,8 @@ export default function ExerciseRecordModal({
         }
       }
     } else {
-      const validSets = sets.filter(
-        (set) =>
-          (set.weight && set.weight > 0) ||
-          (set.reps && set.reps > 0) ||
-          (set.duration && set.duration > 0)
-      );
+      const validSets = sets.filter(isValidSet);
+      // 有効なセットがない場合は、既存のセット記録を削除して終了
       if (validSets.length > 0) {
         const invalidSets = validateItems(validSets, setRecordSchema, "セット");
         if (invalidSets.length === 0) {
