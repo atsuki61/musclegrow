@@ -267,7 +267,6 @@
     animation: shimmer 2.5s infinite;
     /* 追加: GPUでの描画を確実にするおまじない */
     backface-visibility: hidden;
-    transform: translateZ(0);
     z-index: 50;
   }
 
