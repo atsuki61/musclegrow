@@ -120,13 +120,19 @@ export function Big3Progress({
                 </div>
 
                 {/* プログレスバー */}
-                <div className="h-2 w-full bg-muted/80 rounded-full overflow-hidden relative transform-gpu">
+                <div
+                  className="h-2 w-full bg-muted/80 rounded-full overflow-hidden relative transform-gpu"
+                  //mask-image を適用し、Safariに正しい切り抜き処理を強制させる
+                  style={{
+                    WebkitMaskImage: "-webkit-radial-gradient(white, black)",
+                  }}
+                >
                   <div
                     className="h-full rounded-full relative transition-all duration-1500 ease-[cubic-bezier(0.22,1,0.36,1)] 
                     bg-linear-to-r from-primary to-primary/80"
                     style={{ width: mounted ? `${progress}%` : "0%" }}
                   >
-                    <div className="absolute inset-0 w-full h-full -translate-x-full animate-shimmer bg-linear-to-r from-transparent via-white/90 to-transparent z-10 transform-gpu" />
+                    <div className="absolute inset-0 w-full h-full -translate-x-full animate-shimmer bg-linear-to-r from-transparent via-white/50 to-transparent z-10 transform-gpu" />
 
                     <div className="absolute right-0 top-0 bottom-0 w-0.5 bg-white/60 blur-[0.5px] shadow-[0_0_4px_rgba(255,255,255,0.8)] z-20" />
                   </div>
