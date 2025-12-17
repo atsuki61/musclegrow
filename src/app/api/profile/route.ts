@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
+import { revalidateTag } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "../../../../db";
 import { profiles, profileHistory } from "../../../../db/schemas/app";
@@ -297,6 +298,9 @@ export async function PUT(request: NextRequest) {
         });
       }
     }
+
+    // データの更新が完了したら、グラフ用のキャッシュを無効化する
+    revalidateTag("profile:history");
 
     return NextResponse.json({
       success: true,

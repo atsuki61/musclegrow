@@ -4,7 +4,11 @@ import type { SetRecord } from "@/types/workout";
 import { parseStorageKey } from "./local-storage-history";
 import { format } from "date-fns";
 import type { DateRangePreset, ExerciseProgressData } from "@/types/stats";
-import { getStartDate, extractMaxWeightUpdates, calculateDayMaxWeight } from "./utils/stats";
+import {
+  getStartDate,
+  extractMaxWeightUpdates,
+  calculateDayMaxWeight,
+} from "./utils/stats";
 
 /**
  * ローカルストレージから記録がある種目IDのSetを取得する
@@ -32,8 +36,13 @@ export function getExercisesWithDataFromStorage(): Set<string> {
 
       try {
         const sets = JSON.parse(stored) as SetRecord[];
-        // データがある場合のみ追加
-        if (sets.length > 0) {
+
+        //データがあり、かつ重量が0より大きいセットが含まれている場合のみ追加
+        const hasWeightRecord = sets.some(
+          (set) => set.weight !== undefined && Number(set.weight) > 0
+        );
+
+        if (hasWeightRecord) {
           exerciseIds.add(exerciseId);
         }
       } catch (error) {
