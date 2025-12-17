@@ -52,13 +52,14 @@
 
 @keyframes shimmer {
   0% {
-    transform: translateX(-150%) skewX(-15deg);
+    /*translateX -> translate3d でGPUを強制使用 */
+    transform: translate3d(-150%, 0, 0) skewX(-15deg);
   }
   50% {
-    transform: translateX(150%) skewX(-15deg);
+    transform: translate3d(150%, 0, 0) skewX(-15deg);
   }
   100% {
-    transform: translateX(150%) skewX(-15deg);
+    transform: translate3d(150%, 0, 0) skewX(-15deg);
   }
 }
 
@@ -261,7 +262,12 @@
 @layer utilities {
   /* Big3 のシマー用アニメーションクラス */
   .animate-shimmer {
+    /* 追加: ブラウザに最適化を事前通知 */
+    will-change: transform;
     animation: shimmer 2.5s infinite;
+    /* 追加: GPUでの描画を確実にするおまじない */
+    backface-visibility: hidden;
+    transform: translateZ(0);
   }
 
   /* タッチデバイスでも hover 風の効果を有効にする */

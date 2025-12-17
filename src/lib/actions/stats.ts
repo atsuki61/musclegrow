@@ -7,7 +7,7 @@ import {
   sets,
   workoutSessions,
   exercises,
-  cardioRecords, // 追加
+  cardioRecords,
 } from "../../../db/schemas/app";
 import { eq, and, gte, sql, or, isNull } from "drizzle-orm";
 import type {
@@ -264,13 +264,10 @@ interface CountResult {
 
 /**
  * トレーニング記録がある合計日数を取得する
- * セット記録または有酸素記録が実際に存在するセッションのみをカウントする
- * 削除漏れで残った空のセッションがカウントされるのを防ぐ
  */
 export async function getTotalWorkoutDays(userId: string): Promise<number> {
   const getCachedTotal = unstable_cache(
     async () => {
-      // セット記録(sets)か有酸素記録(cardioRecords)のいずれかが紐付いているセッションのみをカウント
       const result = await db.execute(sql`
         SELECT COUNT(DISTINCT ${workoutSessions.date}) as count
         FROM ${workoutSessions}
@@ -280,7 +277,6 @@ export async function getTotalWorkoutDays(userId: string): Promise<number> {
           AND (${sets.id} IS NOT NULL OR ${cardioRecords.id} IS NOT NULL)
       `);
 
-      // 結果の型安全性確保
       const rows = result as unknown as CountResult[];
       const count = rows[0]?.count ? Number(rows[0].count) : 0;
       return count;
@@ -290,4 +286,39 @@ export async function getTotalWorkoutDays(userId: string): Promise<number> {
   );
 
   return getCachedTotal();
+}
+
+/**
+ * 記録が存在する種目ID一覧を取得する
+ * 重量が0より大きい記録がある種目のみを対象にする
+ */
+export async function getRecordedExerciseIds(
+  userId: string
+): Promise<string[]> {
+  try {
+    const getCachedIds = unstable_cache(
+      async () => {
+        const result = await db
+          .selectDistinct({ exerciseId: sets.exerciseId })
+          .from(sets)
+          .innerJoin(workoutSessions, eq(sets.sessionId, workoutSessions.id))
+          .where(
+            and(
+              eq(workoutSessions.userId, userId),
+              //重量が存在する場合のみ表示する
+              sql`${sets.weight} > 0`
+            )
+          );
+
+        return result.map((r) => r.exerciseId);
+      },
+      [`stats-recorded-ids-${userId}`],
+      { tags: [`stats:recorded-ids:${userId}`, "stats:exercise"] }
+    );
+
+    return await getCachedIds();
+  } catch (error) {
+    console.error("記録済み種目ID取得エラー:", error);
+    return [];
+  }
 }

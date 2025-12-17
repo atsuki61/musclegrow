@@ -9,7 +9,10 @@ import {
   getExerciseProgressData,
 } from "@/lib/actions/stats";
 import { getBig3ProgressDataFromStorage } from "@/lib/local-storage-big3-progress";
-import { getExerciseProgressDataFromStorage } from "@/lib/local-storage-exercise-progress";
+import {
+  getExerciseProgressDataFromStorage,
+  getExercisesWithDataFromStorage,
+} from "@/lib/local-storage-exercise-progress";
 import { identifyBig3Exercises, mergeProgressData } from "@/lib/utils/stats";
 import { useAuthSession } from "@/lib/auth-session-context";
 import { shouldUseDbOnly } from "@/lib/data-source";
@@ -62,6 +65,16 @@ export function useTrainingStats({
       return hasChanges ? updated : prev;
     });
   }, []);
+
+  // マウント時にローカルストレージから記録がある種目IDを読み込んでマージ
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const localIds = getExercisesWithDataFromStorage();
+      if (localIds.size > 0) {
+        updateExercisesWithData(Array.from(localIds));
+      }
+    }
+  }, [updateExercisesWithData]);
 
   const fetchBig3Data = useCallback(async () => {
     if (exercises.length === 0) return;
