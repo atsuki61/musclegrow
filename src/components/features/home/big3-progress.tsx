@@ -119,21 +119,26 @@ export function Big3Progress({
                   </div>
                 </div>
 
-                {/* プログレスバー */}
+                {/* プログレスバーのトラック（背景のグレー部分） */}
                 <div
                   className="h-2 w-full bg-muted/80 rounded-full overflow-hidden relative transform-gpu"
-                  //mask-image を適用し、Safariに正しい切り抜き処理を強制させる
                   style={{
                     WebkitMaskImage: "-webkit-radial-gradient(white, black)",
                   }}
                 >
+                  {/* プログレスバー本体（幅が変わるコンテナ） */}
                   <div
-                    className="h-full rounded-full relative transition-all duration-1500 ease-[cubic-bezier(0.22,1,0.36,1)] 
-                    bg-linear-to-r from-primary to-primary/80"
+                    className="h-full rounded-full relative transition-all duration-1500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                    // ▼▼▼ 修正: ここでの背景色(bg-linear...)を削除し、幅指定だけにする ▼▼▼
                     style={{ width: mounted ? `${progress}%` : "0%" }}
                   >
-                    <div className="absolute inset-0 w-full h-full animate-shimmer bg-linear-to-r from-transparent via-white/50 to-transparent z-10 transform-gpu" />
-
+                    {/*  レイヤー1: ベースカラー (不透明)  */}
+                    <div className="absolute inset-0 bg-primary" />
+                    {/*  レイヤー2: 静的なハイライト (光沢)  */}
+                    <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent dark:via-white/50" />
+                    {/*  レイヤー3: 動的シマーアニメーション  */}
+                    <div className="absolute inset-0 w-full h-full animate-shimmer bg-linear-to-r from-transparent via-white/40 to-transparent z-10" />
+                    {/*  レイヤー4: 右端のエッジライト  */}
                     <div className="absolute right-0 top-0 bottom-0 w-0.5 bg-white/60 blur-[0.5px] shadow-[0_0_4px_rgba(255,255,255,0.8)] z-20" />
                   </div>
                 </div>
