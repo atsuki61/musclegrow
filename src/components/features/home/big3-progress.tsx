@@ -126,7 +126,7 @@ export function Big3Progress({
                     bg-linear-to-r from-primary to-primary/80"
                     style={{ width: mounted ? `${progress}%` : "0%" }}
                   >
-                    <div className="absolute inset-0 w-full h-full -translate-x-full animate-shimmer bg-linear-to-r from-transparent via-white/40 to-transparent z-10 transform-gpu" />
+                    <div className="absolute inset-0 w-full h-full -translate-x-full animate-shimmer bg-linear-to-r from-transparent via-white/90 to-transparent z-10 transform-gpu" />
 
                     <div className="absolute right-0 top-0 bottom-0 w-0.5 bg-white/60 blur-[0.5px] shadow-[0_0_4px_rgba(255,255,255,0.8)] z-20" />
                   </div>
