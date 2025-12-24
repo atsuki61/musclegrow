@@ -180,7 +180,7 @@ export async function getLastTrainedDatesFromDB(userId: string): Promise<{
     // SQLクエリ2: 有酸素トレーニング（cardioRecords）の種目別最終トレーニング日を取得
     // setsResultと同じ構造のクエリ（詳細は上記参照）
     const cardioResult = (await db.execute(sql`
-      SELECT 
+      SELECT
         ${cardioRecords.exerciseId} as exercise_id,
         MAX(${workoutSessions.date}) as last_date
       FROM ${workoutSessions}
