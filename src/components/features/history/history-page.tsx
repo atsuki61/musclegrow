@@ -83,6 +83,7 @@ export function HistoryPage({
   } | null>(null);
 
   const hasSkippedInitialFetchRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
   const { userId } = useAuthSession();
 
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
@@ -99,13 +100,29 @@ export function HistoryPage({
     initialSessionDetails: initialSessionDetailsValue,
   });
 
+  // userIdが変更された場合（ログイン/ログアウト時）にリセット
   useEffect(() => {
+    if (userIdRef.current !== userId) {
+      userIdRef.current = userId;
+      hasSkippedInitialFetchRef.current = false;
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    // ゲストモード（userIdが空文字）の場合は、初回レンダリング時にも
+    // localStorageからデータを読み込む必要があるため、loadBodyPartsByDateを呼ぶ
+    const isGuestMode = !userId || userId === "";
+
     if (!hasSkippedInitialFetchRef.current) {
       hasSkippedInitialFetchRef.current = true;
+      // ゲストモードの場合は初回もデータを読み込む
+      if (isGuestMode) {
+        loadBodyPartsByDate(currentMonth);
+      }
       return;
     }
     loadBodyPartsByDate(currentMonth);
-  }, [currentMonth, loadBodyPartsByDate]);
+  }, [currentMonth, loadBodyPartsByDate, userId]);
 
   const handleDateSelect = useCallback(
     (date: Date) => {
