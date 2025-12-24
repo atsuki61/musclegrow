@@ -1,11 +1,12 @@
+//ゲスト設定管理
 "use client";
 
 import type { Exercise } from "@/types/workout";
 
-const GUEST_SETTINGS_KEY = "musclegrow_guest_settings";
-const GUEST_CUSTOM_EXERCISES_KEY = "musclegrow_guest_custom_exercises";
+const GUEST_SETTINGS_KEY = "musclegrow_guest_settings"; //ゲスト設定キー
+const GUEST_CUSTOM_EXERCISES_KEY = "musclegrow_guest_custom_exercises"; //ゲストカスタム種目キー
 
-type GuestSettings = Record<string, boolean>; // exerciseId: isVisible
+type GuestSettings = Record<string, boolean>; // exerciseId: isVisible ゲスト設定
 
 /**
  * ゲストユーザーの種目リストを取得する

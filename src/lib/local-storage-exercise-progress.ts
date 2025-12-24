@@ -1,3 +1,4 @@
+// 種目別進捗データ
 "use client";
 
 import type { SetRecord } from "@/types/workout";

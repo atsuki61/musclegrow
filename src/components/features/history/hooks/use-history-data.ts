@@ -148,6 +148,7 @@ export function useHistoryData(
           const storageBodyParts = getBodyPartsByDateRangeFromStorage({
             startDate: new Date(monthRange.startDate + "T00:00:00"),
             endDate: new Date(monthRange.endDate + "T23:59:59"),
+            exercises,
           });
           const merged = mergeBodyParts(dbBodyParts, storageBodyParts);
           setBodyPartsByDate(merged);
@@ -156,7 +157,7 @@ export function useHistoryData(
         console.error("部位一覧取得エラー:", e);
       }
     },
-    [userId]
+    [userId, exercises]
   );
 
   /**

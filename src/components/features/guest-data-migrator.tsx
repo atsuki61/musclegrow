@@ -1,3 +1,4 @@
+//ゲストデータ移行
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -15,27 +16,28 @@ import {
 } from "@/lib/api";
 import { toggleExerciseVisibility } from "@/lib/actions/user-exercises";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
-// 追加: プロフィール用ユーティリティ
 import { getGuestProfile } from "@/lib/local-storage-profile";
 
 // ストレージキー定義
-const GUEST_DATA_MIGRATED_KEY = "guest_data_migrated";
+const GUEST_DATA_MIGRATED_KEY = "guest_data_migrated"; //ゲストデータ移行済みフラグ
 const OLD_EXERCISES_KEY = "exercises"; // 旧仕様のキー
-const GUEST_CUSTOM_EXERCISES_KEY = "musclegrow_guest_custom_exercises"; // 新仕様のキー
-const GUEST_SETTINGS_KEY = "musclegrow_guest_settings"; // 新仕様の設定キー
-const GUEST_PROFILE_KEY = "musclegrow_guest_profile"; // 追加: プロフィールキー
+const GUEST_CUSTOM_EXERCISES_KEY = "musclegrow_guest_custom_exercises"; //ゲストカスタム種目キー
+const GUEST_SETTINGS_KEY = "musclegrow_guest_settings"; //ゲスト設定キー
+const GUEST_PROFILE_KEY = "musclegrow_guest_profile"; //ゲストプロフィールキー
 
 export function GuestDataMigrator() {
   const { userId } = useAuthSession();
   const hasStartedRef = useRef(false);
 
   useEffect(() => {
-    // 未ログイン、または既に処理開始済み、またはサーバーサイドなら何もしない
+    // 1.未ログイン、または既に処理開始済み、またはサーバーサイドなら何もしない
     if (!userId) return;
+    // 2.既に処理開始済みなら何もしない
     if (hasStartedRef.current) return;
+    // 3.サーバーサイドなら何もしない
     if (typeof window === "undefined") return;
 
-    // 既に移行済みフラグがあれば何もしない（初回のみ実行のガード）
+    // 4.既に移行済みフラグがあれば何もしない（初回のみ実行）
     const migratedFlag = window.localStorage.getItem(GUEST_DATA_MIGRATED_KEY);
     if (migratedFlag === "true") {
       hasStartedRef.current = true;
