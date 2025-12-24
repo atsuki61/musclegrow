@@ -24,10 +24,12 @@ export function getBig3ProgressDataFromStorage({
     deadliftId?: string;
   };
 }): {
+  //最大重量の推移データ
   benchPress: Array<{ date: string; maxWeight: number }>;
   squat: Array<{ date: string; maxWeight: number }>;
   deadlift: Array<{ date: string; maxWeight: number }>;
 } {
+  //ブラウザがundefinedの場合は空の配列を返す
   if (typeof window === "undefined") {
     return {
       benchPress: [],
@@ -35,10 +37,11 @@ export function getBig3ProgressDataFromStorage({
       deadlift: [],
     };
   }
-
+  //開始日を取得
   const startDate = getStartDate(preset);
+  //開始日をyyyy-MM-dd形式の文字列に変換
   const startDateStr = format(startDate, "yyyy-MM-dd");
-
+  //結果を初期化
   const result = {
     benchPress: [] as Array<{ date: string; maxWeight: number }>,
     squat: [] as Array<{ date: string; maxWeight: number }>,
@@ -60,10 +63,10 @@ export function getBig3ProgressDataFromStorage({
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (!key || !key.startsWith("workout_")) continue;
-
+      //キーを解析
       const keyInfo = parseStorageKey(key);
       if (!keyInfo || keyInfo.type !== "workout") continue;
-
+      //日付と種目IDを取得(typeがworkoutの場合)
       const { dateStr, exerciseId } = keyInfo;
 
       // 開始日以降のデータのみを処理
@@ -79,9 +82,12 @@ export function getBig3ProgressDataFromStorage({
         exerciseType = "deadlift";
       }
 
+      //Big3種目でない場合はスキップ
       if (!exerciseType) continue;
 
+      //ローカルストレージから値を取得
       const stored = localStorage.getItem(key);
+      //値がない場合はスキップ
       if (!stored) continue;
 
       try {
@@ -99,27 +105,30 @@ export function getBig3ProgressDataFromStorage({
               deadlift: 0,
             };
           }
-
+          //現在の最大重量を取得
           const currentMax = maxWeightByDate[dateStr][exerciseType];
+          //現在の最大重量より大きい場合は更新
           if (dayMaxWeight > currentMax) {
             maxWeightByDate[dateStr][exerciseType] = dayMaxWeight;
           }
         }
       } catch (error) {
-        console.warn(`Failed to parse sets for key ${key}:`, error);
+        console.warn(`キー${key}のセット情報の解析に失敗しました:`, error);
         continue;
       }
     }
 
     // 日付ごとの最大重量を各種目の配列に変換
     const benchPressData = Object.entries(maxWeightByDate)
-      .filter(([, weights]) => weights.benchPress > 0)
+      .filter(([, weights]) => weights.benchPress > 0) //ベンチプレスの最大重量が0より大きい場合
       .map(([date, weights]) => ({
+        //日付と最大重量を配列に変換
         date,
         maxWeight: weights.benchPress,
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
+    //日付ごとの最大重量をスクワットの配列に変換
     const squatData = Object.entries(maxWeightByDate)
       .filter(([, weights]) => weights.squat > 0)
       .map(([date, weights]) => ({
@@ -128,6 +137,7 @@ export function getBig3ProgressDataFromStorage({
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
+    //日付ごとの最大重量をデッドリフトの配列に変換
     const deadliftData = Object.entries(maxWeightByDate)
       .filter(([, weights]) => weights.deadlift > 0)
       .map(([date, weights]) => ({
@@ -141,7 +151,7 @@ export function getBig3ProgressDataFromStorage({
     result.squat = extractMaxWeightUpdates(squatData);
     result.deadlift = extractMaxWeightUpdates(deadliftData);
   } catch (error) {
-    console.error("Failed to get Big3 progress data from storage:", error);
+    console.error("ビッグ3進捗データの取得に失敗しました:", error);
   }
 
   return result;

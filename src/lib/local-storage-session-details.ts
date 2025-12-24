@@ -1,3 +1,4 @@
+// 日付のセッション詳細を取得する
 "use client";
 
 import { format } from "date-fns";
