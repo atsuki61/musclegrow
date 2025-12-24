@@ -16,6 +16,7 @@ import {
   Eye,
   EyeOff,
   type LucideIcon,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -167,6 +168,12 @@ export default function LoginPage() {
     }
   };
 
+  //ゲストログイン
+  const handleGuestLogin = () => {
+    setIsLoading(true);
+    router.push("/");
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center py-6 px-4 relative">
       <Background />
@@ -174,7 +181,7 @@ export default function LoginPage() {
       {/* ヘッダーエリア */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md mb-6 text-center z-10">
         <div className="flex justify-center mb-4">
-          <div className="h-14 w-14 bg-gradient-to-br from-primary to-orange-600 rounded-xl flex items-center justify-center shadow-xl shadow-primary/30 transform -rotate-6 ring-4 ring-background">
+          <div className="h-14 w-14 bg-linear-to-br from-primary to-orange-600 rounded-xl flex items-center justify-center shadow-xl shadow-primary/30 transform -rotate-6 ring-4 ring-background">
             <Dumbbell className="w-7 h-7 text-white" />
           </div>
         </div>
@@ -272,6 +279,19 @@ export default function LoginPage() {
                     <GoogleIcon className="w-4 h-4 mr-2" />
                   )}
                   Googleでログイン
+                </Button>
+              </div>
+
+              <div className="mt-3">
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="w-full h-11 font-bold bg-card hover:bg-muted/50 border-border/60 text-muted-foreground hover:text-primary transition-all"
+                  onClick={handleGuestLogin}
+                  disabled={isLoading || isGoogleLoading} //ゲストログインはログインボタンを押さなくても利用可能
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  ゲストとして利用開始
                 </Button>
               </div>
             </motion.div>

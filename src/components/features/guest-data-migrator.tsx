@@ -216,12 +216,17 @@ function createExerciseIdMapper(
   dbExercises: Exercise[]
 ) {
   return (localExerciseId: string): string | null => {
-    if (
-      !localExerciseId.startsWith("mock-") &&
-      dbExerciseIds.has(localExerciseId)
-    ) {
+    // モックデータは無視（過去データとの互換性のため）
+    if (localExerciseId.startsWith("mock-")) {
+      return null;
+    }
+
+    // DBに存在するIDはそのまま使用（ゲストモードでもDBのIDを使用しているため）
+    if (dbExerciseIds.has(localExerciseId)) {
       return localExerciseId;
     }
+
+    // カスタム種目の場合、名前と部位でマッピングを試みる
     const localExercise = localExerciseById.get(localExerciseId);
     if (!localExercise) return null;
 
@@ -232,6 +237,7 @@ function createExerciseIdMapper(
     const mappedId = dbExerciseIdByNameAndBodyPart.get(key);
     if (mappedId) return mappedId;
 
+    // フォールバック: 名前のみでマッピング
     const fallback = dbExercises.find((ex) => ex.name === localExercise.name);
     return fallback ? fallback.id : null;
   };
@@ -313,14 +319,12 @@ async function migrateGuestData(userId: string): Promise<void> {
   if (dbExercises.length === 0) return;
 
   // 6. マッピング準備
+  // カスタム種目は既にDBに保存済みなので、そのIDをマップに追加
   const localExerciseById = new Map<string, Exercise>();
   localCustomExercises.forEach((ex) => localExerciseById.set(ex.id, ex));
 
   const { dbExerciseIds, dbExerciseIdByNameAndBodyPart } =
-    createExerciseMappingData([], dbExercises);
-
-  const { mockInitialExercises } = await import("@/lib/mock-exercises");
-  mockInitialExercises.forEach((ex) => localExerciseById.set(ex.id, ex));
+    createExerciseMappingData(localCustomExercises, dbExercises);
 
   const mapExerciseId = createExerciseIdMapper(
     localExerciseById,
@@ -370,7 +374,7 @@ function cleanupGuestLocalStorage() {
       key === OLD_EXERCISES_KEY ||
       key === GUEST_CUSTOM_EXERCISES_KEY ||
       key === GUEST_SETTINGS_KEY ||
-      key === GUEST_PROFILE_KEY // 追加
+      key === GUEST_PROFILE_KEY
     ) {
       keysToRemove.push(key);
     }
