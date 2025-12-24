@@ -9,6 +9,7 @@ import type { Exercise } from "@/types/workout";
 /**
  * ユーザーの設定（追加/削除状態）を反映した種目リストを取得する
  * これを使えば、端末が変わっても同じリストが表示される
+ * @param userId ユーザーID
  */
 export async function getExercisesWithUserPreferences(userId: string): Promise<{
   success: boolean;
@@ -16,6 +17,13 @@ export async function getExercisesWithUserPreferences(userId: string): Promise<{
   error?: string;
 }> {
   try {
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
     // 1. 全種目を取得
     const allExercises = await db.select().from(exercises);
 
@@ -54,22 +62,39 @@ export async function getExercisesWithUserPreferences(userId: string): Promise<{
       .filter((ex): ex is Exercise => ex !== null);
 
     return { success: true, data: mergedExercises };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("種目取得エラー:", error);
-    return { success: false, error: "種目の取得に失敗しました" };
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "種目の取得に失敗しました",
+    };
   }
 }
 
 /**
  * 種目の表示/非表示設定を保存する
  * 追加ボタン・削除ボタンを押したときに呼ばれます
+ * @param userId ユーザーID
+ * @param exerciseId 種目ID
+ * @param isVisible 表示するかどうか
  */
 export async function toggleExerciseVisibility(
   userId: string,
   exerciseId: string,
   isVisible: boolean
-) {
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
   try {
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
     await db
       .insert(userExerciseSettings)
       .values({
@@ -85,8 +110,12 @@ export async function toggleExerciseVisibility(
 
     revalidatePath("/record");
     return { success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("設定保存エラー:", error);
-    return { success: false, error: "設定の保存に失敗しました" };
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "設定の保存に失敗しました",
+    };
   }
 }

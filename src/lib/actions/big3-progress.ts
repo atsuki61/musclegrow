@@ -42,9 +42,7 @@ async function getBig3MaxWeightsInternal(
   userId: string | null
 ): Promise<Big3MaxWeightsResult> {
   try {
-
-    // Big3種目を取得（名前で検索）
-    // 認証されていない場合は共通マスタ（userIdがnull）のみを取得
+    // Big3種目を取得
     let big3Exercises;
     try {
       big3Exercises = await db
@@ -58,7 +56,7 @@ async function getBig3MaxWeightsInternal(
               )
             : and(isNull(exercises.userId), eq(exercises.isBig3, true))
         );
-    } catch (dbError) {
+    } catch (dbError: unknown) {
       // エラーメッセージを取得（ネストされたエラーオブジェクトにも対応）
       const errorMessage =
         dbError instanceof Error ? dbError.message : String(dbError);
@@ -172,9 +170,11 @@ async function getBig3MaxWeightsInternal(
       },
     };
   } catch (error: unknown) {
-    // 開発環境でのみエラーをログに出力
+    // 本番環境でもエラーを記録（ただし詳細は開発環境のみ）
+    console.error("Big3最大重量取得エラー:", error);
+
     if (process.env.NODE_ENV === "development") {
-      console.error("Big3最大重量取得エラー:", error);
+      console.error("詳細:", error);
     }
 
     // エラー時は、空の種目IDを返してローカルストレージから取得させる

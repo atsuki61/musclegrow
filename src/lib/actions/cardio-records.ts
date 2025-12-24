@@ -31,6 +31,13 @@ export async function saveCardioRecords(
   data?: { count: number };
 }> {
   try {
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
     // 種目IDのバリデーションと認証チェック
     const validationResult = await validateExerciseIdAndAuth(
       userId,
@@ -166,6 +173,13 @@ export async function getCardioRecords(
   data?: CardioRecord[];
 }> {
   try {
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
     // exerciseIdがモックID（mock-で始まる）の場合は空の配列を返す
     if (exerciseId.startsWith("mock-")) {
       return {
@@ -174,9 +188,12 @@ export async function getCardioRecords(
       };
     }
 
-    // セッションがそのユーザーのものか確認
+    // セッションがそのユーザーのものか確認（日付も取得）
     const [session] = await db
-      .select({ userId: workoutSessions.userId })
+      .select({
+        userId: workoutSessions.userId,
+        date: workoutSessions.date,
+      })
       .from(workoutSessions)
       .where(eq(workoutSessions.id, sessionId))
       .limit(1);
@@ -206,6 +223,9 @@ export async function getCardioRecords(
       )
       .orderBy(cardioRecords.createdAt);
 
+    // セッションの日付を使用
+    const sessionDate = new Date(session.date);
+
     const records: CardioRecord[] = recordsData.map((record) => ({
       id: record.id,
       duration: record.duration,
@@ -215,9 +235,7 @@ export async function getCardioRecords(
       heartRate: record.heartRate ?? null,
       incline: record.incline ? parseFloat(record.incline) : null,
       notes: record.notes ?? null,
-      // dateはセッションの日付を使用するため、ここでは現在時刻を設定
-      // 実際の使用時はセッションの日付を使用する
-      date: new Date(),
+      date: sessionDate,
     }));
 
     return {
@@ -252,6 +270,13 @@ export async function getLatestCardioRecord(
   error?: string;
 }> {
   try {
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
     let dateCondition = undefined;
     if (beforeDate) {
       const dateStr = beforeDate.toISOString().split("T")[0];
@@ -278,7 +303,7 @@ export async function getLatestCardioRecord(
     if (!latestSession) {
       return { success: true, data: null };
     }
-
+    //記録データを取得
     const recordsData = await db
       .select()
       .from(cardioRecords)
@@ -290,6 +315,10 @@ export async function getLatestCardioRecord(
       )
       .orderBy(cardioRecords.createdAt);
 
+    //セッションの日付を取得
+    const sessionDate = new Date(latestSession.date);
+
+    //記録をCardioRecord型にマッピング
     const records: CardioRecord[] = recordsData.map((record) => ({
       id: record.id,
       duration: record.duration,
@@ -299,20 +328,24 @@ export async function getLatestCardioRecord(
       heartRate: record.heartRate ?? null,
       incline: record.incline ? parseFloat(record.incline) : null,
       notes: record.notes ?? null,
-      date: new Date(latestSession.date),
+      date: sessionDate,
     }));
 
     return {
       success: true,
       data: {
         records,
-        date: new Date(latestSession.date),
+        date: sessionDate,
       },
     };
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "不明なエラー";
-    console.error("最新有酸素記録取得エラー:", errorMessage);
-    return { success: false, error: "記録の取得に失敗しました" };
+  } catch (error: unknown) {
+    console.error("最新有酸素記録取得エラー:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "最新有酸素記録の取得に失敗しました",
+    };
   }
 }
