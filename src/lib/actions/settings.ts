@@ -42,9 +42,7 @@ export async function deleteUserAllData(userId: string): Promise<{
     return {
       success: false,
       error:
-        error instanceof Error
-          ? error.message
-          : "データの削除に失敗しました",
+        error instanceof Error ? error.message : "データの削除に失敗しました",
     };
   }
 }
@@ -206,9 +204,7 @@ export async function unlinkGoogleAccount(userId: string): Promise<{
     return {
       success: false,
       error:
-        error instanceof Error
-          ? error.message
-          : "連携の解除に失敗しました",
+        error instanceof Error ? error.message : "連携の解除に失敗しました",
     };
   }
 }
