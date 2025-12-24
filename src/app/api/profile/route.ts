@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { revalidateTag } from "next/cache";
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth-session-server";
 import { db } from "../../../../db";
 import { profiles, profileHistory } from "../../../../db/schemas/app";
 import { and, eq, gte, lte } from "drizzle-orm";
@@ -12,20 +11,6 @@ import type { InferSelectModel } from "drizzle-orm";
 
 // データベーススキーマから型を導出
 type ProfileRow = InferSelectModel<typeof profiles>;
-
-/**
- * 認証チェックを行い、ユーザーIDを取得する
- *
- * @returns ユーザーID（認証されていない場合はnull）
- */
-async function getAuthenticatedUserId(): Promise<string | null> {
-  const h = await headers();
-  const session = await auth.api.getSession({
-    headers: h,
-  });
-
-  return session?.user?.id ?? null;
-}
 
 /**
  * 認証エラーレスポンスを返す
@@ -87,7 +72,7 @@ function transformProfileToResponse(profile: ProfileRow) {
 export async function GET() {
   try {
     // 認証チェック
-    const userId = await getAuthenticatedUserId();
+    const userId = await getAuthUserId();
     if (!userId) {
       return createUnauthorizedResponse();
     }
@@ -142,7 +127,7 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     // 認証チェック
-    const userId = await getAuthenticatedUserId();
+    const userId = await getAuthUserId();
     if (!userId) {
       return createUnauthorizedResponse();
     }
