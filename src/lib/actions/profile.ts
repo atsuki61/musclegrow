@@ -8,6 +8,9 @@ import type { ProfileResponse } from "@/types/profile";
 
 type ProfileRow = typeof profiles.$inferSelect;
 
+/**
+ * DBの行をProfileResponse型にマッピング
+ */
 function mapProfileRow(profile: ProfileRow): ProfileResponse {
   return {
     id: profile.id,
@@ -30,12 +33,23 @@ function mapProfileRow(profile: ProfileRow): ProfileResponse {
   };
 }
 
+/**
+ * プロフィールデータを取得する（存在しない場合は自動作成）
+ * @param userId ユーザーID
+ */
 export async function getProfileData(userId: string): Promise<{
   success: boolean;
   error?: string;
   data?: ProfileResponse;
 }> {
   try {
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
     let profile = await db
       .select()
       .from(profiles)
@@ -54,7 +68,7 @@ export async function getProfileData(userId: string): Promise<{
       success: true,
       data: mapProfileRow(profile[0]),
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("プロフィール取得エラー:", error);
     return {
       success: false,
@@ -66,6 +80,10 @@ export async function getProfileData(userId: string): Promise<{
   }
 }
 
+/**
+ * Big3の目標値を取得する
+ * @param userId ユーザーID（nullの場合はゲスト）
+ */
 export async function getBig3TargetValues(userId: string | null): Promise<{
   success: boolean;
   error?: string;
@@ -113,7 +131,7 @@ export async function getBig3TargetValues(userId: string | null): Promise<{
             : DEFAULT_BIG3_TARGETS.deadlift,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Big3ターゲット取得エラー:", error);
     return {
       success: false,
