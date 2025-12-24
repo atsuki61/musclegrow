@@ -18,38 +18,77 @@ interface AuthApiWithSetPassword {
 
 /**
  * ユーザーの全トレーニングデータとプロフィール履歴を削除する
+ * @param userId ユーザーID
  */
-export async function deleteUserAllData(userId: string) {
+export async function deleteUserAllData(userId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
   try {
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
     await db.delete(workoutSessions).where(eq(workoutSessions.userId, userId));
     await db.delete(profileHistory).where(eq(profileHistory.userId, userId));
 
     revalidatePath("/");
     return { success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("データ削除エラー:", error);
-    return { success: false, error: "データの削除に失敗しました" };
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "データの削除に失敗しました",
+    };
   }
 }
 
 /**
  * アカウントを完全に削除する（退会）
+ * @param userId ユーザーID
  */
-export async function deleteUserAccount(userId: string) {
+export async function deleteUserAccount(userId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
   try {
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
     await db.delete(users).where(eq(users.id, userId));
     return { success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("アカウント削除エラー:", error);
-    return { success: false, error: "アカウントの削除に失敗しました" };
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "アカウントの削除に失敗しました",
+    };
   }
 }
 
 /**
  * ユーザーがパスワードを設定済みか確認する
+ * @param userId ユーザーID
  */
 export async function checkUserHasPassword(userId: string): Promise<boolean> {
   try {
+    if (!userId || userId === "") {
+      return false;
+    }
+
     const account = await db
       .select()
       .from(accounts)
@@ -57,14 +96,20 @@ export async function checkUserHasPassword(userId: string): Promise<boolean> {
       .limit(1);
 
     return account.length > 0;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("パスワード確認エラー:", error);
     return false;
   }
 }
 
-//パスワードを新規設定する（未設定ユーザー用）
-export async function setUserPassword(password: string) {
+/**
+ * パスワードを新規設定する（未設定ユーザー用）
+ * @param password 新しいパスワード
+ */
+export async function setUserPassword(password: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
   try {
     // サーバー側のAPIを使用してパスワードを設定
     await (auth.api as unknown as AuthApiWithSetPassword).setPassword({
@@ -97,9 +142,16 @@ export async function setUserPassword(password: string) {
   }
 }
 
-//Google連携の状態を確認する
+/**
+ * Google連携の状態を確認する
+ * @param userId ユーザーID
+ */
 export async function checkGoogleConnection(userId: string): Promise<boolean> {
   try {
+    if (!userId || userId === "") {
+      return false;
+    }
+
     const account = await db
       .select()
       .from(accounts)
@@ -109,15 +161,28 @@ export async function checkGoogleConnection(userId: string): Promise<boolean> {
       .limit(1);
 
     return account.length > 0;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Google連携確認エラー:", error);
     return false;
   }
 }
 
-//Google連携を解除する
-export async function unlinkGoogleAccount(userId: string) {
+/**
+ * Google連携を解除する
+ * @param userId ユーザーID
+ */
+export async function unlinkGoogleAccount(userId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
   try {
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
     // 1. パスワード設定済みか確認（安全策）
     const hasPassword = await checkUserHasPassword(userId);
     if (!hasPassword) {
@@ -136,8 +201,14 @@ export async function unlinkGoogleAccount(userId: string) {
       );
 
     return { success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Google連携解除エラー:", error);
-    return { success: false, error: "連携の解除に失敗しました" };
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "連携の解除に失敗しました",
+    };
   }
 }
