@@ -1,4 +1,4 @@
-import { cache } from "react";
+import { cache } from "react"; //React Server Component 用のキャッシュ
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 
@@ -22,4 +22,3 @@ export async function getAuthUserId(): Promise<string | null> {
   const session = await getAuthSession();
   return session?.user?.id ?? null;
 }
-

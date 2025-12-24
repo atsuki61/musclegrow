@@ -1,32 +1,30 @@
-/**
- * 環境変数の検証
- * アプリケーション起動時に必要な環境変数がすべて設定されているかチェック
- */
+import { z } from "zod";
 
-const requiredEnvVars = {
+/**
+ * 環境変数の型安全な検証スキーマ
+ */
+const envSchema = z.object({
+  BETTER_AUTH_SECRET: z.string().min(1, "BETTER_AUTH_SECRET は必須です"),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL は必須です"),
+  BETTER_AUTH_GOOGLE_CLIENT_ID: z
+    .string()
+    .min(1, "BETTER_AUTH_GOOGLE_CLIENT_ID は必須です"),
+  BETTER_AUTH_GOOGLE_CLIENT_SECRET: z
+    .string()
+    .min(1, "BETTER_AUTH_GOOGLE_CLIENT_SECRET は必須です"),
+});
+
+/**
+ * 検証済み環境変数（型安全）
+ * parse 時に自動的に検証され、エラー時は zod のエラーメッセージが表示される
+ */
+export const env = envSchema.parse({
   BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
   DATABASE_URL: process.env.DATABASE_URL,
   BETTER_AUTH_GOOGLE_CLIENT_ID: process.env.BETTER_AUTH_GOOGLE_CLIENT_ID,
   BETTER_AUTH_GOOGLE_CLIENT_SECRET:
     process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET,
-} as const;
-
-/**
- * 必須の環境変数がすべて設定されているか検証
- * @throws {Error} 必須の環境変数が未設定の場合
- */
-export function validateRequiredEnvVars(): void {
-  const missing = Object.entries(requiredEnvVars)
-    .filter(([value]) => !value)
-    .map(([key]) => key);
-
-  if (missing.length > 0) {
-    throw new Error(
-      `必須の環境変数が設定されていません: ${missing.join(", ")}\n` +
-        `.env.local ファイルを確認してください。`
-    );
-  }
-}
+});
 
 /**
  * 環境変数の存在確認（boolean）

@@ -14,9 +14,9 @@ export type Big3Targets = Record<Big3Key, number>;
 export type Big3Weights = Record<Big3Key, number>;
 
 export const DEFAULT_BIG3_TARGETS: Big3Targets = {
-  benchPress: 100,
-  squat: 120,
-  deadlift: 140,
+  benchPress: 60,
+  squat: 80,
+  deadlift: 100,
 };
 
 const BIG3_META: Record<Big3Key, { name: string; color: string }> = {
@@ -50,4 +50,3 @@ export function createBig3Data(
     },
   };
 }
-
