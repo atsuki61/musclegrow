@@ -43,7 +43,7 @@ function initializeDb() {
 
   // PostgreSQLクライアントを初期化（Supabaseクラウド版ではSSL接続が必要）
   postgresClient = postgres(connectionString, {
-    prepare: false,
+    prepare: false, //vercelの場合はfalseにする(接続が切れる為)
     ssl: "require",
     max: 1,
   });
@@ -52,8 +52,8 @@ function initializeDb() {
   dbInstance = drizzle({
     client: postgresClient,
     schema: {
-      ...authSchema,
-      ...appSchema,
+      ...authSchema, //ユーザー情報
+      ...appSchema, //アプリデータ
     },
   });
 
@@ -66,7 +66,7 @@ function initializeDb() {
  */
 export const db = new Proxy({} as ReturnType<typeof drizzle>, {
   get(_target, prop) {
-    const instance = initializeDb();
-    return (instance as unknown as Record<string, unknown>)[prop as string];
+    const instance = initializeDb(); //データベースインスタンスを取得する
+    return (instance as unknown as Record<string, unknown>)[prop as string]; //インスタンスを取得する
   },
 });

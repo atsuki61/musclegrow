@@ -107,10 +107,10 @@ export function ProfileMenu({
     <>
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
         {/* 1. ユーザーヘッダー */}
-        <div className="pt-12 pb-6 flex flex-col items-center justify-center space-y-3 bg-gradient-to-b from-background to-muted/20">
+        <div className="pt-12 pb-6 flex flex-col items-center justify-center space-y-3 bg-linear-to-b from-background to-muted/20">
           <div className="relative group">
             {/* アバターアイコン */}
-            <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-br from-primary to-primary/60 shadow-xl shadow-primary/20 ring-4 ring-background overflow-hidden">
+            <div className="w-24 h-24 rounded-full p-1 bg-linear-to-br from-primary to-primary/60 shadow-xl shadow-primary/20 ring-4 ring-background overflow-hidden">
               <Avatar className="w-full h-full rounded-full border-2 border-background">
                 {!isGuest && user?.image && (
                   <AvatarImage

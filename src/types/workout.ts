@@ -11,8 +11,8 @@ export type BodyPart =
   | "legs"
   | "shoulders"
   | "arms"
-  | "core"
-  | "other";
+  | "core" //腹筋
+  | "other"; //その他
 
 /**
  * 機材タイプ
@@ -63,28 +63,6 @@ export type MuscleSubGroup =
  */
 export type ExerciseTier = "initial" | "selectable" | "custom";
 
-export type Workout = {
-  id: string;
-  userId: string;
-  exercise: string;
-  weight: number;
-  reps: number;
-  sets: number;
-  date: Date;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export type WorkoutSession = {
-  id: string;
-  userId: string;
-  date: Date;
-  workouts: Workout[];
-  totalVolume: number;
-  duration?: number; // 分単位
-  memo?: string;
-};
-
 export type Exercise = {
   id: string;
   name: string;
@@ -117,16 +95,6 @@ export type SetRecord = {
   restSeconds?: number | null; // セット間の休憩時間（秒）
   notes?: string | null; // セットごとのメモ
   failure?: boolean; // 限界まで追い込んだか
-};
-
-/**
- * 前回記録のセット情報
- */
-export type PreviousSetRecord = {
-  setOrder: number;
-  weight: number;
-  reps: number;
-  date: Date;
 };
 
 /**

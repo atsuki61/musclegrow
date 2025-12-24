@@ -1,15 +1,15 @@
 import {
-  pgTable,
-  text,
-  numeric,
-  timestamp,
-  date,
-  integer,
-  boolean,
-  index,
-  primaryKey,
-} from "drizzle-orm/pg-core";
-import { nanoid } from "nanoid";
+  pgTable, //テーブルを作成するための関数
+  text, //テキスト型のカラムを作成するための関数
+  numeric, //数値型のカラムを作成するための関数
+  timestamp, //日時型のカラムを作成するための関数
+  date, //日付型のカラムを作成するための関数
+  integer, //整数型のカラムを作成するための関数
+  boolean, //真偽型のカラムを作成するための関数
+  index, //インデックスを作成するための関数
+  primaryKey, //複合主キーを作成するための関数
+} from "drizzle-orm/pg-core"; //
+import { nanoid } from "nanoid"; //ランダムな文字列を生成するための関数
 import { users } from "./auth";
 
 // ① profiles テーブル - ユーザーのプロフィール情報
@@ -21,12 +21,12 @@ export const profiles = pgTable(
       .$defaultFn(() => nanoid(10)),
     userId: text("user_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" })
+      .references(() => users.id, { onDelete: "cascade" }) //
       .unique(),
-    height: numeric("height", { precision: 5, scale: 2 }), // 身長（cm）例: 175.50
-    weight: numeric("weight", { precision: 5, scale: 2 }), // 体重（kg）例: 70.50
-    bodyFat: numeric("body_fat", { precision: 4, scale: 1 }), // 体脂肪率（%）例: 15.5
-    muscleMass: numeric("muscle_mass", { precision: 5, scale: 2 }), // 筋肉量（kg）例: 35.20
+    height: numeric("height", { precision: 5, scale: 2 }), // 身長（cm）
+    weight: numeric("weight", { precision: 5, scale: 2 }), // 体重（kg）
+    bodyFat: numeric("body_fat", { precision: 4, scale: 1 }), // 体脂肪率（%）
+    muscleMass: numeric("muscle_mass", { precision: 5, scale: 2 }), // 筋肉量（kg）
     big3TargetBenchPress: numeric("big3_target_bench_press", {
       precision: 6,
       scale: 1,
@@ -42,6 +42,8 @@ export const profiles = pgTable(
       .notNull()
       .$onUpdate(() => new Date()),
   },
+  // TODO: pgTableの第3引数（extraConfig）が非推奨のため、インデックスをテーブル定義の外に移動する必要がある
+  // 修正方法: インデックスを別途定義する（例: export const profilesUserIdIdx = index(...).on(profiles.userId)）
   (table) => ({
     profilesUserIdIdx: index("profiles_user_id_idx").on(table.userId),
   })
@@ -64,6 +66,8 @@ export const profileHistory = pgTable(
     bmi: numeric("bmi", { precision: 4, scale: 1 }), // BMI（計算値）
     recordedAt: timestamp("recorded_at").defaultNow().notNull(), // 記録日時
   },
+  // TODO: pgTableの第3引数（extraConfig）が非推奨のため、インデックスをテーブル定義の外に移動する必要がある
+  // 修正方法: インデックスを別途定義する（例: export const profileHistoryUserIdIdx = index(...).on(profileHistory.userId)）
   (table) => ({
     profileHistoryUserIdIdx: index("profile_history_user_id_idx").on(
       table.userId
@@ -84,14 +88,14 @@ export const exercises = pgTable("exercises", {
   bodyPart: text("body_part").notNull(), // 部位: chest, back, legs, shoulders, arms, core, other
   muscleSubGroup: text("muscle_sub_group"), // サブ分類（例: "chest_overall", "legs_quads"）
   primaryEquipment: text("primary_equipment"), // 主要機材: barbell, dumbbell, machine, cable, bodyweight, kettlebell
-  tier: text("tier").default("selectable").notNull(), // 表示階層: initial, selectable, custom
+  tier: text("tier").default("selectable").notNull(), // 表示階層: initial（初期）, selectable（リストに表示）, custom（カスタム）
   isBig3: boolean("is_big3").default(false).notNull(), // Big3種目か
-  description: text("description"), // 種目の説明
-  videoUrl: text("video_url"), // デモ動画URL
-  difficultyLevel: text("difficulty_level"), // 難易度: beginner, intermediate, advanced
-  equipmentRequired: text("equipment_required").array(), // 必要な器具（配列）
+  description: text("description"), // 種目の説明（未実装）
+  videoUrl: text("video_url"), // デモ動画URL（未実装）
+  difficultyLevel: text("difficulty_level"), // 難易度: beginner, intermediate, advanced（未実装）
+  equipmentRequired: text("equipment_required").array(), // 必要な器具（配列）（未実装）
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }), // null=共通マスタ
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(), //作成日時
 });
 
 // ③ workout_sessions テーブル - トレーニングセッション（1日=1セッション）
@@ -99,20 +103,22 @@ export const workoutSessions = pgTable(
   "workout_sessions",
   {
     id: text("id")
-      .primaryKey()
-      .$defaultFn(() => nanoid(10)),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .primaryKey() //主キー
+      .$defaultFn(() => nanoid(10)), //ランダムな文字列を生成するための関数
+    userId: text("user_id") //ユーザーID
+      .notNull() //必須
+      .references(() => users.id, { onDelete: "cascade" }), //外部キー
     date: date("date").notNull(), // トレーニング日（例: 2025-01-15）
-    note: text("note"), // メモ（例: "今日は胸の日"）
+    note: text("note"), // メモ
     durationMinutes: integer("duration_minutes"), // トレーニング時間（分）
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
+    createdAt: timestamp("created_at").defaultNow().notNull(), //作成日時
+    updatedAt: timestamp("updated_at") //更新日時
+      .defaultNow() //現在日時
       .notNull()
-      .$onUpdate(() => new Date()),
+      .$onUpdate(() => new Date()), //更新日時
   },
+  // TODO: pgTableの第3引数（extraConfig）が非推奨のため、インデックスをテーブル定義の外に移動する必要がある
+  // 修正方法: インデックスを別途定義する（例: export const workoutSessionsUserIdIdx = index(...).on(workoutSessions.userId)）
   (table) => ({
     workoutSessionsUserIdIdx: index("workout_sessions_user_id_idx").on(
       table.userId
@@ -144,6 +150,8 @@ export const sets = pgTable(
     failure: boolean("failure").default(false), // 限界まで追い込んだか
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
+  // TODO: pgTableの第3引数（extraConfig）が非推奨のため、インデックスをテーブル定義の外に移動する必要がある
+  // 修正方法: インデックスを別途定義する（例: export const setsSessionIdIdx = index(...).on(sets.sessionId)）
   (table) => ({
     setsSessionIdIdx: index("sets_session_id_idx").on(table.sessionId),
     setsExerciseIdIdx: index("sets_exercise_id_idx").on(table.exerciseId),
@@ -158,9 +166,9 @@ export const cardioRecords = pgTable("cardio_records", {
   sessionId: text("session_id")
     .notNull()
     .references(() => workoutSessions.id, { onDelete: "cascade" }),
-  exerciseId: text("exercise_id")
+  exerciseId: text("exercise_id") //種目ID
     .notNull()
-    .references(() => exercises.id, { onDelete: "restrict" }),
+    .references(() => exercises.id, { onDelete: "restrict" }), //外部キー
   duration: integer("duration").notNull(), // 時間（分）
   distance: numeric("distance", { precision: 6, scale: 2 }), // 距離（km）例: 5.50
   speed: numeric("speed", { precision: 5, scale: 2 }), // 速度（km/h）例: 10.50
@@ -184,6 +192,8 @@ export const userExerciseSettings = pgTable(
     isVisible: boolean("is_visible").notNull(), // true: リストに表示(initial), false: 隠す(selectable)
     updatedAt: timestamp("updated_at").defaultNow().notNull(), //更新日時
   },
+  // TODO: pgTableの第3引数（extraConfig）が非推奨のため、複合主キーをテーブル定義の外に移動する必要がある
+  // 修正方法: 複合主キーを別途定義する（例: export const userExerciseSettingsPk = primaryKey({ columns: [userExerciseSettings.userId, userExerciseSettings.exerciseId] })）
   (table) => ({
     pk: primaryKey({ columns: [table.userId, table.exerciseId] }), // 複合主キー
   })

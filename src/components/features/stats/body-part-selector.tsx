@@ -5,14 +5,12 @@ import type { BodyPart } from "@/types/workout";
 import { BODY_PART_LABELS } from "@/lib/utils";
 
 const BODY_PARTS: BodyPart[] = [
-  "all",
   "chest",
   "back",
   "legs",
   "shoulders",
   "arms",
   "core",
-  "other",
 ];
 
 const BODY_PART_ITEMS = BODY_PARTS.map((bodyPart) => ({

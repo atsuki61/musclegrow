@@ -7,6 +7,7 @@ config({ path: ".env.local" });
 // 環境変数の検証とデバッグ
 const databaseUrl = process.env.DATABASE_URL;
 
+//環境設定がないときのエラーハンドリング
 if (!databaseUrl) {
   console.error("❌ DATABASE_URL environment variable is not set!");
   console.error("Please set DATABASE_URL in GitHub Secrets or .env.local file");
@@ -17,6 +18,7 @@ if (!databaseUrl) {
 const maskedUrl = databaseUrl.replace(/:([^:@]+)@/, ":****@");
 console.log("✅ DATABASE_URL is set:", maskedUrl);
 
+//drizzle.config.tsの設定
 export default defineConfig({
   schema: "./db/schemas/*.ts",
   out: "./drizzle",

@@ -99,7 +99,7 @@ export function StatsPage({
   const [trainingDateRange, setTrainingDateRange] = useState<DateRangePreset>(
     initialTrainingDateRange
   );
-  const [selectedBodyPart, setSelectedBodyPart] = useState<BodyPart>("all");
+  const [selectedBodyPart, setSelectedBodyPart] = useState<BodyPart>("chest");
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
     null
   );
