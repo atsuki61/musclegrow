@@ -132,8 +132,29 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
 
   const validate = () => {
-    if (password.length < 6) return "パスワードは6文字以上で入力してください";
-    if (password !== confirmPassword) return "パスワードが一致しません";
+    // 8文字以上のチェック
+    if (password.length < 8) {
+      return "パスワードは8文字以上で入力してください";
+    }
+
+    // 英数記号の種類をチェック
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSymbol = /[^a-zA-Z0-9]/.test(password);
+
+    // 含まれている種類の数をカウント
+    const typeCount = [hasLetter, hasNumber, hasSymbol].filter(Boolean).length;
+
+    // 2種類以上でない場合はエラー
+    if (typeCount < 2) {
+      return "パスワードは英数記号のうち2種類以上を含む必要があります";
+    }
+
+    // パスワード一致チェック
+    if (password !== confirmPassword) {
+      return "パスワードが一致しません";
+    }
+
     return null;
   };
 
