@@ -17,8 +17,6 @@ import {
   saveCardioRecords as saveCardioRecordsAction,
   getCardioRecords as getCardioRecordsAction,
 } from "./actions/cardio-records";
-import { getBig3MaxWeights as getBig3MaxWeightsAction } from "./actions/big3-progress";
-import { getWorkoutSessionsByDateRange as getWorkoutSessionsByDateRangeAction } from "./actions/workout-sessions";
 import {
   getSessionDetails as getSessionDetailsAction,
   getBodyPartsByDateRange as getBodyPartsByDateRangeAction,
@@ -203,51 +201,6 @@ export async function getCardioRecords(
   data?: CardioRecord[];
 }> {
   return await getCardioRecordsAction(userId, { sessionId, exerciseId });
-}
-
-/**
- * Big3種目の最大重量を取得する
- * @param userId ユーザーID（nullの場合はゲスト）
- */
-export async function getBig3MaxWeights(userId: string | null): Promise<{
-  success: boolean;
-  error?: string;
-  data?: {
-    benchPress: { exerciseId: string; maxWeight: number };
-    squat: { exerciseId: string; maxWeight: number };
-    deadlift: { exerciseId: string; maxWeight: number };
-  };
-}> {
-  return await getBig3MaxWeightsAction(userId);
-}
-
-/**
- * 日付範囲でワークアウトセッション一覧を取得する
- * @param userId ユーザーID
- */
-export async function getWorkoutSessionsByDateRange(
-  userId: string,
-  {
-    startDate,
-    endDate,
-  }: {
-    startDate: string; // YYYY-MM-DD形式
-    endDate: string; // YYYY-MM-DD形式
-  }
-): Promise<{
-  success: boolean;
-  error?: string;
-  data?: Array<{
-    id: string;
-    date: string;
-    note?: string | null;
-    durationMinutes?: number | null;
-  }>;
-}> {
-  return await getWorkoutSessionsByDateRangeAction(userId, {
-    startDate,
-    endDate,
-  });
 }
 
 /**
