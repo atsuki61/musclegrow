@@ -1,7 +1,6 @@
 import { Metadata } from "next";
-import { headers } from "next/headers";
 import { RecordPage } from "@/components/features/record";
-import { auth } from "@/lib/auth";
+import { getAuthUserId } from "@/lib/auth-session-server";
 import { getExercises } from "@/lib/api";
 
 export const metadata: Metadata = {
@@ -10,13 +9,8 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  //authを関数としてではなく、APIメソッドとして呼び出す
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  // ゲストユーザーも許容する場合は userId = null
-  const userId = session?.user?.id || null;
+  // ユーザーIDを取得
+  const userId = await getAuthUserId();
 
   // サーバー側で種目一覧を取得（キャッシュが効くので高速）
   const exercisesResult = await getExercises(userId);
