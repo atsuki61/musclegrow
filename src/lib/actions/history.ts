@@ -12,7 +12,9 @@ import type { SetRecord, CardioRecord } from "@/types/workout";
 import type { BodyPart } from "@/types/workout";
 import { unstable_cache } from "next/cache";
 
-// 月ごとの部位一覧（ユーザー別キャッシュ）
+/**
+ * 月ごとの部位一覧（ユーザー別キャッシュ）
+ */
 export const cachedGetBodyPartsByDateRange = unstable_cache(
   async (userId: string, range: { startDate: string; endDate: string }) => {
     return await getBodyPartsByDateRange(userId, range);
@@ -23,7 +25,9 @@ export const cachedGetBodyPartsByDateRange = unstable_cache(
   }
 );
 
-// セッション詳細（ユーザー別キャッシュ）
+/**
+ * セッション詳細（ユーザー別キャッシュ）
+ */
 export const cachedGetSessionDetails = unstable_cache(
   async (userId: string, sessionId: string) => {
     return await getSessionDetails(userId, sessionId);
@@ -57,7 +61,9 @@ async function handleTableNotExistsError<T>(
 
 /**
  * セッションIDでそのセッションの全種目とセット記録を取得する
- * 日付、メモ、時間などのメタデータも返すように変更
+ * 日付、メモ、時間などのメタデータも返す
+ * @param userId ユーザーID
+ * @param sessionId セッションID
  */
 export async function getSessionDetails(
   userId: string,
@@ -81,7 +87,13 @@ export async function getSessionDetails(
   };
 }> {
   try {
-    // セッションのメタデータ（日付、メモ、時間）も取得する
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
     const [session] = await db
       .select({
         id: workoutSessions.id,
@@ -184,10 +196,10 @@ export async function getSessionDetails(
     return {
       success: true,
       data: {
-        id: session.id, // 追加
-        date: session.date, // 追加
-        durationMinutes: session.durationMinutes, // 追加
-        note: session.note, // 追加
+        id: session.id,
+        date: session.date,
+        durationMinutes: session.durationMinutes,
+        note: session.note,
         workoutExercises: Array.from(workoutExercisesMap.entries()).map(
           ([exerciseId, sets]) => ({ exerciseId, sets })
         ),
@@ -197,18 +209,22 @@ export async function getSessionDetails(
       },
     };
   } catch (error: unknown) {
+    console.error("セッション詳細取得エラー:", error);
+
     const message =
       error instanceof Error
         ? error.message
         : "セッション詳細の取得に失敗しました";
 
-    console.error("セッション取得エラー:", message);
     return { success: false, error: message };
   }
 }
 
 /**
  * 日付範囲で日付ごとの部位一覧を取得する（カレンダー色付け用）
+ * @param userId ユーザーID（空文字の場合は空の結果を返す）
+ * @param startDate 開始日（YYYY-MM-DD形式）
+ * @param endDate 終了日（YYYY-MM-DD形式）
  */
 export async function getBodyPartsByDateRange(
   userId: string,
@@ -225,6 +241,14 @@ export async function getBodyPartsByDateRange(
   data?: Record<string, BodyPart[]>;
 }> {
   try {
+    // ゲストモード（空文字）の場合は空の結果を返す
+    if (!userId || userId === "") {
+      return {
+        success: true,
+        data: {},
+      };
+    }
+
     const [strengthRows, cardioRows] = await Promise.all([
       db
         .select({
@@ -307,38 +331,62 @@ export async function getBodyPartsByDateRange(
   }
 }
 
+/**
+ * 指定種目のトレーニング履歴を取得する
+ * @param userId ユーザーID
+ * @param exerciseId 種目ID
+ * @param limit 取得する日付数（デフォルト: 10）
+ * @returns 日付ごとにグループ化されたセット記録の配列
+ */
 export async function getExerciseHistory(
   userId: string,
   exerciseId: string,
   limit = 10
-) {
+): Promise<{
+  success: boolean;
+  error?: string;
+  data?: Array<{
+    date: Date;
+    sets: Array<{
+      weight: number | null;
+      reps: number;
+      duration: null;
+      setOrder: number;
+    }>;
+  }>;
+}> {
   try {
-    // 1. データベースからデータを取得
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
+    if (exerciseId.startsWith("mock-")) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+
+    // データベースからデータを取得
     const historyData = await db
       .select({
-        date: workoutSessions.date, // 日付 (sessionsテーブルから)
-        weight: sets.weight, // 重量 (setsテーブルから)
-        reps: sets.reps, // 回数
-        setOrder: sets.setOrder, // 何セット目か
+        date: workoutSessions.date,
+        weight: sets.weight,
+        reps: sets.reps,
+        setOrder: sets.setOrder,
       })
-      .from(sets) // メインは「セット記録」
-      // 2. セッション情報をくっつける (IDが一致するもの)
+      .from(sets)
       .innerJoin(workoutSessions, eq(sets.sessionId, workoutSessions.id))
-      // 3. 条件で絞り込む
       .where(
-        and(
-          eq(workoutSessions.userId, userId), // このユーザーのデータで
-          eq(sets.exerciseId, exerciseId) // この種目のデータだけ
-        )
+        and(eq(workoutSessions.userId, userId), eq(sets.exerciseId, exerciseId))
       )
-      // 4. 並び替え (日付の新しい順 -> セット順)
       .orderBy(desc(workoutSessions.date), sets.setOrder)
-      // 5. 取得件数を制限 (大量データ防止)
-      // セット数ではなく「日付数」で制限するのが理想ですが、
-      // 簡易実装として一旦「レコード数(セット数)」で制限をかけ、
       .limit(limit * 5); // 1日平均5セットと仮定して、limit日分くらい取得
 
-    // 6. 日付ごとにデータをまとめる (グルーピング)
+    // 日付ごとにデータをまとめる
     const groupedHistory: Record<string, typeof historyData> = {};
 
     historyData.forEach((record) => {
@@ -349,7 +397,7 @@ export async function getExerciseHistory(
       groupedHistory[dateStr].push(record);
     });
 
-    // 7. オブジェクトを配列に変換して返す
+    // オブジェクトを配列に変換して返す
     const result = Object.entries(groupedHistory).map(([date, sets]) => ({
       date: new Date(date),
       sets: sets.map((s) => ({
@@ -367,8 +415,15 @@ export async function getExerciseHistory(
         .sort((a, b) => b.date.getTime() - a.date.getTime())
         .slice(0, limit),
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("履歴取得エラー:", error);
-    return { success: false, error: "履歴の取得に失敗しました" };
+
+    const message =
+      error instanceof Error ? error.message : "履歴の取得に失敗しました";
+
+    return {
+      success: false,
+      error: message,
+    };
   }
 }
