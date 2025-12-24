@@ -8,10 +8,11 @@ import type { Exercise } from "@/types/workout";
 
 type ExerciseRow = typeof exercises.$inferSelect;
 
+/**
+ * ユーザー用の種目を取得（キャッシュ付き）
+ */
 const fetchExercisesForUser = unstable_cache(
   async (userKey: string): Promise<Exercise[]> => {
-    // 修正: "guest" の場合も空配列を返さず、共通マスタを取得する
-
     const exercisesList = await db
       .select()
       .from(exercises)
@@ -28,6 +29,9 @@ const fetchExercisesForUser = unstable_cache(
   { tags: ["exercises"] }
 );
 
+/**
+ * DBの行をExercise型にマッピング
+ */
 function mapExerciseRow(ex: ExerciseRow): Exercise {
   return {
     id: ex.id,
@@ -73,6 +77,20 @@ export async function validateExerciseIdAndAuth(
     .limit(1);
 
   if (!exercise) {
+    // 種目が存在しない場合と、権限がない場合を区別
+    const [anyExercise] = await db
+      .select()
+      .from(exercises)
+      .where(eq(exercises.id, exerciseId))
+      .limit(1);
+
+    if (anyExercise) {
+      return {
+        success: false,
+        error: `種目ID "${exerciseId}" にアクセスする権限がありません`,
+      };
+    }
+
     return {
       success: false,
       error: `種目ID "${exerciseId}" が見つかりません`,
@@ -97,6 +115,20 @@ export async function saveExercise(
   data?: Exercise;
 }> {
   try {
+    // 既存の種目をチェック（同じIDで同じユーザーの種目が存在するか）
+    const [existingExercise] = await db
+      .select()
+      .from(exercises)
+      .where(and(eq(exercises.id, exercise.id), eq(exercises.userId, userId)))
+      .limit(1);
+
+    if (existingExercise) {
+      return {
+        success: false,
+        error: `種目ID "${exercise.id}" は既に存在します`,
+      };
+    }
+
     const [savedExercise] = await db
       .insert(exercises)
       .values({
@@ -121,6 +153,19 @@ export async function saveExercise(
 
     return response;
   } catch (error: unknown) {
+    // 重複エラー（PostgreSQLのunique制約違反）を特別に処理
+    if (
+      error instanceof Error &&
+      (error.message.includes("duplicate") ||
+        error.message.includes("unique") ||
+        error.message.includes("violates unique constraint"))
+    ) {
+      return {
+        success: false,
+        error: `種目ID "${exercise.id}" は既に存在します`,
+      };
+    }
+
     console.error("種目保存エラー:", error);
     return {
       success: false,
@@ -148,9 +193,13 @@ export async function getExercises(userId: string | null): Promise<{
       data: exercisesData,
     };
   } catch (error: unknown) {
+    // 本番環境でもエラーを記録（ただし詳細は開発環境のみ）
+    console.error("種目取得エラー:", error);
+
     if (process.env.NODE_ENV === "development") {
-      console.error("種目取得エラー:", error);
+      console.error("詳細:", error);
     }
+
     return {
       success: true,
       data: [],
