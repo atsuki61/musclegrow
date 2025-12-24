@@ -2,12 +2,9 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
-/**
- * AuthSessionContextの型定義
- * userIdは未ログイン時に null となる
- */
+//AuthSessionContextの型定義
 interface AuthSessionContextType {
-  userId: string | null;
+  userId: string | null; //ユーザーIDがなければnull
 }
 
 const AuthSessionContext = createContext<AuthSessionContextType | null>(null);

@@ -138,8 +138,6 @@ export default function ExerciseRecordModal({
       hasInitializedRef.current = false;
       previousExerciseIdRef.current = exercise?.id || null;
     }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, isLoaded, sets.length, exercise?.id]);
 
   const handleClose = () => {
