@@ -544,10 +544,17 @@ export function DataSettings({ onBack, userId }: DataSettingsProps) {
       setIsExporting(true);
       toast.loading("データを準備中...", { id: "export" });
 
-      const csvData = await exportAllData(userId);
+      const result = await exportAllData(userId);
+
+      if (!result.success || !result.data) {
+        toast.error(result.error || "エクスポートに失敗しました", {
+          id: "export",
+        });
+        return;
+      }
 
       const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
-      const blob = new Blob([bom, csvData], { type: "text/csv" });
+      const blob = new Blob([bom, result.data], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
 
       const link = document.createElement("a");
