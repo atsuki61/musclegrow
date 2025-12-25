@@ -8,7 +8,7 @@ export default function Loading() {
       <div className="sticky top-14 z-40 w-full border-b bg-background/95 backdrop-blur px-4 py-2">
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-8 w-14 rounded-md flex-shrink-0" />
+            <Skeleton key={i} className="h-8 w-14 rounded-md shrink-0" />
           ))}
         </div>
       </div>
