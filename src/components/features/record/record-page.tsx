@@ -19,7 +19,6 @@ import { useAuthSession } from "@/lib/auth-session-context";
 import type { BodyPart, Exercise } from "@/types/workout";
 import { toast } from "sonner";
 import {
-  getExercisesWithUserPreferences,
   toggleExerciseVisibility,
 } from "@/lib/actions/user-exercises";
 import {
@@ -75,26 +74,16 @@ export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
   );
 
   //データ読み込みロジック (ゲスト対応)
-  useEffect(() => {
-    const loadExercises = async () => {
-      if (userId) {
-        // ログインユーザー: DBから取得
-        const result = await getExercisesWithUserPreferences(userId);
-        if (result.success && result.data) {
-          setExercises(result.data);
-        }
-      } else {
-        //ゲストユーザー: ローカルストレージとマージ
-        // initialExercises (サーバーマスタ) をベースに、LSの設定を適用
-        const guestExercises = getGuestExercises(initialExercises);
-        setExercises(guestExercises);
-      }
-    };
-    loadExercises();
-    // initialExercises を依存配列に入れると無限ループの可能性があるため、
-    // ここでは userId の変化のみをトリガーにするか、適切に制御します。
-    // 今回は userId と initialExercises の変更を監視します。
-  }, [userId, initialExercises]);
+useEffect(() => {
+  // ログインユーザーの場合、サーバーから既に設定反映済みなので再取得不要
+  if (userId) {
+    return;
+  }
+  
+  // ゲストユーザーのみ: ローカルストレージとマージ
+  const guestExercises = getGuestExercises(initialExercises);
+  setExercises(guestExercises);
+}, [userId, initialExercises]);
 
   const recalculateStats = useCallback(() => {
     recalculateMaxWeights();

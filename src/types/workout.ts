@@ -70,11 +70,11 @@ export type Exercise = {
   bodyPart: Exclude<BodyPart, "all">; // データベース用の値（UI用の"all"は除外、"other"は含む）
   muscleSubGroup?: MuscleSubGroup;
   primaryEquipment?: EquipmentType;
-  tier: ExerciseTier;
+  tier: ExerciseTier;//不要かも？
   isBig3: boolean;
   description?: string;
   videoUrl?: string;
-  difficultyLevel?: "beginner" | "intermediate" | "advanced";
+  difficultyLevel?: "beginner" | "intermediate" | "advanced";//不要かも？
   equipmentRequired?: string[];
   userId?: string;
   createdAt?: Date;
