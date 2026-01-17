@@ -16,44 +16,52 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 
+// 日付セレクターのプロパティ
 interface DateSelectorProps {
   date?: Date;
   onDateChange?: (date: Date) => void;
 }
 
+// 今日の終了時刻を取得
 function getTodayEnd(): Date {
   const today = new Date();
   today.setHours(23, 59, 59, 999);
   return today;
 }
 
+// 日付が有効かどうかを判断
 function isDateValid(date: Date): boolean {
   return date <= getTodayEnd();
 }
 
+// 日付セレクターのコンポーネント
 export function DateSelector({ date, onDateChange }: DateSelectorProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(date || new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
+  // 日付が変更された場合、選択された日付を更新
   useEffect(() => {
     if (date) {
       setSelectedDate(date);
     }
   }, [date]);
 
+  // 日付を更新
   const updateDate = (newDate: Date) => {
     if (!isDateValid(newDate)) return;
     setSelectedDate(newDate);
     onDateChange?.(newDate);
   };
-
+  // 前日を選択
   const handlePreviousDay = () => updateDate(subDays(selectedDate, 1));
 
+  // 翌日を選択
   const handleNextDay = () => {
     const nextDay = addDays(selectedDate, 1);
     if (isDateValid(nextDay)) updateDate(nextDay);
   };
 
+  // カレンダーで日付が選択された場合、日付を更新
   const handleCalendarSelect = (newDate: Date | undefined) => {
     if (newDate) {
       updateDate(newDate);
@@ -61,15 +69,17 @@ export function DateSelector({ date, onDateChange }: DateSelectorProps) {
     }
   };
 
-  const formattedDate = format(selectedDate, "yyyy/M/d");
-  const today = new Date();
-  const isToday = selectedDate.toDateString() === today.toDateString();
-  const nextDay = addDays(selectedDate, 1);
-  const canGoNext = isDateValid(nextDay);
+  // 日付をフォーマット
+  const formattedDate = format(selectedDate, "yyyy/M/d"); //yyyy/M/d: 2026/1/3 という形式でフォーマット
+  const today = new Date(); //今日の日付
+  const isToday = selectedDate.toDateString() === today.toDateString(); //選択された日付と今日の日付が同じかどうかを判断
+  const nextDay = addDays(selectedDate, 1); //翌日の日付
+  const canGoNext = isDateValid(nextDay); //翌日の日付が有効かどうかを判断
 
   const isDateDisabled = (date: Date) =>
-    isAfter(startOfDay(date), startOfDay(today));
+    isAfter(startOfDay(date), startOfDay(today)); //日付が無効かどうかを判断
 
+  // 日付セレクターのコンポーネントを返す
   return (
     <div className="flex items-center justify-between bg-muted/30 rounded-full p-1 px-2 border border-border/50 min-w-[200px]">
       <Button

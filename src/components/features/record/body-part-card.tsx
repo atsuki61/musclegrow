@@ -12,7 +12,6 @@ interface BodyPartCardProps {
   maxWeights?: Record<string, number>;
   onExerciseSelect?: (exercise: Exercise) => void;
   onAddExerciseClick?: () => void;
-  // ▼ 追加: 編集モード
   isEditMode?: boolean;
 }
 

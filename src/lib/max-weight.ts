@@ -2,9 +2,9 @@
 
 export type MaxWeightsMap = Record<string, number>;
 
-const CACHE_KEY = "max_weights_cache_v1";
-const CACHE_VERSION_KEY = "max_weights_version_v1";
-const CURRENT_VERSION = 1;
+const CACHE_KEY = "max_weights_cache_v2";
+const CACHE_VERSION_KEY = "max_weights_version_v2";
+const CURRENT_VERSION = 2;
 
 /** localStorage から最大重量キャッシュをロード */
 export function loadMaxWeightsCache(): MaxWeightsMap {
