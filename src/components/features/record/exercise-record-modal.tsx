@@ -140,63 +140,74 @@ export default function ExerciseRecordModal({
     }
   }, [isOpen, isLoaded, sets.length, exercise?.id]);
 
+  // モーダルを閉じる
   const handleClose = () => {
     if (!exercise) {
       onClose();
       return;
     }
 
+    // 有酸素記録の場合
     if (isCardio) {
       const validRecords = records.filter((record) => record.duration > 0);
       if (validRecords.length > 0) {
+        //有酸素記録が存在する場合
         const invalidRecords = validateItems(
           validRecords,
           cardioRecordSchema,
           "有酸素記録"
         );
         if (invalidRecords.length === 0) {
-          saveRecords(validRecords).catch(console.error);
+          //有酸素記録が有効な場合
+          saveRecords(validRecords).catch(console.error); //有酸素記録を保存
         }
       }
     } else {
-      const validSets = sets.filter(isValidSet);
+      const validSets = sets.filter(isValidSet); //有効なセットを取得
       // 有効なセットがない場合は、既存のセット記録を削除して終了
       if (validSets.length > 0) {
-        const invalidSets = validateItems(validSets, setRecordSchema, "セット");
+        //有効なセットが存在する場合
+        const invalidSets = validateItems(validSets, setRecordSchema, "セット"); //セットをバリデーション
         if (invalidSets.length === 0) {
-          saveSets(validSets).catch(console.error);
+          //セットが有効な場合
+          saveSets(validSets).catch(console.error); //セットを保存
         }
       }
     }
-    setActiveTab("record");
+    setActiveTab("record"); //タブを記録に切り替え
     onClose();
   };
 
+  // 前回記録をコピー
   const handleCopyPreviousRecord = () => {
-    if (!previousRecord) return;
-
+    if (!previousRecord) return; //前回記録が存在しない場合は終了
+    // 前回記録の種類に応じて、前回記録をコピー
     if (previousRecord.type === "cardio") {
+      //有酸素記録の場合
       setRecords(previousRecord.records);
     } else if (previousRecord.type === "workout") {
+      //有酸素記録でない場合
       const copiedSets: SetRecord[] = previousRecord.sets.map((set) => ({
+        //セットをコピー
         ...set,
         id: nanoid(),
       }));
-      setSets(copiedSets);
+      setSets(copiedSets); //セットをセット
     }
   };
-
+  // 種目が存在しない場合は終了
   if (!exercise) return null;
 
-  // タイマーカード内のクリックでモーダルが閉じないようにする
+  // タイマーカード内のクリックでモーダルが閉じないようにするハンドラー
   const handleInteractOutside = (event: Event) => {
     const target = event.target as HTMLElement;
     // タイマーカード内のクリックは無視
     if (target.closest('[data-interval-timer="true"]')) {
-      event.preventDefault();
+      //タイマーカード内のクリックは無視
+      event.preventDefault(); //クリックを無視
     }
   };
-
+  // モーダルのコンポーネントを返す
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
@@ -227,7 +238,7 @@ export default function ExerciseRecordModal({
             </DialogDescription>
           </div>
 
-          {/* ▼ 復活: タイマー起動ボタン (右上に配置) */}
+          {/*タイマー起動ボタン*/}
           <div className="absolute right-12 top-1/2 -translate-y-1/2">
             <Button
               variant="ghost"

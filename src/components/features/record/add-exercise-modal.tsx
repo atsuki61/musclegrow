@@ -17,6 +17,7 @@ import type { Exercise, BodyPart } from "@/types/workout";
 import { BODY_PART_LABELS } from "@/lib/utils";
 import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
 
+// 種目追加モーダルのプロパティ
 interface AddExerciseModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -25,6 +26,7 @@ interface AddExerciseModalProps {
   initialBodyPart?: Exclude<BodyPart, "all">;
 }
 
+// 種目追加モーダルのコンポーネント
 export function AddExerciseModal({
   isOpen,
   onClose,
@@ -37,6 +39,7 @@ export function AddExerciseModal({
     Exclude<BodyPart, "all">
   >(initialBodyPart || "chest");
 
+  // 初期ボディーパートが変更された場合、選択されたボディーパートを更新
   useEffect(() => {
     if (isOpen && initialBodyPart) {
       setSelectedBodyPart(initialBodyPart);
@@ -44,6 +47,7 @@ export function AddExerciseModal({
     }
   }, [initialBodyPart, isOpen]);
 
+  // 選択可能な種目を取得
   const selectableExercises = useMemo(() => {
     return allExercises.filter(
       (exercise) =>
@@ -51,6 +55,7 @@ export function AddExerciseModal({
     );
   }, [allExercises, selectedBodyPart]);
 
+  // 検索クエリに基づいて種目をフィルタリング
   const filteredExercises = useMemo(() => {
     if (!searchQuery.trim()) return selectableExercises;
     const query = searchQuery.toLowerCase();
@@ -59,7 +64,9 @@ export function AddExerciseModal({
     );
   }, [selectableExercises, searchQuery]);
 
+  // 種目を選択
   const handleSelectExercise = (exercise: Exercise) => {
+    // 種目を更新
     const updatedExercise: Exercise = {
       ...exercise,
       tier: "initial",
@@ -69,11 +76,13 @@ export function AddExerciseModal({
     setSearchQuery("");
   };
 
+  // カスタム種目を追加
   const handleAddCustomExercise = (exercise: Exercise) => {
     onAddExercise(exercise);
     setSearchQuery("");
   };
 
+  // 種目追加モーダルのコンポーネントを返す
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-full max-w-2xl h-[90vh] sm:h-[80vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl border-0 sm:border">
