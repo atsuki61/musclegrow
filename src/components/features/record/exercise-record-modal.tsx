@@ -46,6 +46,22 @@ function isValidSet(set: SetRecord): boolean {
   return hasReps || hasDuration;
 }
 
+// 前回記録コピー時も含め、セット数は上限を統一
+const MAX_SETS = 50;
+
+// 「最後の行が埋まっているなら、続き入力用に空行を足す」判定に使う
+function hasAnyPositiveInputValue(set: SetRecord): boolean {
+  const weight = Number(set.weight ?? 0);
+  const reps = Number(set.reps ?? 0);
+  const duration = Number(set.duration ?? 0);
+//数値が有限かつ0より大きいかどうか
+  const hasWeight = Number.isFinite(weight) && weight > 0;
+  const hasReps = Number.isFinite(reps) && reps > 0;
+  const hasDuration = Number.isFinite(duration) && duration > 0;
+
+  return hasWeight || hasReps || hasDuration;
+}
+
 type PreviousRecordData =
   | { type: "workout"; sets: SetRecord[]; date: Date }
   | { type: "cardio"; records: CardioRecord[]; date: Date }
@@ -183,16 +199,38 @@ export default function ExerciseRecordModal({
     if (!previousRecord) return; //前回記録が存在しない場合は終了
     // 前回記録の種類に応じて、前回記録をコピー
     if (previousRecord.type === "cardio") {
-      //有酸素記録の場合
       setRecords(previousRecord.records);
     } else if (previousRecord.type === "workout") {
       //有酸素記録でない場合
       const copiedSets: SetRecord[] = previousRecord.sets.map((set) => ({
-        //セットをコピー
         ...set,
         id: nanoid(),
       }));
-      setSets(copiedSets); //セットをセット
+// コピーした最後のセットが値を持ち、セット数が最大(50)未満なら「続きを入力するための空セット」を追加する
+      const shouldAppendEmptySet =
+        copiedSets.length > 0 && // 前回セットが1件以上ある
+        copiedSets.length < MAX_SETS && // 最大セット数に達していない
+        hasAnyPositiveInputValue(copiedSets[copiedSets.length - 1]); // 最後のセットに値が入っている
+
+      // 空セットを追加する条件を満たさない場合は、そのままセットを反映して終了
+      if (!shouldAppendEmptySet) {
+        setSets(copiedSets);
+        return;
+      }
+
+      // 前回記録の “続き” をすぐ入力できるよう、末尾に空のセット行を 1 行だけ追加
+      const maxSetOrder = copiedSets.reduce(
+        (max, set) => Math.max(max, set.setOrder),
+        0
+      );
+//
+      setSets([
+        ...copiedSets,
+        {
+          ...createInitialSet(),
+          setOrder: maxSetOrder + 1,
+        },
+      ]);
     }
   };
   // 種目が存在しない場合は終了
