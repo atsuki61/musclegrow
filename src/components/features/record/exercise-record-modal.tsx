@@ -242,7 +242,7 @@ export default function ExerciseRecordModal({
     // タイマーカード内のクリックは無視
     if (target.closest('[data-interval-timer="true"]')) {
       //タイマーカード内のクリックは無視
-      event.preventDefault(); //クリックを無視
+      event.preventDefault();
     }
   };
   // モーダルのコンポーネントを返す
