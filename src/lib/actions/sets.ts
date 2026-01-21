@@ -6,13 +6,19 @@ import { sets, workoutSessions } from "../../../db/schemas/app";
 import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
 import { eq, and, max, lt, desc } from "drizzle-orm";
 import type { SetRecord } from "@/types/workout";
+import { setRecordSchema } from "@/lib/validations";
 
+/**
+ * セット記録をZodスキーマでバリデーションする
+ * @param set セット記録
+ * @returns バリデーション結果（成功: true, 失敗: false）
+ */
 function isValidSet(set: SetRecord): boolean {
-  const hasReps = set.reps > 0;
-  // durationが null/undefined の場合は 0 として扱う
-  const hasDuration = (set.duration ?? 0) > 0;
-
-  return hasReps || hasDuration;
+  const result = setRecordSchema.safeParse(set);
+  if (!result.success && process.env.NODE_ENV === "development") {
+    console.warn("セットバリデーションエラー:", result.error.issues);
+  }
+  return result.success;
 }
 
 /**

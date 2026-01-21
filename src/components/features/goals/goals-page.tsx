@@ -66,7 +66,6 @@ export function GoalsPage() {
       const data = await response.json();
 
       if (data.success) {
-        // ▼ toast.successに変更
         toast.success("目標を保存しました！");
         setTimeout(() => {
           router.push("/");
