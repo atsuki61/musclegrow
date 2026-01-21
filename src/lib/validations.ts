@@ -75,18 +75,17 @@ export const exerciseSchema = z.object({
       "core_obliques",
     ])
     .optional(),
-  primaryEquipment: equipmentTypeSchema.optional(),
-  tier: exerciseTierSchema,
-  isBig3: z.boolean(),
-  description: z
+  primaryEquipment: equipmentTypeSchema.optional(), // メインで使う器具。省略可能
+  tier: exerciseTierSchema,                         // 種目の階層（初期・選択可能・カスタム）
+  isBig3: z.boolean(),                              // ビッグ3（主要三種目）かどうか
+  description: z                                   // 種目の説明文（省略可能）
     .string()
     .max(500, "説明は500文字以内で入力してください")
     .optional(),
-  videoUrl: z
-    .string()
-    .url("有効なURLを入力してください")
-    .optional()
-    .or(z.literal("")),
+videoUrl: z
+  .url({ message: "有効なURLを入力してください" })
+  .optional()
+  .or(z.literal("")),
   difficultyLevel: difficultyLevelSchema.optional(),
   equipmentRequired: z.array(z.string()).optional(),
   userId: z.string().optional(),

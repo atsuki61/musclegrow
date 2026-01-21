@@ -69,17 +69,17 @@ export default function ExerciseRecordModal({
   // ▼ タイマー機能を取得
   const { startTimer } = useTimer();
 
-  const isCardio = exercise ? isCardioExercise(exercise) : false;
-  const [activeTab, setActiveTab] = useState("record");
+  const isCardio = exercise ? isCardioExercise(exercise) : false;//exerciseがnullの場合はfalseを返す
+  const [activeTab, setActiveTab] = useState("record");//タブをrecordに設定
 
   const { record: fetchedPreviousRecord, isLoading: isPreviousLoading } =
-    usePreviousRecord(date, exercise);
+    usePreviousRecord(date, exercise);//前回記録を取得
 
-  const previousRecord = fetchedPreviousRecord || prefetchedPreviousRecord;
-  const isLoading = isPreviousLoading && !prefetchedPreviousRecord;
+  const previousRecord = fetchedPreviousRecord || prefetchedPreviousRecord;//前回記録を取得
+  const isLoading = isPreviousLoading && !prefetchedPreviousRecord;//前回記録を取得中かどうか
 
-  const createInitialSet = (): SetRecord => {
-    const isTimeBased = exercise ? isTimeBasedExercise(exercise) : false;
+  const createInitialSet = (): SetRecord => {//セットを作成
+    const isTimeBased = exercise ? isTimeBasedExercise(exercise) : false;//exerciseがnullの場合はfalseを返す
     return {
       id: nanoid(),
       setOrder: 1,
@@ -91,7 +91,7 @@ export default function ExerciseRecordModal({
     };
   };
 
-  const createInitialCardioRecord = (): CardioRecord => ({
+  const createInitialCardioRecord = (): CardioRecord => ({//有酸素記録を作成
     id: nanoid(),
     duration: 0,
     distance: null,
@@ -102,7 +102,7 @@ export default function ExerciseRecordModal({
     date: new Date(),
   });
 
-  const {
+  const {//セットを取得
     sets,
     setSets,
     saveSets,
