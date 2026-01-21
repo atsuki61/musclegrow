@@ -21,7 +21,22 @@ interface SetRecordFormProps {
   onSetsChange: (sets: SetRecord[]) => void;
   isLoading?: boolean;
 }
+// セット入力は多くても現実的に 50 までに制限
+const MAX_SETS = 50;
 
+// 入力欄に「次のセットを出すべき値」が入っているか（0 は未入力扱い）
+function hasAnyPositiveInputValue(set: SetRecord): boolean {
+  const weight = Number(set.weight ?? 0);
+  const reps = Number(set.reps ?? 0);
+  const duration = Number(set.duration ?? 0);
+//数値が有限かつ0より大きいかどうか
+  const hasWeight = Number.isFinite(weight) && weight > 0;
+  const hasReps = Number.isFinite(reps) && reps > 0;
+  const hasDuration = Number.isFinite(duration) && duration > 0;
+
+  return hasWeight || hasReps || hasDuration;
+}
+//セット行のプロパティ
 interface SetRowProps {
   exercise: Exercise;
   set: SetRecord;
@@ -37,7 +52,7 @@ interface SetRowProps {
   onDelete: (setId: string) => void;
   setRowRef?: React.RefObject<HTMLDivElement | null>;
 }
-
+//セット行
 function SetRow({
   exercise,
   set,
@@ -49,13 +64,13 @@ function SetRow({
   onDelete,
   setRowRef,
 }: SetRowProps) {
-  const needsWeight = requiresWeightInput(exercise);
-  const isTimeBased = isTimeBasedExercise(exercise);
-  const isBodyweight = isBodyweightExercise(exercise);
+  const needsWeight = requiresWeightInput(exercise);//重量入力が必要かどうか
+  const isTimeBased = isTimeBasedExercise(exercise);//時間制の種目かどうか
+  const isBodyweight = isBodyweightExercise(exercise);//自重種目かどうか
   const oneRM =
-    set.weight && set.weight > 0 ? calculate1RM(set.weight, set.reps) : null;
+    set.weight && set.weight > 0 ? calculate1RM(set.weight, set.reps) : null;//1RMを計算
 
-  return (
+  return (//セット行を返す
     <div
       ref={setRowRef}
       className="group relative animate-in fade-in slide-in-from-bottom-2 duration-300"
@@ -159,12 +174,31 @@ export function SetRecordForm({
     return {
       id: nanoid(),
       setOrder,
-      weight: isTimeBased ? undefined : undefined,
+      weight: undefined,
       reps: 0,
       duration: isTimeBased ? 0 : undefined,
       isWarmup: false,
       failure: false,
     };
+  };
+
+  // 「最後の行が埋まったら次の空セットを 1 行だけ追加」する共通処理
+  //入力とコピーの両方で同じ挙動にするために関数化
+  const maybeAppendNextEmptySet = (
+    updatedSets: SetRecord[],
+    changedSetId: string
+  ): SetRecord[] => {
+    if (updatedSets.length >= MAX_SETS) return updatedSets;
+
+    const changedIndex = updatedSets.findIndex((set) => set.id === changedSetId);
+    if (changedIndex === -1) return updatedSets;
+
+    const isLastRow = changedIndex === updatedSets.length - 1;
+    if (!isLastRow) return updatedSets;
+
+    if (!hasAnyPositiveInputValue(updatedSets[changedIndex])) return updatedSets;
+
+    return [...updatedSets, createNewSet(updatedSets.length + 1)];
   };
 
   const handleAddSet = () => {
@@ -197,51 +231,39 @@ export function SetRecordForm({
     field: keyof SetRecord,
     value: number | string | boolean
   ) => {
-    // 1. まず現在のセットを更新
     const updatedSets = sets.map((set) =>
       set.id === setId ? { ...set, [field]: value } : set
     );
 
-    // 2. 自動追加の判定
-    const targetSetIndex = sets.findIndex((s) => s.id === setId);//セットを取得
-    const isLastSet = targetSetIndex === sets.length - 1;//最後のセットかどうか
+    // 数値入力（重量/回数/時間）のときだけ「次セットの自動追加」を判定する
+    const nextSets =
+      field === "weight" || field === "reps" || field === "duration"
+        ? maybeAppendNextEmptySet(updatedSets, setId)
+        : updatedSets;
 
-    // 重量、回数、時間のどれかが入力されて、それが0より大きい値になったら
-    if (
-      isLastSet &&
-      (field === "weight" || field === "reps" || field === "duration")
-    ) {
-      const numValue = Number(value);//数値に変換
-      if (!isNaN(numValue) && numValue > 0) {//数値かどうか
-        if (updatedSets.length < 50) {//50セット以内なら新しいセットを追加
-          updatedSets.push(createNewSet(updatedSets.length + 1));//新しいセットを追加
-        }
-      }
-    }
-
-    onSetsChange(updatedSets);
+    onSetsChange(nextSets);
   };
-
+//前回記録をコピー
   const handleCopyPreviousSet = (index: number) => {
     if (index === 0) return;
     const previousSet = sets[index - 1];
     const currentSet = sets[index];
-    const isTimeBased = isTimeBasedExercise(exercise);
-
+    const isTimeBased = isTimeBasedExercise(exercise);//時間制の種目かどうか
+    //セットを更新
     const updatedSets = sets.map((set) => {
-      if (set.id === currentSet.id) {
-        const updated: SetRecord = { ...set };
-        if (isTimeBased) {
-          updated.duration = previousSet.duration;
-        } else {
-          updated.weight = previousSet.weight;
-          updated.reps = previousSet.reps;
+      if (set.id === currentSet.id) {//もしセットidが一致したら
+        const updated: SetRecord = { ...set };//セットを更新
+        if (isTimeBased) {//時間制の種目なら
+          updated.duration = previousSet.duration;//時間を更新
+        } else {//重量制の種目なら
+          updated.weight = previousSet.weight;//重量を更新
+          updated.reps = previousSet.reps;//回数を更新
         }
-        return updated;
+        return updated;//更新したセットを返す
       }
-      return set;
+      return set;//セットを返す
     });
-    onSetsChange(updatedSets);
+    onSetsChange(maybeAppendNextEmptySet(updatedSets, currentSet.id));//セットを更新
   };
 
   return (
@@ -281,7 +303,7 @@ export function SetRecordForm({
             onClick={handleAddSet}
             className="w-full h-10 mt-3 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-bold shadow-none text-sm"
             variant="outline"
-            disabled={sets.length >= 50}
+            disabled={sets.length >= MAX_SETS}
           >
             <Plus className="w-4 h-4 mr-2" />
             セットを追加
