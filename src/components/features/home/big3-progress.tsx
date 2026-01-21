@@ -72,7 +72,11 @@ export function Big3Progress({
           <div>
             <h2 className="font-bold text-sm leading-none">BIG 3 TOTAL</h2>
             <span className="text-[10px] text-muted-foreground">
-              目標まであと {totalTarget - totalCurrent}kg
+              {totalTarget <= 1
+                ? "目標値を設定してください"
+                : totalCurrent >= totalTarget
+                  ? "目標達成！"
+                  : `目標まであと ${totalTarget - totalCurrent}kg`}
             </span>
           </div>
         </div>
