@@ -203,20 +203,18 @@ export function SetRecordForm({
     );
 
     // 2. 自動追加の判定
-    // 編集中のセットが最後の行か調べる
-    const targetSetIndex = sets.findIndex((s) => s.id === setId);
-    const isLastSet = targetSetIndex === sets.length - 1;
+    const targetSetIndex = sets.findIndex((s) => s.id === setId);//セットを取得
+    const isLastSet = targetSetIndex === sets.length - 1;//最後のセットかどうか
 
     // 重量、回数、時間のどれかが入力されて、それが0より大きい値になったら
     if (
       isLastSet &&
       (field === "weight" || field === "reps" || field === "duration")
     ) {
-      const numValue = Number(value);
-      if (!isNaN(numValue) && numValue > 0) {
-        // 50セット以内なら新しいセットを追加
-        if (updatedSets.length < 50) {
-          updatedSets.push(createNewSet(updatedSets.length + 1));
+      const numValue = Number(value);//数値に変換
+      if (!isNaN(numValue) && numValue > 0) {//数値かどうか
+        if (updatedSets.length < 50) {//50セット以内なら新しいセットを追加
+          updatedSets.push(createNewSet(updatedSets.length + 1));//新しいセットを追加
         }
       }
     }
