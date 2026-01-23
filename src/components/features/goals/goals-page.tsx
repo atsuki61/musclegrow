@@ -9,18 +9,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-// ▼ 追加
 import { toast } from "sonner";
 
 export function GoalsPage() {
   const router = useRouter();
 
-  const [benchPress, setBenchPress] = useState<string>("");
-  const [squat, setSquat] = useState<string>("");
-  const [deadlift, setDeadlift] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  // error, successMessage state は不要なので削除
+  const [benchPress, setBenchPress] = useState<string>("");//ベンチプレスの目標重量
+  const [squat, setSquat] = useState<string>("");//スクワットの目標重量
+  const [deadlift, setDeadlift] = useState<string>("");//デッドリフトの目標重量
+  const [isLoading, setIsLoading] = useState(true);//ロード中のフラグ
+  const [isSaving, setIsSaving] = useState(false);//保存中のフラグ
 
   useEffect(() => {
     fetchProfile();
@@ -37,10 +35,10 @@ export function GoalsPage() {
         setSquat(data.data.big3TargetSquat?.toString() ?? "");
         setDeadlift(data.data.big3TargetDeadlift?.toString() ?? "");
       } else {
-        toast.error(data.error.message); // toastに変更
+        toast.error(data.error.message);
       }
     } catch (err) {
-      toast.error("目標データの取得に失敗しました"); // toastに変更
+      toast.error("目標データの取得に失敗しました");
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -68,7 +66,6 @@ export function GoalsPage() {
       const data = await response.json();
 
       if (data.success) {
-        // ▼ toast.successに変更
         toast.success("目標を保存しました！");
         setTimeout(() => {
           router.push("/");
@@ -163,7 +160,7 @@ export function GoalsPage() {
             "スクワット",
             squat,
             setSquat,
-            "120.0",
+            "100.0",
             "bg-primary"
           )}
           {renderNumberInput(
@@ -171,7 +168,7 @@ export function GoalsPage() {
             "デッドリフト",
             deadlift,
             setDeadlift,
-            "140.0",
+            "100.0",
             "bg-primary"
           )}
         </div>
