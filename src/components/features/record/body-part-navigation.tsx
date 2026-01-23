@@ -1,6 +1,10 @@
 "use client";
 
 import { useRef, useEffect } from "react";
+// framer-motion: アニメーションライブラリ
+// - motion: アニメーション付きのHTML要素を作成
+// - layoutId でアニメーションの自動補間を実現
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { BODY_PART_LABELS } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
@@ -91,19 +95,38 @@ export function BodyPartNavigation({
           const textVar = PART_TEXT_VARS[part];
 
           return (
-            <button
+            // ① motion.button: タップ時とホバー時のアニメーションを追加
+            <motion.button
               key={part}
               onClick={() => onPartChange?.(part)}
               data-state={isSelected ? "active" : "inactive"}
+              // タップ時に軽く縮小、ホバー時に軽く拡大
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
+              // 選択時の「成功感」アニメーション
+              // key が変わると再マウントされ、アニメーションが発動
+              animate={isSelected ? {
+                // 選択時: 軽く拡大→縮小のパルスアニメーション
+                scale: [1, 1.05, 1],
+              } : {
+                scale: 1,
+              }}
+              transition={{
+                // キーフレームアニメーションを使用（spring は2キーフレームまで）
+                // tween を使用することで3つ以上のキーフレームが可能
+                type: "tween",
+                duration: 0.3,
+                ease: "easeInOut",
+              }}
               className={cn(
-                "px-5 py-1.5 rounded-full text-sm font-bold transition-all duration-300 active:scale-95 border",
+                "relative px-5 py-1.5 rounded-full text-sm font-bold border",
                 "border-transparent"
               )}
               style={{
                 backgroundColor: isSelected
                   ? colorVar
                   : `color-mix(in srgb, ${colorVar} 15%, transparent)`,
-                //  選択時は専用の文字色変数を使う
+                // 選択時は専用の文字色変数を使う
                 color: isSelected ? textVar : colorVar,
                 borderColor: isSelected
                   ? "transparent"
@@ -114,7 +137,25 @@ export function BodyPartNavigation({
               }}
             >
               {BODY_PART_LABELS[part]}
-            </button>
+
+              {/*
+                ① 選択中のボタンに下線アニメーションを追加
+                layoutId を使用すると、同じ layoutId を持つ要素間で
+                位置やサイズが自動的にアニメーションされる
+              */}
+              {isSelected && (
+                <motion.span
+                  layoutId="underline"
+                  className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-full"
+                  style={{ backgroundColor: textVar }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 30,
+                  }}
+                />
+              )}
+            </motion.button>
           );
         })}
       </div>

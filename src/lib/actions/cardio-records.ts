@@ -5,6 +5,23 @@ import { cardioRecords, workoutSessions } from "../../../db/schemas/app";
 import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
 import { eq, and, lt, desc } from "drizzle-orm";
 import type { CardioRecord } from "@/types/workout";
+import { cardioRecordSchema } from "@/lib/validations";
+
+// 保存時はdateフィールドを除外してバリデーション
+const cardioRecordSaveSchema = cardioRecordSchema.omit({ date: true });
+
+/**
+ * 有酸素記録をZodスキーマでバリデーションする
+ * @param record 有酸素記録
+ * @returns バリデーション結果（成功: true, 失敗: false）
+ */
+function isValidCardioRecord(record: CardioRecord): boolean {
+  const result = cardioRecordSaveSchema.safeParse(record);
+  if (!result.success && process.env.NODE_ENV === "development") {
+    console.warn("有酸素記録バリデーションエラー:", result.error.issues);
+  }
+  return result.success;
+}
 
 /**
  * 有酸素種目の記録を保存する（既存の記録を削除してから新規保存）
@@ -71,15 +88,8 @@ export async function saveCardioRecords(
       };
     }
 
-    // 有効な記録のみをフィルタリング（時間が0より大きい、または距離・カロリー・心拍数・傾斜のいずれかが0より大きい）
-    const validRecords = recordsToSave.filter(
-      (record) =>
-        record.duration > 0 ||
-        (record.distance ?? 0) > 0 ||
-        (record.calories ?? 0) > 0 ||
-        (record.heartRate ?? 0) > 0 ||
-        (record.incline ?? 0) > 0
-    );
+    // Zodスキーマでバリデーションし、有効な記録のみをフィルタリング
+    const validRecords = recordsToSave.filter(isValidCardioRecord);
 
     // 有効な記録がない場合は、既存の記録を削除して終了
     if (validRecords.length === 0) {
