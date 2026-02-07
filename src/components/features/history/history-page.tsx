@@ -146,7 +146,7 @@ export function HistoryPage({
       // DB削除（ログイン時のみ）
       if (userId) {
         try {
-          const sessionResult = await getWorkoutSession(userId, dateStr);
+          const sessionResult = await getWorkoutSession(dateStr);
           if (sessionResult.success && sessionResult.data) {
             await Promise.all([
               deleteExerciseSets(userId, {

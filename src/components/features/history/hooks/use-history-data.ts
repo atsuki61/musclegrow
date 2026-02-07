@@ -173,7 +173,7 @@ export function useHistoryData(
         const dateStr = format(date, "yyyy-MM-dd");
 
         // DBから取得
-        const sessionResult = await getWorkoutSession(userId, dateStr);
+        const sessionResult = await getWorkoutSession(dateStr);
 
         let dbDetails = null;
         let dbNote: string | null = null;

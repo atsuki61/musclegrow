@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
  * 環境変数チェック用APIエンドポイント
  * 開発環境でのみ利用可能
  * 
- * アクセス: http://localhost:3001/api/check-env
+ * アクセス: http://localhost:4000/api/check-env
  */
 export async function GET() {
   // 開発環境でのみ動作するようにする
