@@ -13,6 +13,7 @@ import {
 import type { User } from "better-auth";
 import { toast } from "sonner";
 import { getGuestProfile, saveGuestProfile } from "@/lib/local-storage-profile";
+import { updateProfile } from "@/lib/actions/profile";
 
 interface ProfilePageProps {
   initialProfile: ProfileResponse | null;
@@ -50,22 +51,14 @@ export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
     try {
       if (user) {
         // ログイン時: サーバーへ保存
-        const response = await fetch("/api/profile", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        });
+        const result = await updateProfile(data);
 
-        const result = await response.json();
-
-        if (result.success) {
+        if (result.success && result.data) {
           setProfile(result.data);
           setView("menu");
           toast.success("プロフィールを更新しました");
         } else {
-          console.error(result.error.message);
+          console.error(result.error);
           toast.error("更新に失敗しました");
         }
       } else {
