@@ -20,7 +20,7 @@ export function useLastTrainedDates() {
     // 2. サーバーから取得してマージ
     if (userId) {
       try {
-        const result = await getLastTrainedDatesFromDB(userId);
+        const result = await getLastTrainedDatesFromDB();
         if (result.success && result.data) {
           Object.entries(result.data).forEach(([exerciseId, dateStr]) => {
             const dbDate = new Date(dateStr);

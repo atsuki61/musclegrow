@@ -120,7 +120,7 @@ export function useWorkoutSession({
     if (userId) {
       try {
         const currentDateStr = formatDateToYYYYMMDD(date);
-        const sessionResult = await getWorkoutSession(userId, currentDateStr);
+        const sessionResult = await getWorkoutSession(currentDateStr);
 
         if (sessionResult.success && sessionResult.data) {
           const setsResult = await getSetsFromAPI(userId, {
@@ -178,7 +178,7 @@ export function useWorkoutSession({
         try {
           // 2-1. まず「今日」というセッションを作る/取得する
           const currentDateStr = formatDateToYYYYMMDD(date);
-          const sessionResult = await saveWorkoutSession(userId, {
+          const sessionResult = await saveWorkoutSession({
             date: currentDateStr,
           });
 
@@ -247,7 +247,7 @@ export function useWorkoutSession({
             const previousDateStr = formatDateToYYYYMMDD(
               previousDateRef.current
             );
-            const sessionResult = await saveWorkoutSession(userId, {
+            const sessionResult = await saveWorkoutSession({
               date: previousDateStr,
             });
 

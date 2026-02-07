@@ -62,25 +62,21 @@ export async function getExercises(userId: string | null): Promise<{
 
 /**
  * ワークアウトセッションを保存または更新する
- * @param userId ユーザーID
  */
-export async function saveWorkoutSession(
-  userId: string,
-  {
-    date,
-    note,
-    durationMinutes,
-  }: {
-    date: string; // YYYY-MM-DD形式
-    note?: string | null;
-    durationMinutes?: number | null;
-  }
-): Promise<{
+export async function saveWorkoutSession({
+  date,
+  note,
+  durationMinutes,
+}: {
+  date: string; // YYYY-MM-DD形式
+  note?: string | null;
+  durationMinutes?: number | null;
+}): Promise<{
   success: boolean;
   error?: string;
   data?: { id: string; date: string };
 }> {
-  return await saveWorkoutSessionAction(userId, {
+  return await saveWorkoutSessionAction({
     date,
     note,
     durationMinutes,
@@ -89,12 +85,8 @@ export async function saveWorkoutSession(
 
 /**
  * 指定日付のワークアウトセッションを取得する
- * @param userId ユーザーID
  */
-export async function getWorkoutSession(
-  userId: string,
-  date: string
-): Promise<{
+export async function getWorkoutSession(date: string): Promise<{
   success: boolean;
   error?: string;
   data?: {
@@ -104,7 +96,7 @@ export async function getWorkoutSession(
     durationMinutes?: number | null;
   };
 }> {
-  return await getWorkoutSessionAction(userId, date);
+  return await getWorkoutSessionAction(date);
 }
 
 /**
