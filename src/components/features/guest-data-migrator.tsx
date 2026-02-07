@@ -17,6 +17,7 @@ import {
 import { toggleExerciseVisibility } from "@/lib/actions/user-exercises";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { getGuestProfile } from "@/lib/local-storage-profile";
+import { updateProfile } from "@/lib/actions/profile";
 
 // ストレージキー定義
 const GUEST_DATA_MIGRATED_KEY = "guest_data_migrated"; //ゲストデータ移行済みフラグ
@@ -154,12 +155,8 @@ async function migrateProfile() {
   };
 
   try {
-    // API経由で保存 (PUT /api/profile)
-    await fetch("/api/profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    // Server Action経由で保存
+    await updateProfile(data);
   } catch (e) {
     console.error("プロフィール移行エラー:", e);
   }

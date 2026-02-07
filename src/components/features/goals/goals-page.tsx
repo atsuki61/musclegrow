@@ -10,6 +10,7 @@ import { ArrowLeft, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { getProfile, updateProfile } from "@/lib/actions/profile";
 
 export function GoalsPage() {
   const router = useRouter();
@@ -27,15 +28,14 @@ export function GoalsPage() {
   const fetchProfile = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/profile");
-      const data = await response.json();
+      const result = await getProfile();
 
-      if (data.success) {
-        setBenchPress(data.data.big3TargetBenchPress?.toString() ?? "");
-        setSquat(data.data.big3TargetSquat?.toString() ?? "");
-        setDeadlift(data.data.big3TargetDeadlift?.toString() ?? "");
+      if (result.success && result.data) {
+        setBenchPress(result.data.big3TargetBenchPress?.toString() ?? "");
+        setSquat(result.data.big3TargetSquat?.toString() ?? "");
+        setDeadlift(result.data.big3TargetDeadlift?.toString() ?? "");
       } else {
-        toast.error(data.error.message);
+        toast.error(result.error ?? "プロフィールの取得に失敗しました");
       }
     } catch (err) {
       toast.error("目標データの取得に失敗しました");
@@ -55,23 +55,17 @@ export function GoalsPage() {
         big3TargetDeadlift: deadlift ? parseFloat(deadlift) : undefined,
       };
 
-      const response = await fetch("/api/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
-      });
+      const result = await updateProfile(requestData);
 
-      const data = await response.json();
+      // const data = await response.json(); // 削除
 
-      if (data.success) {
+      if (result.success) {
         toast.success("目標を保存しました！");
         setTimeout(() => {
           router.push("/");
         }, 1000); // 遷移を少し早める
       } else {
-        toast.error(data.error.message); // toast.errorに変更
+        toast.error(result.error ?? "更新に失敗しました");
       }
     } catch (err) {
       toast.error("目標の保存に失敗しました"); // toast.errorに変更
