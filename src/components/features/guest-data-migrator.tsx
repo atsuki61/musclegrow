@@ -265,7 +265,7 @@ async function migrateDateRecords(
   workoutExercises: Array<{ exerciseId: string; sets: SetRecord[] }>,
   cardioExercises: Array<{ exerciseId: string; records: CardioRecord[] }>
 ) {
-  const sessionResult = await saveWorkoutSession(userId, { date: dateStr });
+  const sessionResult = await saveWorkoutSession({ date: dateStr });
   if (!sessionResult.success || !sessionResult.data) return false;
   const sessionId = sessionResult.data.id;
 

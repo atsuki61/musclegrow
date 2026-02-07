@@ -133,7 +133,7 @@ export function useCardioSession({
     if (userId) {
       try {
         const currentDateStr = formatDateToYYYYMMDD(date);
-        const sessionResult = await getWorkoutSession(userId, currentDateStr);
+        const sessionResult = await getWorkoutSession(currentDateStr);
 
         if (sessionResult.success && sessionResult.data) {
           const recordsResult = await getCardioRecordsFromAPI(userId, {
@@ -190,7 +190,7 @@ export function useCardioSession({
       if (userId) {
         try {
           const currentDateStr = formatDateToYYYYMMDD(date);
-          const sessionResult = await saveWorkoutSession(userId, {
+          const sessionResult = await saveWorkoutSession({
             date: currentDateStr,
           });
 
@@ -258,7 +258,7 @@ export function useCardioSession({
             const previousDateStr = formatDateToYYYYMMDD(
               previousDateRef.current
             );
-            const sessionResult = await saveWorkoutSession(userId, {
+            const sessionResult = await saveWorkoutSession({
               date: previousDateStr,
             });
 
