@@ -8,6 +8,7 @@ import {
 import {
   saveWorkoutSession as saveWorkoutSessionAction,
   getWorkoutSession as getWorkoutSessionAction,
+  saveSessionWithSets as saveSessionWithSetsAction,
 } from "./actions/workout-sessions";
 import {
   saveSets as saveSetsAction,
@@ -16,6 +17,7 @@ import {
 import {
   saveCardioRecords as saveCardioRecordsAction,
   getCardioRecords as getCardioRecordsAction,
+  saveSessionWithCardioRecords as saveSessionWithCardioRecordsAction,
 } from "./actions/cardio-records";
 import {
   getSessionDetails as getSessionDetailsAction,
@@ -100,6 +102,37 @@ export async function getWorkoutSession(date: string): Promise<{
 }
 
 /**
+ * ワークアウトセッションとセット記録をアトミックに保存する
+ */
+export async function saveSessionWithSets(
+  {
+    date,
+    note,
+    durationMinutes,
+    exerciseId,
+    sets,
+  }: {
+    date: string;
+    note?: string | null;
+    durationMinutes?: number | null;
+    exerciseId: string;
+    sets: SetRecord[];
+  }
+): Promise<{
+  success: boolean;
+  error?: string;
+  data?: { id: string; date: string; count: number };
+}> {
+  return await saveSessionWithSetsAction({
+    date,
+    note,
+    durationMinutes,
+    exerciseId,
+    sets,
+  });
+}
+
+/**
  * セット記録を保存する
  * @param userId ユーザーID
  */
@@ -171,6 +204,37 @@ export async function saveCardioRecords(
     sessionId,
     exerciseId,
     records: recordsToSave,
+  });
+}
+
+/**
+ * ワークアウトセッションと有酸素記録をアトミックに保存する
+ */
+export async function saveSessionWithCardioRecords(
+  {
+    date,
+    note,
+    durationMinutes,
+    exerciseId,
+    records,
+  }: {
+    date: string;
+    note?: string | null;
+    durationMinutes?: number | null;
+    exerciseId: string;
+    records: CardioRecord[];
+  }
+): Promise<{
+  success: boolean;
+  error?: string;
+  data?: { id: string; date: string; count: number };
+}> {
+  return await saveSessionWithCardioRecordsAction({
+    date,
+    note,
+    durationMinutes,
+    exerciseId,
+    records,
   });
 }
 

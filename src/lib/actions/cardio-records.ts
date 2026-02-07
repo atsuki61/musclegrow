@@ -6,6 +6,8 @@ import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
 import { eq, and, lt, desc } from "drizzle-orm";
 import type { CardioRecord } from "@/types/workout";
 import { cardioRecordSchema } from "@/lib/validations";
+import { getAuthUserId } from "@/lib/auth-session-server";
+import { revalidateTag } from "next/cache";
 
 // 保存時はdateフィールドを除外してバリデーション
 const cardioRecordSaveSchema = cardioRecordSchema.omit({ date: true });
@@ -160,6 +162,150 @@ export async function saveCardioRecords(
     };
   }
 }
+
+/**
+ * ワークアウトセッションと有酸素記録をアトミックに保存する
+ */
+export async function saveSessionWithCardioRecords(
+  {
+    date,
+    note,
+    durationMinutes,
+    exerciseId,
+    records: recordsToSave,
+  }: {
+    date: string;
+    note?: string | null;
+    durationMinutes?: number | null;
+    exerciseId: string;
+    records: CardioRecord[];
+  }
+): Promise<{
+  success: boolean;
+  error?: string;
+  data?: { id: string; date: string; count: number };
+}> {
+  try {
+    const userId = await getAuthUserId();
+
+    if (!userId) {
+      return {
+        success: false,
+        error: "認証されていません",
+      };
+    }
+
+    const validationResult = await validateExerciseIdAndAuth(
+      userId,
+      exerciseId
+    );
+    if (!validationResult.success) {
+      return {
+        success: false,
+        error: validationResult.error,
+      };
+    }
+
+    const validRecords = recordsToSave.filter(isValidCardioRecord);
+
+    const result = await db.transaction(async (tx) => {
+      // 1. セッションの取得または作成
+      const [existingSession] = await tx
+        .select()
+        .from(workoutSessions)
+        .where(
+          and(eq(workoutSessions.userId, userId), eq(workoutSessions.date, date))
+        )
+        .limit(1);
+
+      let sessionId: string;
+      let isNewSession = false;
+
+      if (existingSession) {
+        // 更新
+        await tx
+          .update(workoutSessions)
+          .set({
+            note: note ?? existingSession.note,
+            durationMinutes: durationMinutes ?? existingSession.durationMinutes,
+            updatedAt: new Date(),
+          })
+          .where(eq(workoutSessions.id, existingSession.id));
+        sessionId = existingSession.id;
+      } else {
+        // 新規作成
+        const [newSession] = await tx
+          .insert(workoutSessions)
+          .values({
+            userId,
+            date,
+            note: note ?? null,
+            durationMinutes: durationMinutes ?? null,
+          })
+          .returning({ id: workoutSessions.id });
+        sessionId = newSession.id;
+        isNewSession = true;
+      }
+
+      // 2. 既存の記録を削除
+      await tx
+        .delete(cardioRecords)
+        .where(
+          and(
+            eq(cardioRecords.sessionId, sessionId),
+            eq(cardioRecords.exerciseId, exerciseId)
+          )
+        );
+
+      // 3. 新しい記録を保存
+      if (validRecords.length > 0) {
+        const recordsToInsert = validRecords.map((record) => ({
+          sessionId,
+          exerciseId,
+          duration: record.duration,
+          distance:
+            record.distance !== undefined && record.distance !== null
+              ? record.distance.toString()
+              : null,
+          speed:
+            record.speed !== undefined && record.speed !== null
+              ? record.speed.toString()
+              : null,
+          calories: record.calories ?? null,
+          heartRate: record.heartRate ?? null,
+          incline:
+            record.incline !== undefined && record.incline !== null
+              ? record.incline.toString()
+              : null,
+          notes: record.notes ?? null,
+        }));
+
+        await tx.insert(cardioRecords).values(recordsToInsert);
+      }
+
+      return { sessionId, isNewSession };
+    });
+
+    revalidateTag(`workout-session:${userId}:${date}`);
+    if (result.isNewSession) {
+      revalidateTag(`stats:total-days:${userId}`);
+    }
+
+    return {
+      success: true,
+      data: { id: result.sessionId, date, count: validRecords.length },
+    };
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "不明なエラー";
+    console.error("セッション・有酸素記録一括保存エラー:", errorMessage);
+    return {
+      success: false,
+      error: "保存に失敗しました",
+    };
+  }
+}
+
 
 /**
  * 指定セッション・種目の有酸素記録を取得する
