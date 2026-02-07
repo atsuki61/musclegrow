@@ -7,7 +7,7 @@ import {
   exercises,
   workoutSessions,
 } from "../../../db/schemas/app";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, inArray } from "drizzle-orm";
 import type { SetRecord, CardioRecord } from "@/types/workout";
 import type { BodyPart } from "@/types/workout";
 import { unstable_cache } from "next/cache";
@@ -331,6 +331,7 @@ export async function getBodyPartsByDateRange(
   }
 }
 
+
 /**
  * 指定種目のトレーニング履歴を取得する
  * @param userId ユーザーID
@@ -370,7 +371,31 @@ export async function getExerciseHistory(
       };
     }
 
-    // データベースからデータを取得
+    // 1. 最新の日付を取得する（指定件数分）
+    const datesResult = await db
+      .selectDistinct({
+        date: workoutSessions.date,
+      })
+      .from(workoutSessions)
+      .innerJoin(sets, eq(sets.sessionId, workoutSessions.id))
+      .where(
+        and(eq(workoutSessions.userId, userId), eq(sets.exerciseId, exerciseId))
+      )
+      .orderBy(desc(workoutSessions.date))
+      .limit(limit);
+
+    if (datesResult.length === 0) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+
+    const targetDates = datesResult.map((d) => d.date);
+
+    // 2. 取得した日付のデータを取得する
+    // inArrayを使って対象日付のデータのみを効率的に取得
+    // DrizzleのinArrayは空配列を受け取るとエラーになる可能性があるため、上記でlengthチェックを入れている
     const historyData = await db
       .select({
         date: workoutSessions.date,
@@ -381,10 +406,13 @@ export async function getExerciseHistory(
       .from(sets)
       .innerJoin(workoutSessions, eq(sets.sessionId, workoutSessions.id))
       .where(
-        and(eq(workoutSessions.userId, userId), eq(sets.exerciseId, exerciseId))
+        and(
+          eq(workoutSessions.userId, userId),
+          eq(sets.exerciseId, exerciseId),
+          inArray(workoutSessions.date, targetDates)
+        )
       )
-      .orderBy(desc(workoutSessions.date), sets.setOrder)
-      .limit(limit * 5); // 1日平均5セットと仮定して、limit日分くらい取得
+      .orderBy(desc(workoutSessions.date), sets.setOrder);
 
     // 日付ごとにデータをまとめる
     const groupedHistory: Record<string, typeof historyData> = {};
@@ -408,12 +436,10 @@ export async function getExerciseHistory(
       })),
     }));
 
-    // 日付順にソート（新しい順）して、指定件数だけ返す
+    // 日付順にソート（新しい順）
     return {
       success: true,
-      data: result
-        .sort((a, b) => b.date.getTime() - a.date.getTime())
-        .slice(0, limit),
+      data: result.sort((a, b) => b.date.getTime() - a.date.getTime()),
     };
   } catch (error: unknown) {
     console.error("履歴取得エラー:", error);
