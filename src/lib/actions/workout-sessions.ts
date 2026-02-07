@@ -5,6 +5,9 @@ import { db } from "../../../db"; // データベース接続オブジェクト
 import { workoutSessions, sets, cardioRecords } from "../../../db/schemas/app"; // テーブルスキーマ定義
 import { eq, and, sql } from "drizzle-orm"; // Drizzle ORMのクエリビルダー関数
 import { getAuthUserId } from "@/lib/auth-session-server"; // 認証済みユーザーIDを取得する関数
+import { validateExerciseIdAndAuth } from "@/lib/actions/exercises";
+import { setRecordSchema } from "@/lib/validations";
+import type { SetRecord } from "@/types/workout";
 
 // eq: 等価比較、and: AND条件、sql: 生SQLクエリ実行
 
@@ -156,6 +159,157 @@ export async function getWorkoutSession(
     return {
       success: false,
       error: "セッションの取得に失敗しました",
+    };
+  }
+}
+
+
+/**
+ * セット記録をZodスキーマでバリデーションする
+ */
+function isValidSet(set: SetRecord): boolean {
+  const result = setRecordSchema.safeParse(set);
+  return result.success;
+}
+
+/**
+ * ワークアウトセッションとセット記録をアトミックに保存する
+ */
+export async function saveSessionWithSets(
+  {
+    date,
+    note,
+    durationMinutes,
+    exerciseId,
+    sets: setsToSave,
+  }: {
+    date: string;
+    note?: string | null;
+    durationMinutes?: number | null;
+    exerciseId: string;
+    sets: SetRecord[];
+  }
+): Promise<{
+  success: boolean;
+  error?: string;
+  data?: { id: string; date: string; count: number };
+}> {
+  try {
+    const userId = await getAuthUserId();
+
+    if (!userId) {
+      return {
+        success: false,
+        error: "認証されていません",
+      };
+    }
+
+    // 種目IDのバリデーションと認証チェック
+    const validationResult = await validateExerciseIdAndAuth(
+      userId,
+      exerciseId
+    );
+    if (!validationResult.success) {
+      return {
+        success: false,
+        error: validationResult.error,
+      };
+    }
+
+    const validSets = setsToSave.filter(isValidSet);
+
+    // トランザクション実行
+    // セッション作成/更新とセット保存を一つのトランザクションで行う
+    const result = await db.transaction(async (tx) => {
+      // 1. セッションの取得または作成
+      const [existingSession] = await tx
+        .select()
+        .from(workoutSessions)
+        .where(
+          and(eq(workoutSessions.userId, userId), eq(workoutSessions.date, date))
+        )
+        .limit(1);
+
+      let sessionId: string;
+      let isNewSession = false;
+
+      if (existingSession) {
+        // 更新
+        await tx
+          .update(workoutSessions)
+          .set({
+            note: note ?? existingSession.note,
+            durationMinutes: durationMinutes ?? existingSession.durationMinutes,
+            updatedAt: new Date(),
+          })
+          .where(eq(workoutSessions.id, existingSession.id));
+        sessionId = existingSession.id;
+      } else {
+        // 新規作成
+        const [newSession] = await tx
+          .insert(workoutSessions)
+          .values({
+            userId,
+            date,
+            note: note ?? null,
+            durationMinutes: durationMinutes ?? null,
+          })
+          .returning({ id: workoutSessions.id });
+        sessionId = newSession.id;
+        isNewSession = true;
+      }
+
+      // 2. 既存のセット記録を削除
+      await tx
+        .delete(sets)
+        .where(
+          and(eq(sets.sessionId, sessionId), eq(sets.exerciseId, exerciseId))
+        );
+
+      // 3. 新しい記録を一括挿入
+      if (validSets.length > 0) {
+        const setsToInsert = validSets.map((set) => ({
+          sessionId,
+          exerciseId,
+          setOrder: set.setOrder,
+          weight: (set.weight !== undefined && set.weight !== null
+            ? set.weight
+            : 0
+          ).toString(),
+          reps: set.reps,
+          rpe:
+            set.rpe !== undefined && set.rpe !== null ? set.rpe.toString() : null,
+          isWarmup: set.isWarmup ?? false,
+          restSeconds: set.restSeconds ?? null,
+          notes: set.notes ?? null,
+          failure: set.failure ?? false,
+        }));
+
+        await tx.insert(sets).values(setsToInsert);
+      }
+
+      return { sessionId, isNewSession };
+    });
+
+    // キャッシュ無効化 (トランザクション外で実行)
+    revalidateTag(`workout-session:${userId}:${date}`);
+    if (result.isNewSession) {
+      revalidateTag(`stats:total-days:${userId}`);
+    }
+    revalidateTag("stats:exercise");
+    revalidateTag("stats:big3");
+
+    return {
+      success: true,
+      data: { id: result.sessionId, date, count: validSets.length },
+    };
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "不明なエラー";
+    console.error("セッション・セット一括保存エラー:", errorMessage);
+    return {
+      success: false,
+      error: "保存に失敗しました",
     };
   }
 }

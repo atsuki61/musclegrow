@@ -7,6 +7,7 @@ import {
   getWorkoutSession,
   saveSets as saveSetsToAPI,
   getSets as getSetsFromAPI,
+  saveSessionWithSets,
 } from "@/lib/api";
 import { formatDateToYYYYMMDD } from "@/lib/utils";
 import { useAuthSession } from "@/lib/auth-session-context";
@@ -176,20 +177,13 @@ export function useWorkoutSession({
       // 2. ログインしている場合にのみ、サーバーにも保存しにいく
       if (userId) {
         try {
-          // 2-1. まず「今日」というセッションを作る/取得する
+          // 2-1. アトミックにセッションとセットを保存
           const currentDateStr = formatDateToYYYYMMDD(date);
-          const sessionResult = await saveWorkoutSession({
+          await saveSessionWithSets({
             date: currentDateStr,
+            exerciseId,
+            sets: setsToSave,
           });
-
-          // 2-2. セッションができたら、その中にセット記録を保存する
-          if (sessionResult.success && sessionResult.data) {
-            await saveSetsToAPI(userId, {
-              sessionId: sessionResult.data.id,
-              exerciseId,
-              sets: setsToSave, //セット記録の配列
-            });
-          }
         } catch (error) {
           if (process.env.NODE_ENV === "development") {
             console.warn(
@@ -247,17 +241,10 @@ export function useWorkoutSession({
             const previousDateStr = formatDateToYYYYMMDD(
               previousDateRef.current
             );
-            const sessionResult = await saveWorkoutSession({
-              date: previousDateStr,
-            });
-
-            if (
-              sessionResult.success &&
-              sessionResult.data &&
-              previousExerciseIdRef.current
-            ) {
-              await saveSetsToAPI(userId, {
-                sessionId: sessionResult.data.id,
+            
+            if (previousExerciseIdRef.current) {
+              await saveSessionWithSets({
+                date: previousDateStr,
                 exerciseId: previousExerciseIdRef.current,
                 sets: setsRef.current,
               });

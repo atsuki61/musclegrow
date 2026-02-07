@@ -7,6 +7,7 @@ import {
   getWorkoutSession,
   saveCardioRecords as saveCardioRecordsToAPI,
   getCardioRecords as getCardioRecordsFromAPI,
+  saveSessionWithCardioRecords,
 } from "@/lib/api";
 import { formatDateToYYYYMMDD } from "@/lib/utils";
 import { useAuthSession } from "@/lib/auth-session-context";
@@ -190,17 +191,11 @@ export function useCardioSession({
       if (userId) {
         try {
           const currentDateStr = formatDateToYYYYMMDD(date);
-          const sessionResult = await saveWorkoutSession({
+          await saveSessionWithCardioRecords({
             date: currentDateStr,
+            exerciseId,
+            records: recordsToSave,
           });
-
-          if (sessionResult.success && sessionResult.data) {
-            await saveCardioRecordsToAPI(userId, {
-              sessionId: sessionResult.data.id,
-              exerciseId,
-              records: recordsToSave,
-            });
-          }
         } catch (error) {
           if (process.env.NODE_ENV === "development") {
             console.warn(
@@ -258,17 +253,9 @@ export function useCardioSession({
             const previousDateStr = formatDateToYYYYMMDD(
               previousDateRef.current
             );
-            const sessionResult = await saveWorkoutSession({
-              date: previousDateStr,
-            });
-
-            if (
-              sessionResult.success &&
-              sessionResult.data &&
-              previousExerciseIdRef.current
-            ) {
-              await saveCardioRecordsToAPI(userId, {
-                sessionId: sessionResult.data.id,
+            if (previousExerciseIdRef.current) {
+              await saveSessionWithCardioRecords({
+                date: previousDateStr,
                 exerciseId: previousExerciseIdRef.current,
                 records: recordsRef.current,
               });
