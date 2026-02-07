@@ -59,7 +59,7 @@ async function HistoryMainContent({
   const [bodyPartsResult, sessionResult, exercisesResult] = await Promise.all([
     getBodyPartsByDateRange(userId, monthRange),
     selectedDateStr
-      ? getWorkoutSession(userId, selectedDateStr)
+      ? getWorkoutSession(selectedDateStr)
       : Promise.resolve({ success: true, data: null }),
     getExercises(userId === "" ? null : userId), // getExercisesは null を許容する設計のため
   ]);

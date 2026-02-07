@@ -225,8 +225,8 @@ export async function PUT(request: NextRequest) {
         .returning();
     }
 
-    // プロフィール履歴を保存（更新時のみ）
-    if (existingProfile) {
+    // プロフィール履歴を保存（更新または新規作成成功時）
+    if (updatedProfile) {
       const height = updatedProfile.height
         ? parseFloat(updatedProfile.height)
         : null;
