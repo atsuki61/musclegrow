@@ -11,7 +11,10 @@
       "Bash(npm search:*)",
       "Bash(npm view:*)",
       "WebSearch",
-      "WebFetch(domain:supabase.com)"
+      "WebFetch(domain:supabase.com)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr list:*)"
     ]
   }
 }
