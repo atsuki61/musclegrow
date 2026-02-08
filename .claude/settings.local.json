@@ -14,7 +14,47 @@
       "WebFetch(domain:supabase.com)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(gh pr list:*)"
+      "Bash(gh pr list:*)",
+      "Bash(git branch:*)",
+      "Bash(git worktree remove:*)",
+      "Bash(git worktree:*)",
+      "Bash(git fetch:*)",
+      "Bash(pnpm:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm dev:*)",
+      "Bash(pnpm test:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm test:run:*)",
+      "Bash(pnpm test:coverage:*)",
+      "Bash(gh pr create:*)"
+    ],
+    "mode": "auto",
+    "allowedPrompts": [
+      {
+        "tool": "Bash",
+        "prompt": "run tests"
+      },
+      {
+        "tool": "Bash",
+        "prompt": "build project"
+      },
+      {
+        "tool": "Bash",
+        "prompt": "install dependencies"
+      },
+      {
+        "tool": "Bash",
+        "prompt": "check status"
+      },
+      {
+        "tool": "Bash",
+        "prompt": "run dev server"
+      }
     ]
   }
 }
