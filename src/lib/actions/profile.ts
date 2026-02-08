@@ -318,10 +318,7 @@ export async function getBig3TargetValues(userId: string | null): Promise<{
     console.error("Big3ターゲット取得エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Big3ターゲットの取得に失敗しました",
+      error: "Big3ターゲットの取得に失敗しました",
     };
   }
 }

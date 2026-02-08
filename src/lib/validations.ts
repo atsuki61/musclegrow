@@ -1,16 +1,18 @@
 import { z } from "zod";
+import { BODY_PARTS, MUSCLE_SUB_GROUPS } from "@/constants/body-parts";
+import { WEIGHT_UNIT } from "@/constants/units";
 
 /**
  * トレーニング部位のバリデーションスキーマ（"all"を除く）
  */
 const bodyPartSchema = z.enum([
-  "chest",
-  "back",
-  "legs",
-  "shoulders",
-  "arms",
-  "core",
-  "other",
+  BODY_PARTS.CHEST,
+  BODY_PARTS.BACK,
+  BODY_PARTS.LEGS,
+  BODY_PARTS.SHOULDERS,
+  BODY_PARTS.ARMS,
+  BODY_PARTS.CORE,
+  BODY_PARTS.OTHER,
 ]);
 
 /**
@@ -52,27 +54,27 @@ export const exerciseSchema = z.object({
   bodyPart: bodyPartSchema,
   muscleSubGroup: z
     .enum([
-      "chest_overall",
-      "chest_upper",
-      "chest_lower",
-      "chest_outer",
-      "back_overall",
-      "back_width",
-      "back_thickness",
-      "back_traps",
-      "legs_quads",
-      "legs_hamstrings",
-      "legs_glutes",
-      "legs_calves",
-      "shoulders_overall",
-      "shoulders_front",
-      "shoulders_middle",
-      "shoulders_rear",
-      "arms_biceps",
-      "arms_triceps",
-      "core_rectus",
-      "core_transverse",
-      "core_obliques",
+      MUSCLE_SUB_GROUPS.CHEST_OVERALL,
+      MUSCLE_SUB_GROUPS.CHEST_UPPER,
+      MUSCLE_SUB_GROUPS.CHEST_LOWER,
+      MUSCLE_SUB_GROUPS.CHEST_OUTER,
+      MUSCLE_SUB_GROUPS.BACK_OVERALL,
+      MUSCLE_SUB_GROUPS.BACK_WIDTH,
+      MUSCLE_SUB_GROUPS.BACK_THICKNESS,
+      MUSCLE_SUB_GROUPS.BACK_TRAPS,
+      MUSCLE_SUB_GROUPS.LEGS_QUADS,
+      MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS,
+      MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+      MUSCLE_SUB_GROUPS.LEGS_CALVES,
+      MUSCLE_SUB_GROUPS.SHOULDERS_OVERALL,
+      MUSCLE_SUB_GROUPS.SHOULDERS_FRONT,
+      MUSCLE_SUB_GROUPS.SHOULDERS_MIDDLE,
+      MUSCLE_SUB_GROUPS.SHOULDERS_REAR,
+      MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+      MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+      MUSCLE_SUB_GROUPS.CORE_RECTUS,
+      MUSCLE_SUB_GROUPS.CORE_TRANSVERSE,
+      MUSCLE_SUB_GROUPS.CORE_OBLIQUES,
     ])
     .optional(),
   primaryEquipment: equipmentTypeSchema.optional(), // メインで使う器具。省略可能
@@ -106,7 +108,7 @@ export const setRecordSchema = z
     weight: z
       .number()
       .nonnegative("重量は0以上で入力してください")
-      .max(1000, "重量は1000kg以下で入力してください")
+      .max(1000, `重量は1000${WEIGHT_UNIT}以下で入力してください`)
       .optional(),
     reps: z
       .number("回数は数値で入力してください")
@@ -238,8 +240,8 @@ export const updateProfileSchema = z.object({
     .optional(),
   weight: z
     .number()
-    .min(30, "体重は30kg以上で入力してください")
-    .max(300, "体重は300kg以下で入力してください")
+    .min(30, `体重は30${WEIGHT_UNIT}以上で入力してください`)
+    .max(300, `体重は300${WEIGHT_UNIT}以下で入力してください`)
     .optional(),
   bodyFat: z
     .number()
@@ -248,23 +250,23 @@ export const updateProfileSchema = z.object({
     .optional(),
   muscleMass: z
     .number()
-    .min(0, "筋肉量は0kg以上で入力してください")
-    .max(150, "筋肉量は150kg以下で入力してください")
+    .min(0, `筋肉量は0${WEIGHT_UNIT}以上で入力してください`)
+    .max(150, `筋肉量は150${WEIGHT_UNIT}以下で入力してください`)
     .optional(),
   big3TargetBenchPress: z
     .number()
-    .min(0, "ベンチプレスの目標重量は0kg以上で入力してください")
-    .max(1000, "ベンチプレスの目標重量は1000kg以下で入力してください")
+    .min(0, `ベンチプレスの目標重量は0${WEIGHT_UNIT}以上で入力してください`)
+    .max(1000, `ベンチプレスの目標重量は1000${WEIGHT_UNIT}以下で入力してください`)
     .optional(),
   big3TargetSquat: z
     .number()
-    .min(0, "スクワットの目標重量は0kg以上で入力してください")
-    .max(1000, "スクワットの目標重量は1000kg以下で入力してください")
+    .min(0, `スクワットの目標重量は0${WEIGHT_UNIT}以上で入力してください`)
+    .max(1000, `スクワットの目標重量は1000${WEIGHT_UNIT}以下で入力してください`)
     .optional(),
   big3TargetDeadlift: z
     .number()
-    .min(0, "デッドリフトの目標重量は0kg以上で入力してください")
-    .max(1000, "デッドリフトの目標重量は1000kg以下で入力してください")
+    .min(0, `デッドリフトの目標重量は0${WEIGHT_UNIT}以上で入力してください`)
+    .max(1000, `デッドリフトの目標重量は1000${WEIGHT_UNIT}以下で入力してください`)
     .optional(),
 });
 

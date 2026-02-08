@@ -2,48 +2,14 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format, isAfter, startOfDay } from "date-fns";
 import type { BodyPart, Exercise } from "@/types/workout";
+import { BODY_PARTS } from "@/constants/body-parts";
+export {
+  BODY_PART_LABELS,
+  BODY_PART_COLORS,
+  BODY_PART_COLOR_HEX,
+} from "@/constants/body-parts";
 
-/**
- * 部位名のラベル定義
- */
-export const BODY_PART_LABELS: Record<BodyPart, string> = {
-  all: "全て",
-  chest: "胸",
-  back: "背中",
-  legs: "脚",
-  shoulders: "肩",
-  arms: "腕",
-  core: "腹筋",
-  other: "その他",
-};
 
-/**
- * 部位別の色定義（Tailwind CSSクラス）
- */
-export const BODY_PART_COLORS: Record<BodyPart, string> = {
-  all: "bg-gray-100",
-  chest: "bg-red-500",
-  back: "bg-blue-500",
-  legs: "bg-green-500",
-  shoulders: "bg-yellow-500",
-  arms: "bg-purple-500",
-  core: "bg-orange-500",
-  other: "bg-gray-500",
-};
-
-/**
- * 部位別の色定義（HEX値）
- * カレンダーの描画に使用
- */
-export const BODY_PART_COLOR_HEX: Record<Exclude<BodyPart, "all">, string> = {
-  chest: "#ef4444",
-  back: "#3b82f6",
-  legs: "#22c55e",
-  shoulders: "#eab308",
-  arms: "#a855f7",
-  core: "#f97316",
-  other: "#6b7280",
-};
 
 /**
  * HEX色をRGBAに変換する関数
@@ -69,7 +35,7 @@ export function cn(...inputs: ClassValue[]) {
  * 有酸素種目かどうかを判定する
  */
 export function isCardioExercise(exercise: Exercise): boolean {
-  return exercise.bodyPart === "other";
+  return exercise.bodyPart === BODY_PARTS.OTHER;
 }
 
 /**

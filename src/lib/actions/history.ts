@@ -210,13 +210,7 @@ export async function getSessionDetails(
     };
   } catch (error: unknown) {
     console.error("セッション詳細取得エラー:", error);
-
-    const message =
-      error instanceof Error
-        ? error.message
-        : "セッション詳細の取得に失敗しました";
-
-    return { success: false, error: message };
+    return { success: false, error: "セッション詳細の取得に失敗しました" };
   }
 }
 
@@ -317,16 +311,9 @@ export async function getBodyPartsByDateRange(
     };
   } catch (error: unknown) {
     console.error("部位一覧取得エラー:", error);
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : typeof error === "string"
-        ? error
-        : "部位一覧の取得に失敗しました";
-
     return {
       success: false,
-      error: errorMessage,
+      error: "部位一覧の取得に失敗しました",
     };
   }
 }

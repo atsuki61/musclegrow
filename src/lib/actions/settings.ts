@@ -41,8 +41,7 @@ export async function deleteUserAllData(userId: string): Promise<{
     console.error("データ削除エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "データの削除に失敗しました",
+      error: "データの削除に失敗しました",
     };
   }
 }
@@ -69,10 +68,7 @@ export async function deleteUserAccount(userId: string): Promise<{
     console.error("アカウント削除エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "アカウントの削除に失敗しました",
+      error: "アカウントの削除に失敗しました",
     };
   }
 }
@@ -203,8 +199,7 @@ export async function unlinkGoogleAccount(userId: string): Promise<{
     console.error("Google連携解除エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "連携の解除に失敗しました",
+      error: "連携の解除に失敗しました",
     };
   }
 }

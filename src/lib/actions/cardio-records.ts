@@ -155,10 +155,7 @@ export async function saveCardioRecords(
     console.error("有酸素記録保存エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "有酸素記録の保存に失敗しました",
+      error: "有酸素記録の保存に失敗しました",
     };
   }
 }
@@ -402,10 +399,7 @@ export async function getCardioRecords(
     console.error("有酸素記録取得エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "有酸素記録の取得に失敗しました",
+      error: "有酸素記録の取得に失敗しました",
     };
   }
 }
@@ -498,10 +492,7 @@ export async function getLatestCardioRecord(
     console.error("最新有酸素記録取得エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "最新有酸素記録の取得に失敗しました",
+      error: "最新有酸素記録の取得に失敗しました",
     };
   }
 }

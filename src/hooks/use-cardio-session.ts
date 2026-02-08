@@ -3,9 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { CardioRecord } from "@/types/workout";
 import {
-  saveWorkoutSession,
   getWorkoutSession,
-  saveCardioRecords as saveCardioRecordsToAPI,
   getCardioRecords as getCardioRecordsFromAPI,
   saveSessionWithCardioRecords,
 } from "@/lib/api";

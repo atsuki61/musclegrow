@@ -4,6 +4,7 @@
 
 import { Weight, Activity, Heart, TrendingUp } from "lucide-react";
 import type { ProfileChartType } from "@/types/stats";
+import { WEIGHT_UNIT } from "@/constants/units";
 
 export const CHART_LABELS: Record<ProfileChartType, string> = {
   weight: "体重の推移",
@@ -13,9 +14,9 @@ export const CHART_LABELS: Record<ProfileChartType, string> = {
 };
 
 export const CHART_UNITS: Record<ProfileChartType, string> = {
-  weight: "kg",
+  weight: WEIGHT_UNIT,
   bodyFat: "%",
-  muscleMass: "kg",
+  muscleMass: WEIGHT_UNIT,
   bmi: "",
 };
 

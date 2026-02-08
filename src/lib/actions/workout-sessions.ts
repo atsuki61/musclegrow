@@ -120,9 +120,7 @@ export async function getWorkoutSession(
       },
     };
   } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "不明なエラー";
-    console.error("セッション取得エラー:", errorMessage);
+    console.error("セッション取得エラー:", error);
     return {
       success: false,
       error: "セッションの取得に失敗しました",
@@ -271,9 +269,7 @@ export async function saveSessionWithSets(
       data: { id: result.sessionId, date, count: validSets.length },
     };
   } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "不明なエラー";
-    console.error("セッション・セット一括保存エラー:", errorMessage);
+    console.error("セッション・セット一括保存エラー:", error);
     return {
       success: false,
       error: "保存に失敗しました",
@@ -363,9 +359,10 @@ export async function getLastTrainedDatesFromDB(): Promise<{
 
     return { success: true, data: map };
   } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "不明なエラー";
-    console.error("最終トレーニング日取得エラー:", errorMessage);
-    return { success: false, error: "データの取得に失敗しました" };
+    console.error("最終トレーニング日取得エラー:", error);
+    return {
+      success: false,
+      error: "データの取得に失敗しました",
+    };
   }
 }
