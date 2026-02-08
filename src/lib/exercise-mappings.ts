@@ -1,29 +1,35 @@
-import type { Exercise, MuscleSubGroup } from "@/types/workout";
+import type { Exercise } from "@/types/workout";
+import {
+  MUSCLE_SUB_GROUPS,
+  MUSCLE_SUB_GROUP_LABELS,
+} from "@/constants/body-parts";
+
+export { MUSCLE_SUB_GROUP_LABELS };
 
 /**
  * サブ分類のマッピング（日本語名 → DB用の値）
  * mock-exercises.ts と seed.ts で共通使用
  */
 export const SUB_GROUP_MAP: Record<string, string> = {
-  全体: "chest_overall",
-  上部: "chest_upper",
-  下部: "chest_lower",
-  外側: "chest_outer",
-  幅: "back_width",
-  厚み: "back_thickness",
-  "僧帽筋・下部": "back_traps",
-  大腿四頭筋: "legs_quads",
-  ハムストリングス: "legs_hamstrings",
-  臀筋: "legs_glutes",
-  下腿: "legs_calves",
-  前部: "shoulders_front",
-  中部: "shoulders_middle",
-  後部: "shoulders_rear",
-  上腕二頭筋: "arms_biceps",
-  上腕三頭筋: "arms_triceps",
-  腹直筋: "core_rectus",
-  腹横筋: "core_transverse",
-  腹斜筋: "core_obliques",
+  全体: MUSCLE_SUB_GROUPS.CHEST_OVERALL,
+  上部: MUSCLE_SUB_GROUPS.CHEST_UPPER,
+  下部: MUSCLE_SUB_GROUPS.CHEST_LOWER,
+  外側: MUSCLE_SUB_GROUPS.CHEST_OUTER,
+  幅: MUSCLE_SUB_GROUPS.BACK_WIDTH,
+  厚み: MUSCLE_SUB_GROUPS.BACK_THICKNESS,
+  "僧帽筋・下部": MUSCLE_SUB_GROUPS.BACK_TRAPS,
+  大腿四頭筋: MUSCLE_SUB_GROUPS.LEGS_QUADS,
+  ハムストリングス: MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS,
+  臀筋: MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+  下腿: MUSCLE_SUB_GROUPS.LEGS_CALVES,
+  前部: MUSCLE_SUB_GROUPS.SHOULDERS_FRONT,
+  中部: MUSCLE_SUB_GROUPS.SHOULDERS_MIDDLE,
+  後部: MUSCLE_SUB_GROUPS.SHOULDERS_REAR,
+  上腕二頭筋: MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+  上腕三頭筋: MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  腹直筋: MUSCLE_SUB_GROUPS.CORE_RECTUS,
+  腹横筋: MUSCLE_SUB_GROUPS.CORE_TRANSVERSE,
+  腹斜筋: MUSCLE_SUB_GROUPS.CORE_OBLIQUES,
 };
 
 /**
@@ -157,36 +163,4 @@ export const NAME_EN_MAP: Record<string, string> = {
   スピンバイク: "Spin Bike",
 };
 
-/**
- * サブ分類のラベル定義（DB用の値 → 日本語ラベル）
- * body-part-card.tsx で使用
- */
-export const MUSCLE_SUB_GROUP_LABELS: Record<MuscleSubGroup, string> = {
-  // 胸
-  chest_overall: "全体",
-  chest_upper: "上部",
-  chest_lower: "下部",
-  chest_outer: "外側",
-  // 背中
-  back_overall: "全体",
-  back_width: "幅",
-  back_thickness: "厚み",
-  back_traps: "僧帽筋・下部（首の付け根～肩）",
-  // 脚
-  legs_quads: "大腿四頭筋（太ももの前側）",
-  legs_hamstrings: "ハムストリングス（太ももの後側）",
-  legs_glutes: "臀筋（お尻）",
-  legs_calves: "下腿（ふくらはぎ）",
-  // 肩
-  shoulders_overall: "全体",
-  shoulders_front: "前部",
-  shoulders_middle: "中部",
-  shoulders_rear: "後部",
-  // 腕
-  arms_biceps: "上腕二頭筋（力こぶ）",
-  arms_triceps: "上腕三頭筋（二の腕の後ろ）",
-  // 腹筋
-  core_rectus: "腹直筋（お腹の前側）",
-  core_transverse: "腹横筋（お腹の深い部分）",
-  core_obliques: "腹斜筋（お腹の横側）",
-};
+

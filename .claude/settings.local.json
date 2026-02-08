@@ -3,7 +3,15 @@
     "allow": [
       "Bash(while read hash)",
       "Bash(do echo \"=== $hash ===\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(where:*)",
+      "Bash(dir:*)",
+      "Bash(claude mcp:*)",
+      "Bash(npx:*)",
+      "Bash(npm search:*)",
+      "Bash(npm view:*)",
+      "WebSearch",
+      "WebFetch(domain:supabase.com)"
     ]
   }
 }

@@ -140,10 +140,7 @@ export async function saveSets(
     console.error("セット記録保存エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "セット記録の保存に失敗しました",
+      error: "セット記録の保存に失敗しました",
     };
   }
 }
@@ -228,10 +225,7 @@ export async function getSets(
     console.error("セット記録取得エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "セット記録の取得に失敗しました",
+      error: "セット記録の取得に失敗しました",
     };
   }
 }

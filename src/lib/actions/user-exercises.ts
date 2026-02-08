@@ -66,8 +66,7 @@ export async function getExercisesWithUserPreferences(userId: string): Promise<{
     console.error("種目取得エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "種目の取得に失敗しました",
+      error: "種目の取得に失敗しました",
     };
   }
 }
@@ -114,8 +113,7 @@ export async function toggleExerciseVisibility(
     console.error("設定保存エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "設定の保存に失敗しました",
+      error: "設定の保存に失敗しました",
     };
   }
 }

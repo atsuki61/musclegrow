@@ -79,10 +79,7 @@ export async function getProfileHistory(
     console.error("プロフィール履歴取得エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "プロフィール履歴の取得に失敗しました",
+      error: "プロフィール履歴の取得に失敗しました",
     };
   }
 }
@@ -181,10 +178,7 @@ export async function getBig3ProgressData(
     console.error("Big3推移データ取得エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Big3推移データの取得に失敗しました",
+      error: "Big3推移データの取得に失敗しました",
     };
   }
 }
@@ -249,10 +243,7 @@ export async function getExerciseProgressData(
     console.error("種目推移データ取得エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "種目推移データの取得に失敗しました",
+      error: "種目推移データの取得に失敗しました",
     };
   }
 }

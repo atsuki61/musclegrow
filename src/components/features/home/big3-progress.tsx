@@ -133,7 +133,6 @@ export function Big3Progress({
                   {/* プログレスバー本体（幅が変わるコンテナ） */}
                   <div
                     className="h-full rounded-full relative transition-all duration-1500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                    // ▼▼▼ 修正: ここでの背景色(bg-linear...)を削除し、幅指定だけにする ▼▼▼
                     style={{ width: mounted ? `${progress}%` : "0%" }}
                   >
                     {/*  レイヤー1: ベースカラー (不透明)  */}

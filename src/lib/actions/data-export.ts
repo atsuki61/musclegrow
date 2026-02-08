@@ -129,10 +129,7 @@ export async function exportAllData(userId: string): Promise<{
     console.error("データエクスポートエラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "データのエクスポートに失敗しました",
+      error: "データのエクスポートに失敗しました",
     };
   }
 }

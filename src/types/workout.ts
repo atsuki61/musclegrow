@@ -4,15 +4,16 @@
  * トレーニング部位の型定義
  * UI用の"all"と"other"を含む
  */
-export type BodyPart =
-  | "all"
-  | "chest"
-  | "back"
-  | "legs"
-  | "shoulders"
-  | "arms"
-  | "core" //腹筋
-  | "other"; //その他
+import {
+  type BodyPartValue,
+  type MuscleSubGroupValue,
+} from "@/constants/body-parts";
+
+/**
+ * トレーニング部位の型定義
+ * UI用の"all"と"other"を含む
+ */
+export type BodyPart = BodyPartValue;
 
 /**
  * 機材タイプ
@@ -29,34 +30,7 @@ export type EquipmentType =
 /**
  * 部位内サブ分類（目的別）
  */
-export type MuscleSubGroup =
-  // 胸
-  | "chest_overall" // 大胸筋全体
-  | "chest_upper" // 大胸筋上部
-  | "chest_lower" // 大胸筋下部
-  | "chest_outer" // 大胸筋外側
-  // 背中
-  | "back_overall" // 広背筋全体
-  | "back_width" // 広背筋幅
-  | "back_thickness" // 広背筋厚み
-  | "back_traps" // 僧帽筋・下部
-  // 脚
-  | "legs_quads" // 大腿四頭筋
-  | "legs_hamstrings" // ハムストリングス
-  | "legs_glutes" // 臀筋
-  | "legs_calves" // 下腿
-  // 肩
-  | "shoulders_overall" // 三角筋全体
-  | "shoulders_front" // 三角筋前部
-  | "shoulders_middle" // 三角筋中部
-  | "shoulders_rear" // 三角筋後部
-  // 腕
-  | "arms_biceps" // 上腕二頭筋
-  | "arms_triceps" // 上腕三頭筋
-  // 腹筋
-  | "core_rectus" // 腹直筋
-  | "core_transverse" // 腹横筋
-  | "core_obliques"; // 腹斜筋
+export type MuscleSubGroup = MuscleSubGroupValue;
 
 /**
  * 種目の表示階層

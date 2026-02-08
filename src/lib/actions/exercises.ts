@@ -169,8 +169,7 @@ export async function saveExercise(
     console.error("種目保存エラー:", error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "種目の保存に失敗しました",
+      error: "種目の保存に失敗しました",
     };
   }
 }

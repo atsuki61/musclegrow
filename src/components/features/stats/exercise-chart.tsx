@@ -21,6 +21,7 @@ import {
 import { useDataPointCoordinates } from "./profile-chart.hooks";
 import { calculateYAxisDomain } from "./profile-chart.utils";
 import { TrendingUp } from "lucide-react";
+import { WEIGHT_UNIT } from "@/constants/units";
 // 削除: import { motion } from "framer-motion";
 
 interface CustomizedProps {
@@ -265,7 +266,7 @@ export function ExerciseChart({
               x={dataPointCoordinates[selectedIndex].cx}
               date={selectedData.fullDate}
               value={selectedData.value}
-              unit="kg"
+              unit={WEIGHT_UNIT}
               containerWidth={containerRef.current?.offsetWidth || 0}
               color={primaryColor}
             />
@@ -281,7 +282,7 @@ export function ExerciseChart({
         </span>
         <div className="flex items-center gap-3">
           <span className="text-lg font-bold" style={{ color: primaryColor }}>
-            {latestData.value.toFixed(1)}kg
+            {latestData.value.toFixed(1)}{WEIGHT_UNIT}
           </span>
           <span className="text-xs" style={{ color: textMutedColor }}>
             {format(new Date(latestData.fullDate), "M月d日")}
