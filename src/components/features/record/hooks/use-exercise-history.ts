@@ -25,10 +25,11 @@ export function useExerciseHistory(exerciseId: string) {
     const fetchHistory = async () => {
       setIsLoading(true);
       try {
+
         if (userId) {
           // ログインユーザー: サーバーから取得
-          const result = await getExerciseHistory(userId, exerciseId);
-          if (result.success && result.data) {
+          const result = await getExerciseHistory({ exerciseId });
+          if (result.data) {
             setHistory(result.data);
           }
         } else {

@@ -11,99 +11,66 @@ import type { SetRecord } from "@/types/workout";
 
 // eq: 等価比較、and: AND条件、sql: 生SQLクエリ実行
 
+
+import { authActionClient } from "@/lib/safe-action";
+import { z } from "zod";
+
+const saveWorkoutSessionSchema = z.object({
+  date: z.string(),
+  note: z.string().optional().nullable(),
+  durationMinutes: z.number().optional().nullable(),
+});
+
 /**
  * ワークアウトセッションを保存または更新する
- * @param sessionData セッションデータ
  */
-export async function saveWorkoutSession(
-  {
-    date,
-    note,
-    durationMinutes,
-  }: {
-    date: string;
-    note?: string | null;
-    durationMinutes?: number | null;
-  }
-): Promise<{
-  success: boolean;
-  error?: string;
-  data?: { id: string; date: string };
-}> {
-  try {
-    // 認証済みユーザーIDを取得
-    const userId = await getAuthUserId();
-
-    if (!userId) {
-      return {
-        success: false,
-        error: "認証されていません",
-      };
-    }
+export const saveWorkoutSession = authActionClient
+  .schema(saveWorkoutSessionSchema)
+  .action(async ({ parsedInput, ctx: { userId } }) => {
+    const { date, note, durationMinutes } = parsedInput;
 
     // 1. 「その日」のセッションが既に存在するかチェック
-    // Drizzle ORMのクエリビルダーを使用してデータベースを検索
     const [existingSession] = await db
-      .select() // 既存セッションの全カラムを取得
-      .from(workoutSessions) // workoutSessionsテーブルから
+      .select()
+      .from(workoutSessions)
       .where(
-        // WHERE条件: userIdが一致 AND dateが一致
         and(eq(workoutSessions.userId, userId), eq(workoutSessions.date, date))
       )
-      .limit(1); // 最大1件のみ取得（配列の最初の要素を取得）
+      .limit(1);
 
     let sessionId: string;
 
     if (existingSession) {
-      // 2a. 既にセッションが存在する場合は更新
-      // メモやトレーニング時間が変更された可能性があるため
+      // 2a. 更新
       await db
-        .update(workoutSessions) // UPDATE文を実行
+        .update(workoutSessions)
         .set({
-          // ?? は null合体演算子: 左側がnull/undefinedなら右側の値を使用
           note: note ?? existingSession.note,
           durationMinutes: durationMinutes ?? existingSession.durationMinutes,
-          updatedAt: new Date(), // 更新日時を現在時刻に設定
+          updatedAt: new Date(),
         })
-        .where(eq(workoutSessions.id, existingSession.id)); // 該当するIDのレコードを更新
+        .where(eq(workoutSessions.id, existingSession.id));
       sessionId = existingSession.id;
     } else {
-      // 2b. セッションが存在しない場合は新規作成
+      // 2b. 新規作成
       const [newSession] = await db
-        .insert(workoutSessions) // INSERT文を実行
+        .insert(workoutSessions)
         .values({
           userId,
           date,
-          note: note ?? null, // null合体演算子でnullを設定
+          note: note ?? null,
           durationMinutes: durationMinutes ?? null,
         })
-        .returning({ id: workoutSessions.id }); // 作成したレコードのIDを返す
+        .returning({ id: workoutSessions.id });
       sessionId = newSession.id;
 
-      // 新規作成時のみ、総トレーニング日数のキャッシュを無効化
-      // これにより次回取得時に最新の日数が反映される
       revalidateTag(`stats:total-days:${userId}`);
     }
 
-    // セッション情報のキャッシュを無効化（次回取得時に最新データを取得）
     revalidateTag(`workout-session:${userId}:${date}`);
 
-    return {
-      success: true,
-      data: { id: sessionId, date },
-    };
-  } catch (error: unknown) {
-    // エラーハンドリング: unknown型のエラーを安全に処理
-    // error instanceof Error でError型かチェックし、メッセージを取得
-    const errorMessage =
-      error instanceof Error ? error.message : "不明なエラー";
-    console.error("セッション保存エラー:", errorMessage);
-    return {
-      success: false,
-      error: "セッションの保存に失敗しました",
-    };
-  }
-}
+    return { id: sessionId, date };
+  });
 
 /**
  * 指定日付のワークアウトセッションを取得する

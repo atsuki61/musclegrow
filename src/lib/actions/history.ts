@@ -332,43 +332,23 @@ export async function getBodyPartsByDateRange(
 }
 
 
+
+import { authActionClient } from "@/lib/safe-action";
+import { z } from "zod";
+
+const getExerciseHistorySchema = z.object({
+  exerciseId: z.string(),
+  limit: z.number().default(10),
+});
+
 /**
  * 指定種目のトレーニング履歴を取得する
- * @param userId ユーザーID
- * @param exerciseId 種目ID
- * @param limit 取得する日付数（デフォルト: 10）
- * @returns 日付ごとにグループ化されたセット記録の配列
  */
-export async function getExerciseHistory(
-  userId: string,
-  exerciseId: string,
-  limit = 10
-): Promise<{
-  success: boolean;
-  error?: string;
-  data?: Array<{
-    date: Date;
-    sets: Array<{
-      weight: number | null;
-      reps: number;
-      duration: null;
-      setOrder: number;
-    }>;
-  }>;
-}> {
-  try {
-    if (!userId || userId === "") {
-      return {
-        success: false,
-        error: "ユーザーIDが無効です",
-      };
-    }
-
+export const getExerciseHistory = authActionClient
+  .schema(getExerciseHistorySchema)
+  .action(async ({ parsedInput: { exerciseId, limit }, ctx: { userId } }) => {
     if (exerciseId.startsWith("mock-")) {
-      return {
-        success: true,
-        data: [],
-      };
+      return [];
     }
 
     // 1. 最新の日付を取得する（指定件数分）
@@ -385,17 +365,12 @@ export async function getExerciseHistory(
       .limit(limit);
 
     if (datesResult.length === 0) {
-      return {
-        success: true,
-        data: [],
-      };
+      return [];
     }
 
     const targetDates = datesResult.map((d) => d.date);
 
     // 2. 取得した日付のデータを取得する
-    // inArrayを使って対象日付のデータのみを効率的に取得
-    // DrizzleのinArrayは空配列を受け取るとエラーになる可能性があるため、上記でlengthチェックを入れている
     const historyData = await db
       .select({
         date: workoutSessions.date,
@@ -437,19 +412,5 @@ export async function getExerciseHistory(
     }));
 
     // 日付順にソート（新しい順）
-    return {
-      success: true,
-      data: result.sort((a, b) => b.date.getTime() - a.date.getTime()),
-    };
-  } catch (error: unknown) {
-    console.error("履歴取得エラー:", error);
-
-    const message =
-      error instanceof Error ? error.message : "履歴の取得に失敗しました";
-
-    return {
-      success: false,
-      error: message,
-    };
-  }
-}
+    return result.sort((a, b) => b.date.getTime() - a.date.getTime());
+  });

@@ -62,6 +62,43 @@ export async function getExercises(userId: string | null): Promise<{
   return await getExercisesAction(userId);
 }
 
+
+/**
+ * Safe Actionのレスポンスを既存の形式に変換するヘルパー
+ */
+
+function handleSafeActionResult<T>(result: {
+  data?: T;
+  serverError?: string;
+  validationErrors?: Record<string, unknown> | undefined;
+}): { success: boolean; error?: string; data?: T } {
+  if (result.serverError) {
+    return { success: false, error: result.serverError };
+  }
+  if (result.validationErrors) {
+    // バリデーションエラーの最初のメッセージを返す
+    // Zodのフラット化されたエラー構造などを考慮して、最初のエラー文字列を探す
+    const firstErrorKey = Object.keys(result.validationErrors)[0];
+    const errorValue = result.validationErrors[firstErrorKey];
+    
+    let errorMessage = "入力内容に誤りがあります";
+
+    if (Array.isArray(errorValue)) {
+      errorMessage = errorValue[0] ?? errorMessage;
+
+    } else if (typeof errorValue === 'object' && errorValue !== null && '_errors' in errorValue) {
+       // @ts-expect-error Zodのエラー型定義が複雑なため
+       errorMessage = errorValue._errors?.[0] ?? errorMessage;
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+  return { success: true, data: result.data };
+}
+
 /**
  * ワークアウトセッションを保存または更新する
  */
@@ -78,11 +115,12 @@ export async function saveWorkoutSession({
   error?: string;
   data?: { id: string; date: string };
 }> {
-  return await saveWorkoutSessionAction({
+  const result = await saveWorkoutSessionAction({
     date,
     note,
     durationMinutes,
   });
+  return handleSafeActionResult(result);
 }
 
 /**
@@ -304,6 +342,7 @@ export async function getBodyPartsByDateRange(
   return await getBodyPartsByDateRangeAction(userId, { startDate, endDate });
 }
 
+
 /**
  * 指定セッション・種目のセット記録を削除する
  * @param userId ユーザーID
@@ -321,7 +360,9 @@ export async function deleteExerciseSets(
   success: boolean;
   error?: string;
 }> {
-  return await deleteExerciseSetsAction(userId, { sessionId, exerciseId });
+  const result = await deleteExerciseSetsAction({ sessionId, exerciseId });
+  const { success, error } = handleSafeActionResult(result);
+  return { success, error };
 }
 
 /**
@@ -341,5 +382,7 @@ export async function deleteCardioRecords(
   success: boolean;
   error?: string;
 }> {
-  return await deleteCardioRecordsAction(userId, { sessionId, exerciseId });
+  const result = await deleteCardioRecordsAction({ sessionId, exerciseId });
+  const { success, error } = handleSafeActionResult(result);
+  return { success, error };
 }
