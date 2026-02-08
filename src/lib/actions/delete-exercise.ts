@@ -37,20 +37,21 @@ async function deleteSessionIfEmpty(userId: string, sessionId: string) {
   revalidateTag(`history-session`);
 }
 
+
+import { authActionClient } from "@/lib/safe-action";
+import { z } from "zod";
+
+const deleteExerciseSchema = z.object({
+  sessionId: z.string(),
+  exerciseId: z.string(),
+});
+
 /**
  * 指定セッション・種目のセット記録を削除する
  */
-export async function deleteExerciseSets(
-  userId: string,
-  {
-    sessionId,
-    exerciseId,
-  }: {
-    sessionId: string;
-    exerciseId: string;
-  }
-): Promise<{ success: boolean; error?: string }> {
-  try {
+export const deleteExerciseSets = authActionClient
+  .schema(deleteExerciseSchema)
+  .action(async ({ parsedInput: { sessionId, exerciseId }, ctx: { userId } }) => {
     await db
       .delete(sets)
       .where(
@@ -61,32 +62,14 @@ export async function deleteExerciseSets(
     await deleteSessionIfEmpty(userId, sessionId);
 
     return { success: true };
-  } catch (error: unknown) {
-    console.error("セット記録削除エラー:", error);
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "セット記録の削除に失敗しました",
-    };
-  }
-}
+  });
 
 /**
  * 指定セッション・種目の有酸素記録を削除する
  */
-export async function deleteCardioRecords(
-  userId: string,
-  {
-    sessionId,
-    exerciseId,
-  }: {
-    sessionId: string;
-    exerciseId: string;
-  }
-): Promise<{ success: boolean; error?: string }> {
-  try {
+export const deleteCardioRecords = authActionClient
+  .schema(deleteExerciseSchema)
+  .action(async ({ parsedInput: { sessionId, exerciseId }, ctx: { userId } }) => {
     await db
       .delete(cardioRecords)
       .where(
@@ -100,14 +83,4 @@ export async function deleteCardioRecords(
     await deleteSessionIfEmpty(userId, sessionId);
 
     return { success: true };
-  } catch (error: unknown) {
-    console.error("有酸素記録削除エラー:", error);
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "有酸素記録の削除に失敗しました",
-    };
-  }
-}
+  });

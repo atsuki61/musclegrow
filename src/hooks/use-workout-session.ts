@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { SetRecord } from "@/types/workout";
 import {
+
   saveWorkoutSession,
   getWorkoutSession,
-  saveSets as saveSetsToAPI,
   getSets as getSetsFromAPI,
   saveSessionWithSets,
 } from "@/lib/api";
