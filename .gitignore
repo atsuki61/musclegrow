@@ -43,6 +43,7 @@ next-env.d.ts
 
 # mcp
 /.cursor/mcp.json
+.mcp.json
 
 # docx
 /docx
