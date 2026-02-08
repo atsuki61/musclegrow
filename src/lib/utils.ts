@@ -9,8 +9,6 @@ export {
   BODY_PART_COLOR_HEX,
 } from "@/constants/body-parts";
 
-
-
 /**
  * HEX色をRGBAに変換する関数
  * @param hex HEX色コード（例: "#ef4444"）
