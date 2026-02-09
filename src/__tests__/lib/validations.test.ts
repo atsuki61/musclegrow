@@ -286,7 +286,7 @@ describe("validateItems", () => {
       consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       // When: バリデーションを実行
-      const result = validateItems(items, testSchema, "テスト項目");
+      validateItems(items, testSchema, "テスト項目");
 
       // Then: console.errorが呼ばれる
       expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -312,7 +312,7 @@ describe("validateItems", () => {
       consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       // When: バリデーションを実行
-      const result = validateItems(items, testSchema, "テスト項目");
+      validateItems(items, testSchema, "テスト項目");
 
       // Then: console.errorが呼ばれない
       expect(consoleErrorSpy).not.toHaveBeenCalled();

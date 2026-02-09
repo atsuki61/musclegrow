@@ -2,7 +2,7 @@
  * exercises.ts のテスト
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Exercise } from "@/types/workout";
 
 // モックの設定

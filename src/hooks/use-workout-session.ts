@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { SetRecord } from "@/types/workout";
 import {
-
-  saveWorkoutSession,
   getWorkoutSession,
   getSets as getSetsFromAPI,
   saveSessionWithSets,

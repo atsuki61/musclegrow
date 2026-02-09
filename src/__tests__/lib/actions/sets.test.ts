@@ -232,29 +232,6 @@ describe("sets", () => {
     describe("正常系: セット取得", () => {
       it("セット記録を取得できる", async () => {
         // Given: セッションOK、セットあり
-        const mockSelect = vi.fn(() => ({
-          from: vi.fn(() => ({
-            where: vi.fn(() => ({
-              limit: vi.fn(() => Promise.resolve([{ userId: "user1" }])),
-              orderBy: vi.fn(() =>
-                Promise.resolve([
-                  {
-                    id: "set1",
-                    setOrder: 1,
-                    weight: "60",
-                    reps: 10,
-                    rpe: "8",
-                    isWarmup: false,
-                    restSeconds: 90,
-                    notes: null,
-                    failure: false,
-                  },
-                ])
-              ),
-            })),
-          })),
-        }));
-
         let callCount = 0;
         (db.select as any) = vi.fn(() => {
           callCount++;
