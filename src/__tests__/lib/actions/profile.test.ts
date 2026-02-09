@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // モックの設定
-vi.mock("../../../db", () => ({
+vi.mock("../../../../db", () => ({
   db: {
     select: vi.fn(),
     insert: vi.fn(),
@@ -28,8 +28,8 @@ vi.mock("@/lib/utils/bmi", () => ({
 }));
 
 // モックした後にインポート
-import { getProfile, updateProfile, getBig3TargetValues } from "./profile";
-import { db } from "../../../db";
+import { getProfile, updateProfile, getBig3TargetValues } from "@/lib/actions/profile";
+import { db } from "../../../../db";
 import { getAuthUserId } from "@/lib/auth-session-server";
 
 describe("profile", () => {

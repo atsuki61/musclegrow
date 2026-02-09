@@ -6,7 +6,7 @@ import { describe, it, expect } from "vitest";
 import {
   isBodyCompositionValid,
   calculateBodyComposition,
-} from "./body-composition";
+} from "@/lib/utils/body-composition";
 
 describe("isBodyCompositionValid", () => {
   describe("正常系: 有効なデータ", () => {

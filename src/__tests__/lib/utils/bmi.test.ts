@@ -5,7 +5,7 @@ import {
   getBMIResult,
   getBMIPercentage,
   type BMIResult,
-} from "./bmi";
+} from "@/lib/utils/bmi";
 
 describe("calculateBMI", () => {
   describe("正常系", () => {

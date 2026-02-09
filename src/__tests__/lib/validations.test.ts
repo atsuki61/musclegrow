@@ -9,7 +9,7 @@ import {
   getValidationErrorDetails,
   validateItems,
   setRecordSchema,
-} from "./validations";
+} from "@/lib/validations";
 
 describe("getValidationErrorMessage", () => {
   describe("正常系: エラーメッセージ取得", () => {

@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // モックの設定
-vi.mock("../../../db", () => ({
+vi.mock("../../../../db", () => ({
   db: {
     select: vi.fn(),
     insert: vi.fn(),
@@ -20,8 +20,8 @@ vi.mock("next/cache", () => ({
 import {
   getExercisesWithUserPreferences,
   toggleExerciseVisibility,
-} from "./user-exercises";
-import { db } from "../../../db";
+} from "@/lib/actions/user-exercises";
+import { db } from "../../../../db";
 
 describe("user-exercises", () => {
   beforeEach(() => {

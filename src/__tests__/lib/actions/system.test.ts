@@ -3,29 +3,25 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { checkEnvironmentVariables } from "./system";
+import { checkEnvironmentVariables } from "@/lib/actions/system";
 
 describe("checkEnvironmentVariables", () => {
-  const originalEnv = process.env;
-
   beforeEach(() => {
-    // process.env をモック可能にする
-    vi.resetModules();
-    process.env = { ...originalEnv };
+    // 環境変数をリセット
+    vi.unstubAllEnvs();
   });
 
   afterEach(() => {
-    process.env = originalEnv;
+    vi.unstubAllEnvs();
   });
 
   describe("正常系: 開発環境での実行", () => {
     it("全ての環境変数が設定されている場合、全てtrueを返す", async () => {
       // Given: 開発環境で全ての環境変数が設定されている
-      process.env.NODE_ENV = "development";
-      process.env.BETTER_AUTH_SECRET = "test-secret-key";
-      process.env.BETTER_AUTH_GOOGLE_CLIENT_ID =
-        "1234567890123456789.apps.googleusercontent.com";
-      process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET = "test-client-secret";
+      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("BETTER_AUTH_SECRET", "test-secret-key");
+      vi.stubEnv("BETTER_AUTH_GOOGLE_CLIENT_ID", "1234567890123456789.apps.googleusercontent.com");
+      vi.stubEnv("BETTER_AUTH_GOOGLE_CLIENT_SECRET", "test-client-secret");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -40,10 +36,8 @@ describe("checkEnvironmentVariables", () => {
 
     it("一部の環境変数が未設定の場合、該当項目がfalseを返す", async () => {
       // Given: 開発環境でBETTER_AUTH_SECRETのみ設定
-      process.env.NODE_ENV = "development";
-      process.env.BETTER_AUTH_SECRET = "test-secret-key";
-      delete process.env.BETTER_AUTH_GOOGLE_CLIENT_ID;
-      delete process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET;
+      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("BETTER_AUTH_SECRET", "test-secret-key");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -57,10 +51,7 @@ describe("checkEnvironmentVariables", () => {
 
     it("全ての環境変数が未設定の場合、全てfalseを返す", async () => {
       // Given: 開発環境で全ての環境変数が未設定
-      process.env.NODE_ENV = "development";
-      delete process.env.BETTER_AUTH_SECRET;
-      delete process.env.BETTER_AUTH_GOOGLE_CLIENT_ID;
-      delete process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET;
+      vi.stubEnv("NODE_ENV", "development");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -76,9 +67,8 @@ describe("checkEnvironmentVariables", () => {
   describe("正常系: プレビュー文字列の生成", () => {
     it("長いCLIENT_IDの場合、最初の15文字+...を表示", async () => {
       // Given: 開発環境で長いCLIENT_IDが設定されている
-      process.env.NODE_ENV = "development";
-      process.env.BETTER_AUTH_GOOGLE_CLIENT_ID =
-        "1234567890123456789.apps.googleusercontent.com";
+      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("BETTER_AUTH_GOOGLE_CLIENT_ID", "1234567890123456789.apps.googleusercontent.com");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -91,8 +81,8 @@ describe("checkEnvironmentVariables", () => {
 
     it("短いCLIENT_IDの場合、そのまま+...を表示", async () => {
       // Given: 開発環境で短いCLIENT_IDが設定されている
-      process.env.NODE_ENV = "development";
-      process.env.BETTER_AUTH_GOOGLE_CLIENT_ID = "short";
+      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("BETTER_AUTH_GOOGLE_CLIENT_ID", "short");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -103,8 +93,8 @@ describe("checkEnvironmentVariables", () => {
 
     it("長いCLIENT_SECRETの場合、最初の10文字+...を表示", async () => {
       // Given: 開発環境で長いCLIENT_SECRETが設定されている
-      process.env.NODE_ENV = "development";
-      process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET = "1234567890ABCDEFGHIJ";
+      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("BETTER_AUTH_GOOGLE_CLIENT_SECRET", "1234567890ABCDEFGHIJ");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -115,8 +105,8 @@ describe("checkEnvironmentVariables", () => {
 
     it("短いCLIENT_SECRETの場合、そのまま+...を表示", async () => {
       // Given: 開発環境で短いCLIENT_SECRETが設定されている
-      process.env.NODE_ENV = "development";
-      process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET = "secret";
+      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("BETTER_AUTH_GOOGLE_CLIENT_SECRET", "secret");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -127,8 +117,7 @@ describe("checkEnvironmentVariables", () => {
 
     it("CLIENT_IDが未設定の場合、「未設定」を表示", async () => {
       // Given: 開発環境でCLIENT_IDが未設定
-      process.env.NODE_ENV = "development";
-      delete process.env.BETTER_AUTH_GOOGLE_CLIENT_ID;
+      vi.stubEnv("NODE_ENV", "development");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -139,8 +128,7 @@ describe("checkEnvironmentVariables", () => {
 
     it("CLIENT_SECRETが未設定の場合、「未設定」を表示", async () => {
       // Given: 開発環境でCLIENT_SECRETが未設定
-      process.env.NODE_ENV = "development";
-      delete process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET;
+      vi.stubEnv("NODE_ENV", "development");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -153,7 +141,7 @@ describe("checkEnvironmentVariables", () => {
   describe("異常系: 本番環境での実行", () => {
     it("本番環境では実行できない", async () => {
       // Given: NODE_ENV=production
-      process.env.NODE_ENV = "production";
+      vi.stubEnv("NODE_ENV", "production");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -166,7 +154,7 @@ describe("checkEnvironmentVariables", () => {
 
     it("test環境でも実行できない", async () => {
       // Given: NODE_ENV=test
-      process.env.NODE_ENV = "test";
+      vi.stubEnv("NODE_ENV", "test");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -180,10 +168,10 @@ describe("checkEnvironmentVariables", () => {
   describe("境界値: エッジケース", () => {
     it("環境変数が空文字列の場合、falseを返す", async () => {
       // Given: 開発環境で環境変数が空文字列
-      process.env.NODE_ENV = "development";
-      process.env.BETTER_AUTH_SECRET = "";
-      process.env.BETTER_AUTH_GOOGLE_CLIENT_ID = "";
-      process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET = "";
+      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("BETTER_AUTH_SECRET", "");
+      vi.stubEnv("BETTER_AUTH_GOOGLE_CLIENT_ID", "");
+      vi.stubEnv("BETTER_AUTH_GOOGLE_CLIENT_SECRET", "");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -197,8 +185,8 @@ describe("checkEnvironmentVariables", () => {
 
     it("CLIENT_IDが15文字ちょうどの場合、全て+...が表示される", async () => {
       // Given: 開発環境でCLIENT_IDが15文字
-      process.env.NODE_ENV = "development";
-      process.env.BETTER_AUTH_GOOGLE_CLIENT_ID = "123456789012345";
+      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("BETTER_AUTH_GOOGLE_CLIENT_ID", "123456789012345");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -209,8 +197,8 @@ describe("checkEnvironmentVariables", () => {
 
     it("CLIENT_SECRETが10文字ちょうどの場合、全て+...が表示される", async () => {
       // Given: 開発環境でCLIENT_SECRETが10文字
-      process.env.NODE_ENV = "development";
-      process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET = "1234567890";
+      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("BETTER_AUTH_GOOGLE_CLIENT_SECRET", "1234567890");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -221,8 +209,8 @@ describe("checkEnvironmentVariables", () => {
 
     it("CLIENT_IDが15文字未満の場合、全て表示+...が表示される", async () => {
       // Given: 開発環境でCLIENT_IDが14文字
-      process.env.NODE_ENV = "development";
-      process.env.BETTER_AUTH_GOOGLE_CLIENT_ID = "12345678901234";
+      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("BETTER_AUTH_GOOGLE_CLIENT_ID", "12345678901234");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();
@@ -233,8 +221,8 @@ describe("checkEnvironmentVariables", () => {
 
     it("CLIENT_SECRETが10文字未満の場合、全て表示+...が表示される", async () => {
       // Given: 開発環境でCLIENT_SECRETが9文字
-      process.env.NODE_ENV = "development";
-      process.env.BETTER_AUTH_GOOGLE_CLIENT_SECRET = "123456789";
+      vi.stubEnv("NODE_ENV", "development");
+      vi.stubEnv("BETTER_AUTH_GOOGLE_CLIENT_SECRET", "123456789");
 
       // When: 環境変数チェックを実行
       const result = await checkEnvironmentVariables();

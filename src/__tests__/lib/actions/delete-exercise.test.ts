@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // モックの設定
-vi.mock("../../../db", () => ({
+vi.mock("../../../../db", () => ({
   db: {
     select: vi.fn(),
     delete: vi.fn(),
@@ -32,8 +32,8 @@ vi.mock("@/lib/safe-action", () => ({
 }));
 
 // モックした後にインポート
-import { deleteExerciseSets, deleteCardioRecords } from "./delete-exercise";
-import { db } from "../../../db";
+import { deleteExerciseSets, deleteCardioRecords } from "@/lib/actions/delete-exercise";
+import { db } from "../../../../db";
 import { revalidateTag } from "next/cache";
 
 describe("delete-exercise", () => {

@@ -8,7 +8,7 @@ import {
   DEFAULT_BIG3_TARGETS,
   type Big3Weights,
   type Big3Targets,
-} from "./big3";
+} from "@/lib/big3";
 
 describe("createBig3Data", () => {
   describe("正常系: 標準的なBig3データの作成", () => {

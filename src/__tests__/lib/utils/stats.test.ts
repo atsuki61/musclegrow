@@ -10,7 +10,7 @@ import {
   mergeProgressData,
   toNumber,
   calculateDayMaxWeight,
-} from "./stats";
+} from "@/lib/utils/stats";
 import type { DateRangePreset } from "@/types/stats";
 
 describe("getStartDate", () => {

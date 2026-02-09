@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { Exercise } from "@/types/workout";
 
 // モックの設定
-vi.mock("../../../db", () => ({
+vi.mock("../../../../db", () => ({
   db: {
     select: vi.fn(),
     insert: vi.fn(),
@@ -23,8 +23,8 @@ import {
   validateExerciseIdAndAuth,
   saveExercise,
   getExercises,
-} from "./exercises";
-import { db } from "../../../db";
+} from "@/lib/actions/exercises";
+import { db } from "../../../../db";
 import { revalidateTag } from "next/cache";
 
 describe("validateExerciseIdAndAuth", () => {

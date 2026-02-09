@@ -8,7 +8,7 @@ import {
   saveMaxWeightsCache,
   calculateMaxWeightsFromStorage,
   type MaxWeightsMap,
-} from "./max-weight";
+} from "@/lib/max-weight";
 
 describe("max-weight", () => {
   // localStorageのモック
