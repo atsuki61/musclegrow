@@ -17,14 +17,19 @@ export function useThemeColors() {
     // RechartsはCSS変数文字列をstrokeに渡しても動くケースが多いです。
     // もし動かない場合は、getComputedStyleでhexを取得する必要があります。
 
-    const root = document.documentElement;
-    const style = getComputedStyle(root);
-    const primary = style.getPropertyValue("--primary").trim();
-    if (primary) {
-      // oklch(...) のままだとRechartsが解釈できない場合があるので
-      // 念のためhslに変換するか、tailwindの解決済みcolorを使うのが安全
-      // 一旦CSS変数ラッパーを返します
-      setPrimaryColor(`var(--primary)`);
+    try {
+      const root = document.documentElement;
+      const style = getComputedStyle(root);
+      const primary = style.getPropertyValue("--primary")?.trim();
+      if (primary) {
+        // oklch(...) のままだとRechartsが解釈できない場合があるので
+        // 念のためhslに変換するか、tailwindの解決済みcolorを使うのが安全
+        // 一旦CSS変数ラッパーを返します
+        setPrimaryColor(`var(--primary)`);
+      }
+    } catch (error) {
+      // getComputedStyleが失敗しても初期値を維持
+      console.error("Failed to get computed style:", error);
     }
   }, [color]);
 
