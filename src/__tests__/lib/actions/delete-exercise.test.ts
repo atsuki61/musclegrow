@@ -18,7 +18,7 @@ vi.mock("next/cache", () => ({
 
 vi.mock("@/lib/safe-action", () => ({
   authActionClient: {
-    schema: vi.fn((schema) => ({
+    schema: vi.fn(() => ({
       action: vi.fn((handler) => {
         // authActionClientをバイパスしてハンドラを直接実行可能にする
         return async (input: any) => {

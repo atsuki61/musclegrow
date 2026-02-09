@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useMaxWeights } from "@/hooks/use-max-weights";
 import * as maxWeightLib from "@/lib/max-weight";
 import * as setsActions from "@/lib/actions/sets";

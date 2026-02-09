@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format, isAfter, startOfDay } from "date-fns";
-import type { BodyPart, Exercise } from "@/types/workout";
+import type { Exercise } from "@/types/workout";
 import { BODY_PARTS } from "@/constants/body-parts";
 export {
   BODY_PART_LABELS,

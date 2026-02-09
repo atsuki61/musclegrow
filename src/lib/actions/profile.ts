@@ -252,8 +252,9 @@ export async function updateProfile(data: unknown): Promise<{
  * 既存のコードとの互換性のためのエイリアス
  * @deprecated Use getProfile() instead
  */
-export const getProfileData = async (userId: string) => {
-  // userId引数は無視して現在のセッションユーザーを使用するが、
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const getProfileData = async (_userId: string) => {
+  // _userId引数は無視して現在のセッションユーザーを使用するが、
   // 既存の実装がuserIdを渡しているので型定義は合わせる
   // ただし、本来はサーバーサイドでgetAuthUserId()を使うべき。
   // ここではgetProfile()を呼び出す形にする。

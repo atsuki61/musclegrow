@@ -4,7 +4,6 @@ import {
   getBMICategory,
   getBMIResult,
   getBMIPercentage,
-  type BMIResult,
 } from "@/lib/utils/bmi";
 
 describe("calculateBMI", () => {

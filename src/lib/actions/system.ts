@@ -1,7 +1,5 @@
 "use server";
 
-import { getAuthUserId } from "@/lib/auth-session-server";
-
 /**
  * 開発環境の環境変数設定状況を確認する
  * ※ セキュリティのため、管理者権限（あるいは開発モード）でのみ実行可能とする制限を推奨
