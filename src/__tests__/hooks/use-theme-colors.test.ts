@@ -105,7 +105,7 @@ describe("useThemeColors", () => {
         // When: 各カラーでフックを呼び出す
         getPropertyValueMock.mockReturnValue(value);
         vi.mocked(ThemeProvider.useColorTheme).mockReturnValue({
-          color: name,
+          color: name as ThemeProvider.ColorTheme,
           setColor: vi.fn(),
         });
 
@@ -184,7 +184,7 @@ describe("useThemeColors", () => {
     it("useColorThemeがnullカラーを返しても正常に動作する", async () => {
       // Given: colorがnull
       vi.mocked(ThemeProvider.useColorTheme).mockReturnValue({
-        color: null as unknown as string,
+        color: null as unknown as ThemeProvider.ColorTheme,
         setColor: vi.fn(),
       });
       getPropertyValueMock.mockReturnValue("oklch(0.705 0.213 47.604)");

@@ -138,9 +138,9 @@ describe("saveExercise", () => {
     name: "カスタム種目",
     nameEn: "Custom Exercise",
     bodyPart: "chest",
-    muscleSubGroup: "upper",
+    muscleSubGroup: "chest_upper",
     primaryEquipment: "barbell",
-    tier: "tier1",
+    tier: "initial",
     isBig3: false,
     createdAt: new Date("2024-01-01"),
   };

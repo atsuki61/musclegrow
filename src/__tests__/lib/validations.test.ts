@@ -206,10 +206,9 @@ describe("validateItems", () => {
 
       // When: バリデーションを実行
       // 開発環境でない場合はconsole.errorが呼ばれないようにする
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "test";
+      vi.stubEnv("NODE_ENV", "test");
       const result = validateItems(items, testSchema, "アイテム");
-      process.env.NODE_ENV = originalEnv;
+      vi.unstubAllEnvs();
 
       // Then: 無効なインデックス（1ベース）が返る
       expect(result).toEqual([2, 4]);
@@ -279,8 +278,7 @@ describe("validateItems", () => {
     it("開発環境でエラーがある場合、console.errorが呼ばれる", () => {
       // Given: 無効なアイテム & 開発環境
       const items = [{ id: "", value: 100 }];
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
+      vi.stubEnv("NODE_ENV", "development");
 
       // console.errorをモック
       consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -299,14 +297,13 @@ describe("validateItems", () => {
       );
 
       // 環境を戻す
-      process.env.NODE_ENV = originalEnv;
+      vi.unstubAllEnvs();
     });
 
     it("開発環境以外でエラーがある場合、console.errorが呼ばれない", () => {
       // Given: 無効なアイテム & 本番環境
       const items = [{ id: "", value: 100 }];
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "production";
+      vi.stubEnv("NODE_ENV", "production");
 
       // console.errorをモック
       consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -318,7 +315,7 @@ describe("validateItems", () => {
       expect(consoleErrorSpy).not.toHaveBeenCalled();
 
       // 環境を戻す
-      process.env.NODE_ENV = originalEnv;
+      vi.unstubAllEnvs();
     });
   });
 
@@ -347,7 +344,7 @@ describe("validateItems", () => {
       ];
 
       // When: バリデーションを実行
-      const result = validateItems(items, setRecordSchema, "セット");
+      const result = validateItems(items, setRecordSchema as any, "セット");
 
       // Then: 無効なインデックスが返る
       expect(result).toEqual([2, 3]);
@@ -366,7 +363,7 @@ describe("validateItems", () => {
       ];
 
       // When: バリデーションを実行
-      const result = validateItems(items, setRecordSchema, "セット");
+      const result = validateItems(items, setRecordSchema as any, "セット");
 
       // Then: 有効と判定される
       expect(result).toEqual([]);
@@ -384,7 +381,7 @@ describe("validateItems", () => {
       ];
 
       // When: バリデーションを実行
-      const result = validateItems(items, setRecordSchema, "セット");
+      const result = validateItems(items, setRecordSchema as any, "セット");
 
       // Then: 無効と判定される
       expect(result).toEqual([1]);

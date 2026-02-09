@@ -26,8 +26,6 @@ describe("useMaxWeights", () => {
     // デフォルトのモック設定
     vi.mocked(AuthSessionContext.useAuthSession).mockReturnValue({
       userId: mockUserId,
-      user: null,
-      session: null,
     });
 
     vi.mocked(maxWeightLib.loadMaxWeightsCache).mockReturnValue({});
@@ -332,8 +330,6 @@ describe("useMaxWeights", () => {
       // Given: userIdがnull
       vi.mocked(AuthSessionContext.useAuthSession).mockReturnValue({
         userId: null,
-        user: null,
-        session: null,
       });
       vi.mocked(maxWeightLib.loadMaxWeightsCache).mockReturnValue({});
       vi.mocked(maxWeightLib.calculateMaxWeightsFromStorage).mockReturnValue({
@@ -492,8 +488,6 @@ describe("useMaxWeights", () => {
       const newUserId = "user-456";
       vi.mocked(AuthSessionContext.useAuthSession).mockReturnValue({
         userId: newUserId,
-        user: null,
-        session: null,
       });
       vi.mocked(setsActions.getUserMaxWeights).mockResolvedValue({
         success: true,

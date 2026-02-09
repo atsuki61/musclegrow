@@ -17,8 +17,6 @@ describe("useLastTrainedDates", () => {
     // デフォルトのモック設定
     vi.mocked(AuthSessionContext.useAuthSession).mockReturnValue({
       userId: mockUserId,
-      user: null,
-      session: null,
     });
 
     vi.mocked(lastTrainedLib.getLastTrainedDates).mockReturnValue({});
@@ -244,8 +242,6 @@ describe("useLastTrainedDates", () => {
       // Given: ゲストモード（userIdがnull）
       vi.mocked(AuthSessionContext.useAuthSession).mockReturnValue({
         userId: null,
-        user: null,
-        session: null,
       });
       vi.mocked(lastTrainedLib.getLastTrainedDates).mockReturnValue({
         "ex-1": new Date("2024-01-15"),
@@ -302,7 +298,7 @@ describe("useLastTrainedDates", () => {
       });
       vi.mocked(workoutSessionsActions.getLastTrainedDatesFromDB).mockResolvedValue({
         success: true,
-        data: null,
+        data: undefined,
       });
 
       // When: フックを呼び出す

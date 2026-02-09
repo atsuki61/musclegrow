@@ -33,16 +33,18 @@ describe("max-weight", () => {
     lengthGetter = vi.fn(() => Object.keys(localStorageMock).length);
 
     // windowオブジェクトにlocalStorageを定義
+    const mockLocalStorage = {
+      getItem: getItemSpy,
+      setItem: setItemSpy,
+      key: keySpy,
+      get length() {
+        return Object.keys(localStorageMock).length;
+      },
+    };
+
     Object.defineProperty(global, "window", {
       value: {
-        localStorage: {
-          getItem: getItemSpy,
-          setItem: setItemSpy,
-          key: keySpy,
-          get length() {
-            return lengthGetter();
-          },
-        },
+        localStorage: mockLocalStorage,
       },
       writable: true,
       configurable: true,

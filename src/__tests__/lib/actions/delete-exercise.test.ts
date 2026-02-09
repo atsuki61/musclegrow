@@ -78,7 +78,7 @@ describe("delete-exercise", () => {
         });
 
         // Then: 削除成功、セッションは削除されない
-        expect(result.success).toBe(true);
+        expect(result).toEqual({ success: true });
         expect(mockDeleteWhere).toHaveBeenCalledTimes(1); // sets削除のみ
         expect(revalidateTag).toHaveBeenCalledWith("history-bodyparts");
       });
@@ -118,7 +118,7 @@ describe("delete-exercise", () => {
         });
 
         // Then: 削除成功、セッションも削除される
-        expect(result.success).toBe(true);
+        expect(result).toEqual({ success: true });
         expect(mockDeleteWhere).toHaveBeenCalledTimes(2); // sets削除 + session削除
         expect(revalidateTag).toHaveBeenCalledWith("stats:total-days:test-user-id");
         expect(revalidateTag).toHaveBeenCalledWith("history-bodyparts");
@@ -164,7 +164,7 @@ describe("delete-exercise", () => {
         });
 
         // Then: 削除成功、セッションは削除されない
-        expect(result.success).toBe(true);
+        expect(result).toEqual({ success: true });
         expect(mockDeleteWhere).toHaveBeenCalledTimes(1); // cardio削除のみ
         expect(revalidateTag).toHaveBeenCalledWith("history-bodyparts");
       });
@@ -204,7 +204,7 @@ describe("delete-exercise", () => {
         });
 
         // Then: 削除成功、セッションも削除される
-        expect(result.success).toBe(true);
+        expect(result).toEqual({ success: true });
         expect(mockDeleteWhere).toHaveBeenCalledTimes(2); // cardio削除 + session削除
         expect(revalidateTag).toHaveBeenCalledWith("stats:total-days:test-user-id");
         expect(revalidateTag).toHaveBeenCalledWith("history-bodyparts");
@@ -248,7 +248,7 @@ describe("delete-exercise", () => {
         });
 
         // Then: セッション削除されない
-        expect(result.success).toBe(true);
+        expect(result).toEqual({ success: true });
         expect(mockDeleteWhere).toHaveBeenCalledTimes(1); // cardio削除のみ
       });
     });
