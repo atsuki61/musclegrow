@@ -45,6 +45,9 @@ next-env.d.ts
 /.cursor/mcp.json
 .mcp.json
 
+# claude settings
+.claude/settings.local.json
+
 # docx
 /docx
 /.cursor/plans
