@@ -31,7 +31,12 @@
       "Bash(pnpm add:*)",
       "Bash(pnpm test:run:*)",
       "Bash(pnpm test:coverage:*)",
-      "Bash(gh pr create:*)"
+      "Bash(gh pr create:*)",
+      "Bash(where.exe:*)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" --version)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" pr create:*)",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" pr create --title \"test: Phase 3 - ビジネスロジックのテスト実装\" --body \"$\\(cat <<''EOF''\n## 概要\n\nPhase 3としてビジネスロジックのテスト実装を行いました。\n\n## 実装したテスト\n\n### 1. big3.ts \\(18テストケース\\)\n\n**テスト対象**:\n- `createBig3Data\\(weights, targets\\)` - Big3データの作成\n\n**カバレッジ**: 100%（Stmts/Branch/Funcs/Lines）\n\n### 2. max-weight.ts \\(37テストケース\\)\n\n**テスト対象**:\n- `loadMaxWeightsCache\\(\\)` - localStorageから最大重量キャッシュをロード\n- `saveMaxWeightsCache\\(maxWeights\\)` - 最大重量キャッシュを保存\n- `calculateMaxWeightsFromStorage\\(\\)` - localStorageから最大重量を計算\n\n**カバレッジ**: 100%（Stmts）、99.14%（Branch）\n\n## 累計テスト数\n\nPhase 1: 30テストケース\nPhase 2: 96テストケース\nPhase 3: 55テストケース\n\n合計: 181テストケース、全てパス\n\n🤖 Generated with Claude Code\nEOF\n\\)\")",
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" pr merge 121 --squash --delete-branch)"
     ],
     "mode": "auto",
     "allowedPrompts": [
