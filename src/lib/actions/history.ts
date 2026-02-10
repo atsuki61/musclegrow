@@ -127,10 +127,11 @@ export async function getSessionDetails(
           restSeconds: sets.restSeconds,
           notes: sets.notes,
           failure: sets.failure,
+          createdAt: sets.createdAt,
         })
         .from(sets)
         .where(eq(sets.sessionId, sessionId))
-        .orderBy(sets.exerciseId, sets.setOrder),
+        .orderBy(sets.createdAt, sets.setOrder),
 
       handleTableNotExistsError(
         () =>
@@ -156,9 +157,19 @@ export async function getSessionDetails(
 
     // 整形処理: セット記録
     const workoutExercisesMap = new Map<string, SetRecord[]>();
+    const workoutExerciseFirstCreatedAt = new Map<string, Date>();
 
     setsData.forEach((row) => {
       const list = workoutExercisesMap.get(row.exerciseId) || [];
+
+      // 各種目の最初のセットの作成日時を記録
+      if (!workoutExerciseFirstCreatedAt.has(row.exerciseId)) {
+        workoutExerciseFirstCreatedAt.set(
+          row.exerciseId,
+          new Date(row.createdAt)
+        );
+      }
+
       list.push({
         id: row.id,
         setOrder: row.setOrder,
@@ -176,9 +187,19 @@ export async function getSessionDetails(
 
     // 整形処理: 有酸素記録
     const cardioExercisesMap = new Map<string, CardioRecord[]>();
+    const cardioExerciseFirstCreatedAt = new Map<string, Date>();
 
     cardioData.forEach((row) => {
       const list = cardioExercisesMap.get(row.exerciseId) || [];
+
+      // 各種目の最初の記録の作成日時を記録
+      if (!cardioExerciseFirstCreatedAt.has(row.exerciseId)) {
+        cardioExerciseFirstCreatedAt.set(
+          row.exerciseId,
+          new Date(row.createdAt)
+        );
+      }
+
       list.push({
         id: row.id,
         duration: Number(row.duration),
@@ -200,12 +221,24 @@ export async function getSessionDetails(
         date: session.date,
         durationMinutes: session.durationMinutes,
         note: session.note,
-        workoutExercises: Array.from(workoutExercisesMap.entries()).map(
-          ([exerciseId, sets]) => ({ exerciseId, sets })
-        ),
-        cardioExercises: Array.from(cardioExercisesMap.entries()).map(
-          ([exerciseId, records]) => ({ exerciseId, records })
-        ),
+        workoutExercises: Array.from(workoutExercisesMap.entries())
+          .map(([exerciseId, sets]) => ({ exerciseId, sets }))
+          .sort((a, b) => {
+            const timeA =
+              workoutExerciseFirstCreatedAt.get(a.exerciseId)?.getTime() ?? 0;
+            const timeB =
+              workoutExerciseFirstCreatedAt.get(b.exerciseId)?.getTime() ?? 0;
+            return timeA - timeB;
+          }),
+        cardioExercises: Array.from(cardioExercisesMap.entries())
+          .map(([exerciseId, records]) => ({ exerciseId, records }))
+          .sort((a, b) => {
+            const timeA =
+              cardioExerciseFirstCreatedAt.get(a.exerciseId)?.getTime() ?? 0;
+            const timeB =
+              cardioExerciseFirstCreatedAt.get(b.exerciseId)?.getTime() ?? 0;
+            return timeA - timeB;
+          }),
       },
     };
   } catch (error: unknown) {
