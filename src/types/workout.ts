@@ -69,6 +69,7 @@ export type SetRecord = {
   restSeconds?: number | null; // セット間の休憩時間（秒）
   notes?: string | null; // セットごとのメモ
   failure?: boolean; // 限界まで追い込んだか
+  isPersonalRecord?: boolean; // 最高記録として記録するか
 };
 
 /**
