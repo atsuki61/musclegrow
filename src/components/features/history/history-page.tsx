@@ -33,7 +33,6 @@ const ExerciseRecordModal = dynamic(
 );
 
 const HistoryCalendar = dynamic(() => import("./history-calendar"), {
-  ssr: false,
   loading: () => <HistoryCalendarSkeleton />,
 });
 
