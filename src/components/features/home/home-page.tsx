@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { calculateMaxWeightsFromStorage } from "@/lib/max-weight";
 import { TotalDaysBadge } from "./total-days-badge";
@@ -47,39 +47,27 @@ export function HomePage({
   const [big3Data, setBig3Data] = useState<Big3ProgressData>(() =>
     createBig3Data(dbWeights, targets)
   );
-  const dbWeightsRef = useRef<Big3Weights>(dbWeights);
-  const targetsRef = useRef<Big3Targets>(targets);
-  const exerciseIdsRef = useRef(exerciseIds);
-
-  useEffect(() => {
-    dbWeightsRef.current = dbWeights;
-    targetsRef.current = targets;
-    exerciseIdsRef.current = exerciseIds;
-    setBig3Data(createBig3Data(dbWeights, targets));
-  }, [dbWeights, targets, exerciseIds]);
 
   const mergeWithLocalData = useCallback(() => {
     const task = () => {
       const localMaxWeights = calculateMaxWeightsFromStorage();
-      const currentExerciseIds = exerciseIdsRef.current;
 
       const finalWeights: Big3Weights = {
         benchPress: Math.max(
-          dbWeightsRef.current.benchPress,
-          getLocalMaxWeight(currentExerciseIds.benchPress, localMaxWeights)
+          dbWeights.benchPress,
+          getLocalMaxWeight(exerciseIds.benchPress, localMaxWeights)
         ),
         squat: Math.max(
-          dbWeightsRef.current.squat,
-          getLocalMaxWeight(currentExerciseIds.squat, localMaxWeights)
+          dbWeights.squat,
+          getLocalMaxWeight(exerciseIds.squat, localMaxWeights)
         ),
         deadlift: Math.max(
-          dbWeightsRef.current.deadlift,
-          getLocalMaxWeight(currentExerciseIds.deadlift, localMaxWeights)
+          dbWeights.deadlift,
+          getLocalMaxWeight(exerciseIds.deadlift, localMaxWeights)
         ),
       };
 
-      dbWeightsRef.current = finalWeights;
-      setBig3Data(createBig3Data(finalWeights, targetsRef.current));
+      setBig3Data(createBig3Data(finalWeights, targets));
     };
 
     if ("requestIdleCallback" in window) {
@@ -87,7 +75,7 @@ export function HomePage({
     } else {
       setTimeout(task, 1);
     }
-  }, []);
+  }, [dbWeights, targets, exerciseIds]);
 
   useEffect(() => {
     mergeWithLocalData();

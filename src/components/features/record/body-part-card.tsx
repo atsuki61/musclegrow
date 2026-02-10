@@ -47,6 +47,12 @@ export function BodyPartCard({
             <button
               key={exercise.id}
               onClick={() => onExerciseSelect?.(exercise)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onExerciseSelect?.(exercise);
+                }
+              }}
               className={cn(
                 "group relative flex flex-col items-center justify-between aspect-square rounded-2xl border border-border/60 bg-card p-2 shadow-sm transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1) cursor-pointer select-none overflow-hidden",
                 // 編集モード時の揺れアニメーションやスタイル変更
@@ -105,7 +111,13 @@ export function BodyPartCard({
         {!isEditMode && (
           <button
             onClick={onAddExerciseClick}
-            className="group relative flex flex-col items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 text-primary 
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onAddExerciseClick?.();
+              }
+            }}
+            className="group relative flex flex-col items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 text-primary
               transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)
               hover:scale-[1.03] hover:-translate-y-1 hover:bg-primary/10 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20
               active:scale-90 active:translate-y-0 active:border-primary active:shadow-none
