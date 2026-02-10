@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Search, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -87,16 +86,8 @@ export function AddExerciseModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-full max-w-2xl h-[90vh] sm:h-[80vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl border-0 sm:border">
         {/* ヘッダー */}
-        <DialogHeader className="px-4 py-3 border-b bg-background shrink-0 flex flex-row items-center justify-between">
+        <DialogHeader className="px-4 py-3 border-b bg-background shrink-0">
           <DialogTitle className="text-lg font-bold">種目を追加</DialogTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-8 w-8 p-0 rounded-full"
-          >
-            <span className="sr-only">閉じる</span>✕
-          </Button>
         </DialogHeader>
 
         <Tabs defaultValue="existing" className="flex-1 flex flex-col min-h-0">
