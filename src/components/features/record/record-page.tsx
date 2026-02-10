@@ -338,7 +338,7 @@ useEffect(() => {
       </header>
 
       {/* Main Content - スワイプ対応エリア */}
-      <main className="flex-1 container mx-auto px-4 py-4 space-y-4 overflow-hidden">
+      <main className="flex-1 flex flex-col container mx-auto px-4 py-4 gap-4 overflow-hidden">
         {/* 検索バーと編集ボタン（スワイプ対象外） */}
         <div className="flex gap-2">
           <div className="relative flex-1">
