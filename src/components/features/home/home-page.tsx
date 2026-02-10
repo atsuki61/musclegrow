@@ -1,16 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import dynamic from "next/dynamic";
 import { calculateMaxWeightsFromStorage } from "@/lib/max-weight";
 import { TotalDaysBadge } from "./total-days-badge";
-
-const Big3Progress = dynamic(() =>
-  import("./big3-progress").then((mod) => mod.Big3Progress)
-);
-const RecordButton = dynamic(() =>
-  import("./record-button").then((mod) => mod.RecordButton)
-);
+import { Big3Progress } from "./big3-progress";
+import { RecordButton } from "./record-button";
 
 import {
   createBig3Data,

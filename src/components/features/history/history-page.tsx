@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  Suspense,
+} from "react";
 import { format, parseISO, startOfMonth } from "date-fns";
 import { deleteExerciseSets, deleteCardioRecords } from "@/lib/api";
 import { getWorkoutSession } from "@/lib/api";
@@ -32,9 +39,7 @@ const ExerciseRecordModal = dynamic(
   { ssr: false }
 );
 
-const HistoryCalendar = dynamic(() => import("./history-calendar"), {
-  loading: () => <HistoryCalendarSkeleton />,
-});
+const HistoryCalendar = dynamic(() => import("./history-calendar"));
 
 interface HistoryPageProps {
   initialMonthDate: string;
@@ -212,14 +217,16 @@ export function HistoryPage({
 
       <div className="container mx-auto px-4 py-6 space-y-8">
         <section>
-          <HistoryCalendar
-            currentMonth={currentMonth}
-            onMonthChange={setCurrentMonth}
-            bodyPartsByDate={bodyPartsByDate}
-            selectedDate={selectedDate}
-            onDateSelect={handleDateSelect}
-            filteredBodyPart={selectedBodyPart}
-          />
+          <Suspense fallback={<HistoryCalendarSkeleton />}>
+            <HistoryCalendar
+              currentMonth={currentMonth}
+              onMonthChange={setCurrentMonth}
+              bodyPartsByDate={bodyPartsByDate}
+              selectedDate={selectedDate}
+              onDateSelect={handleDateSelect}
+              filteredBodyPart={selectedBodyPart}
+            />
+          </Suspense>
         </section>
 
         {selectedDate && (
