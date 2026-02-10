@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import { formatDateToYYYYMMDD } from "@/lib/utils";
 import { useAuthSession } from "@/lib/auth-session-context";
+import { safeGetItem, safeSetItem, safeRemoveItem } from "@/lib/safe-local-storage";
 
 const getStorageKey = (date: Date, exerciseId: string): string => {
   const dateStr = formatDateToYYYYMMDD(date);
@@ -23,7 +24,7 @@ const loadCardioRecordsFromStorage = (
 
   try {
     const key = getStorageKey(date, exerciseId);
-    const stored = localStorage.getItem(key);
+    const stored = safeGetItem(key);
     if (!stored) return null;
 
     const parsed = JSON.parse(stored) as CardioRecord[];
@@ -53,9 +54,9 @@ export const saveCardioRecordsToStorage = (
         (record.calories ?? 0) > 0
     );
     if (hasValidData) {
-      localStorage.setItem(key, JSON.stringify(records));
+      safeSetItem(key, JSON.stringify(records));
     } else {
-      localStorage.removeItem(key);
+      safeRemoveItem(key);
     }
   } catch (error) {
     console.error("Failed to save cardio records to storage:", error);
@@ -70,7 +71,7 @@ const removeCardioRecordsFromStorage = (
 
   try {
     const key = getStorageKey(date, exerciseId);
-    localStorage.removeItem(key);
+    safeRemoveItem(key);
   } catch (error) {
     console.error("Failed to remove cardio records from storage:", error);
   }
