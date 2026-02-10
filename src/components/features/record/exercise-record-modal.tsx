@@ -8,11 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -422,26 +421,24 @@ export default function ExerciseRecordModal({
                       >
                         MAX重量を更新
                       </label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              className="text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                              <HelpCircle className="w-4 h-4" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p className="text-xs">
-                              ONにすると、記録が下がった場合（例:
-                              100kg→90kg）でもグラフに記録されます。
-                              <br />
-                              軽めのトレーニングの日は不要です。
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground transition-colors active:scale-95"
+                          >
+                            <HelpCircle className="w-4 h-4" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-72 text-sm">
+                          <p className="leading-relaxed">
+                            ONにすると、記録が下がった場合（例: 100kg→90kg）でもグラフに記録されます。
+                          </p>
+                          <p className="leading-relaxed mt-2">
+                            軽めのトレーニングの日は不要です。
+                          </p>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   )}
 
