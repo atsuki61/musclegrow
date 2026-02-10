@@ -293,6 +293,7 @@ export default function ExerciseRecordModal({
             variant="ghost"
             size="icon"
             onClick={handleClose}
+            aria-label="閉じる"
             className="absolute right-2 h-9 w-9 rounded-full hover:bg-muted active:scale-90 transition-transform"
           >
             <X className="h-5 w-5" />

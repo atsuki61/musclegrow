@@ -3,7 +3,7 @@
  * 種目別データをサーバー/ローカルから取得してマージ
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   getBig3ProgressData,
   getExerciseProgressData,
@@ -211,16 +211,22 @@ export function useTrainingStats({
     fetchExerciseData();
   }, [fetchExerciseData]);
 
+  const refreshDataRef = useRef(refreshData);
+
+  useEffect(() => {
+    refreshDataRef.current = refreshData;
+  }, [refreshData]);
+
   useEffect(() => {
     const handleRecordUpdate = () => {
-      refreshData();
+      refreshDataRef.current();
     };
 
     window.addEventListener("workout-record-updated", handleRecordUpdate);
     return () => {
       window.removeEventListener("workout-record-updated", handleRecordUpdate);
     };
-  }, [refreshData]);
+  }, []);
 
   return {
     exerciseData,

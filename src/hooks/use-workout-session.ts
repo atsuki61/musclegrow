@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import { formatDateToYYYYMMDD } from "@/lib/utils";
 import { useAuthSession } from "@/lib/auth-session-context";
+import { safeGetItem, safeSetItem, safeRemoveItem } from "@/lib/safe-local-storage";
 
 const getStorageKey = (date: Date, exerciseId: string): string => {
   const dateStr = formatDateToYYYYMMDD(date);
@@ -23,7 +24,7 @@ const loadSetsFromStorage = (
 
   try {
     const key = getStorageKey(date, exerciseId);
-    const stored = localStorage.getItem(key);
+    const stored = safeGetItem(key);
     if (!stored) return null;
 
     const parsed = JSON.parse(stored) as SetRecord[];
@@ -47,9 +48,9 @@ export const saveSetsToStorage = (
       (set) => (set.weight ?? 0) > 0 || set.reps > 0 || (set.duration ?? 0) > 0
     );
     if (hasValidData) {
-      localStorage.setItem(key, JSON.stringify(sets));
+      safeSetItem(key, JSON.stringify(sets));
     } else {
-      localStorage.removeItem(key);
+      safeRemoveItem(key);
     }
   } catch (error) {
     console.error("Failed to save sets to storage:", error);
@@ -61,7 +62,7 @@ const removeSetsFromStorage = (date: Date, exerciseId: string): void => {
 
   try {
     const key = getStorageKey(date, exerciseId);
-    localStorage.removeItem(key);
+    safeRemoveItem(key);
   } catch (error) {
     console.error("Failed to remove sets from storage:", error);
   }

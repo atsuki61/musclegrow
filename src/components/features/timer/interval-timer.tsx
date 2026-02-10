@@ -117,6 +117,7 @@ export function IntervalTimer() {
                   size="icon"
                   className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-destructive transition-transform active:scale-90"
                   onClick={resetTimer}
+                  aria-label="タイマーをリセット"
                 >
                   <X className="w-4 h-4" />
                 </Button>

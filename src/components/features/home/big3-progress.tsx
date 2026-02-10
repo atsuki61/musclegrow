@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Trophy, Target } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 type Big3Exercise = {
   name: string;
@@ -17,11 +17,17 @@ interface Big3ProgressProps {
   deadlift: Big3Exercise;
 }
 
-// 数値を0からカウントアップさせるヘルパー
+// 数値を前回の値からカウントアップさせるヘルパー
 function CountUp({ to, duration = 1500 }: { to: number; duration?: number }) {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(to);
+  const prevToRef = useRef(to);
 
   useEffect(() => {
+    const from = prevToRef.current;
+    prevToRef.current = to;
+
+    if (from === to) return;
+
     let startTime: number | null = null;
     let animationFrameId: number;
 
@@ -31,7 +37,8 @@ function CountUp({ to, duration = 1500 }: { to: number; duration?: number }) {
       const percentage = Math.min(progress / duration, 1);
       const easeOut = percentage === 1 ? 1 : 1 - Math.pow(2, -10 * percentage);
 
-      setCount(Math.floor(to * easeOut));
+      const currentValue = from + (to - from) * easeOut;
+      setCount(Math.floor(currentValue));
 
       if (progress < duration) {
         animationFrameId = requestAnimationFrame(animate);
