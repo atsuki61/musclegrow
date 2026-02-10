@@ -23,7 +23,10 @@ export function FooterNav() {
   ];
 
   return (
-    <div className="fixed bottom-6 inset-x-0 z-50 flex justify-center pointer-events-none px-4">
+    <div
+      className="fixed inset-x-0 z-50 flex justify-center pointer-events-none px-4"
+      style={{ bottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+    >
       {/* ナビゲーションコンテナ */}
       <nav
         className={cn(
@@ -34,7 +37,7 @@ export function FooterNav() {
           "shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
           "dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)]",
           "dark:shadow-primary/10",
-          "rounded-3xl px-2 py-3 transition-all duration-300"
+          "rounded-3xl px-2 py-3"
         )}
       >
         <ul className="flex justify-between items-end w-full px-2">
@@ -61,7 +64,7 @@ export function FooterNav() {
                           : "opacity-40 group-hover:opacity-70"
                       )}
                     />
-                    <div className="relative flex items-center justify-center w-full h-full rounded-full bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/30 border-[4px] border-background group-hover:scale-105 transition-all duration-300">
+                    <div className="relative flex items-center justify-center w-full h-full rounded-full bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/30 border-[4px] border-background group-hover:scale-105 transition-transform duration-200">
                       <Plus
                         className={cn(
                           "w-8 h-8 stroke-[3px] transition-transform duration-300",
@@ -86,7 +89,7 @@ export function FooterNav() {
                 >
                   <div
                     className={cn(
-                      "relative flex items-center justify-center transition-all duration-300 ease-out",
+                      "relative flex items-center justify-center transition-transform duration-200 ease-out",
                       isActive
                         ? "-translate-y-2"
                         : "translate-y-1 group-hover:translate-y-0"
@@ -94,13 +97,13 @@ export function FooterNav() {
                   >
                     <div
                       className={cn(
-                        "absolute inset-0 rounded-full bg-primary/10 scale-0 transition-transform duration-300",
+                        "absolute inset-0 rounded-full bg-primary/10 scale-0 transition-transform duration-200",
                         isActive && "scale-150"
                       )}
                     />
                     <Icon
                       className={cn(
-                        "relative w-6 h-6 transition-all duration-300 z-10",
+                        "relative w-6 h-6 transition-colors duration-200 z-10",
                         isActive
                           ? "text-primary stroke-[2.5px]"
                           : "text-muted-foreground stroke-2 group-hover:text-foreground"
@@ -109,10 +112,10 @@ export function FooterNav() {
                   </div>
                   <span
                     className={cn(
-                      "text-[10px] font-bold tracking-wide mt-1 transition-all duration-300 origin-bottom",
+                      "text-[10px] font-bold tracking-wide mt-1 transition-[color,opacity,transform] duration-200 origin-bottom",
                       isActive
-                        ? "text-primary opacity-100 scale-100 translate-y-0"
-                        : "text-muted-foreground opacity-0 scale-75 translate-y-2"
+                        ? "text-primary opacity-100 scale-100"
+                        : "text-muted-foreground opacity-0 scale-75"
                     )}
                   >
                     {item.label}
