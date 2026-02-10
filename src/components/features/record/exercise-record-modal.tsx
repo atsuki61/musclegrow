@@ -432,10 +432,7 @@ export default function ExerciseRecordModal({
                         </PopoverTrigger>
                         <PopoverContent className="w-72 text-sm">
                           <p className="leading-relaxed">
-                            ONにすると、記録が下がった場合（例: 100kg→90kg）でもグラフに記録されます。
-                          </p>
-                          <p className="leading-relaxed mt-2">
-                            軽めのトレーニングの日は不要です。
+                            ONにすると、記録が下がった場合でもグラフに記録されます。（例: 100kg→90kg）
                           </p>
                         </PopoverContent>
                       </Popover>
