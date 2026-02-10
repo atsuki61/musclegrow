@@ -59,7 +59,7 @@ export function NotificationSettings({ onBack }: SettingsViewProps) {
   return (
     <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
       <BackHeader title="通知設定" onBack={onBack} />
-      <div className="px-4 space-y-4">
+      <div className="px-4 pt-6 space-y-4">
         <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
           <div className="flex items-center justify-between p-3.5">
             <div className="space-y-0.5">
@@ -93,7 +93,7 @@ export function AppearanceSettings({ onBack }: SettingsViewProps) {
   return (
     <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background pb-20">
       <BackHeader title="テーマ設定" onBack={onBack} />
-      <div className="px-4 space-y-6">
+      <div className="px-4 pt-6 space-y-6">
         <section className="space-y-3">
           <h3 className="text-xs font-bold text-muted-foreground px-1">
             モード
@@ -374,7 +374,7 @@ export function AccountSettings({
     <>
       <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
         <BackHeader title="アカウント設定" onBack={onBack} />
-        <div className="px-4 space-y-6">
+        <div className="px-4 pt-6 space-y-6 pb-20">
           {/* 1. ログイン情報セクション */}
           <section className="space-y-2">
             <h3 className="px-1 text-xs font-bold text-muted-foreground">
@@ -597,7 +597,7 @@ export function DataSettings({ onBack, userId }: DataSettingsProps) {
     <>
       <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
         <BackHeader title="データ管理" onBack={onBack} />
-        <div className="px-4 space-y-4">
+        <div className="px-4 pt-6 space-y-4 pb-20">
           <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
             <button
               onClick={handleExport}

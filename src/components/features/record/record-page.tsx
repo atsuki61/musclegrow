@@ -449,8 +449,8 @@ useEffect(() => {
               stiffness: 600,  // バネの硬さ（大きいほど速い）-
               damping: 35,     // 減衰（大きいほど揺れが少ない）-
             }}
-            // スタイル
-            className="touch-pan-y" // 縦スクロールは許可する
+            // スタイル: 画面全体でスワイプ可能にするため、flex-1とmin-h-0を追加
+            className="touch-pan-y flex-1 min-h-0"
           >
             {/* 部位カード */}
             <BodyPartCard
