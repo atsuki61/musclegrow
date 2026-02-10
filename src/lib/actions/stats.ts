@@ -132,6 +132,7 @@ const fetchBig3ProgressCached = unstable_cache(
         .select({
           date: workoutSessions.date,
           maxWeight: sql<number>`MAX(${sets.weight}::numeric)::float`,
+          hasPersonalRecord: sql<boolean>`BOOL_OR(${sets.isPersonalRecord})`,
         })
         .from(sets)
         .innerJoin(workoutSessions, eq(sets.sessionId, workoutSessions.id))
@@ -194,6 +195,7 @@ const fetchExerciseProgressCached = unstable_cache(
       .select({
         date: workoutSessions.date,
         maxWeight: sql<number>`MAX(${sets.weight}::numeric)::float`,
+        hasPersonalRecord: sql<boolean>`BOOL_OR(${sets.isPersonalRecord})`,
       })
       .from(sets)
       .innerJoin(workoutSessions, eq(sets.sessionId, workoutSessions.id))

@@ -148,6 +148,7 @@ export const sets = pgTable(
     restSeconds: integer("rest_seconds"), // セット間の休憩時間（秒）
     notes: text("notes"), // セットごとのメモ
     failure: boolean("failure").default(false), // 限界まで追い込んだか
+    isPersonalRecord: boolean("is_personal_record").default(false), // 最高記録として記録するか
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   // TODO: pgTableの第3引数（extraConfig）が非推奨のため、インデックスをテーブル定義の外に移動する必要がある

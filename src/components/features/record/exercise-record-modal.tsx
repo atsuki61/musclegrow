@@ -6,6 +6,13 @@ import { HistoryTabContent } from "./history-tab-content";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +28,7 @@ import {
   Dumbbell,
   Activity,
   Timer as TimerIcon,
+  HelpCircle,
 } from "lucide-react";
 import { isCardioExercise, isTimeBasedExercise } from "@/lib/utils";
 import { SetRecordForm } from "./set-record-form";
@@ -87,6 +95,7 @@ export default function ExerciseRecordModal({
 
   const isCardio = exercise ? isCardioExercise(exercise) : false;//exerciseがnullの場合はfalseを返す
   const [activeTab, setActiveTab] = useState("record");//タブをrecordに設定
+  const [updateMaxRecord, setUpdateMaxRecord] = useState(false); // MAX重量更新フラグ
 
   const { record: fetchedPreviousRecord, isLoading: isPreviousLoading } =
     usePreviousRecord(date, exercise);//前回記録を取得
@@ -156,6 +165,11 @@ export default function ExerciseRecordModal({
     }
   }, [isOpen, isLoaded, sets.length, exercise?.id]);
 
+  // 日付が変わったらMAX重量更新フラグをリセット
+  useEffect(() => {
+    setUpdateMaxRecord(false);
+  }, [date]);
+
   // モーダルを閉じる
   const handleClose = () => {
     if (!exercise) {
@@ -186,7 +200,23 @@ export default function ExerciseRecordModal({
         const invalidSets = validateItems(validSets, setRecordSchema, "セット"); //セットをバリデーション
         if (invalidSets.length === 0) {
           //セットが有効な場合
-          saveSets(validSets).catch(console.error); //セットを保存
+          // MAX重量更新フラグがONの場合、その日の最大重量のセットにマーク
+          let setsToSave = validSets;
+          if (updateMaxRecord) {
+            // ウォームアップセットを除外して最大重量を取得
+            const maxWeight = Math.max(
+              ...validSets
+                .filter((set) => !set.isWarmup && set.weight)
+                .map((set) => set.weight || 0)
+            );
+            // 最大重量のセットにisPersonalRecordフラグを設定
+            setsToSave = validSets.map((set) => ({
+              ...set,
+              isPersonalRecord:
+                !set.isWarmup && set.weight === maxWeight && maxWeight > 0,
+            }));
+          }
+          saveSets(setsToSave).catch(console.error); //セットを保存
         }
       }
     }
@@ -375,6 +405,45 @@ export default function ExerciseRecordModal({
                       </div>
                     </div>
                   ) : null}
+
+                  {/* MAX重量更新チェックボックス（筋トレ種目のみ） */}
+                  {!isCardio && (
+                    <div className="flex items-center gap-2 py-2">
+                      <Checkbox
+                        id="update-max-record"
+                        checked={updateMaxRecord}
+                        onCheckedChange={(checked) =>
+                          setUpdateMaxRecord(checked === true)
+                        }
+                      />
+                      <label
+                        htmlFor="update-max-record"
+                        className="text-sm font-medium cursor-pointer select-none"
+                      >
+                        MAX重量を更新
+                      </label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <HelpCircle className="w-4 h-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="text-xs">
+                              ONにすると、記録が下がった場合（例:
+                              100kg→90kg）でもグラフに記録されます。
+                              <br />
+                              軽めのトレーニングの日は不要です。
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  )}
 
                   {isCardio ? (
                     <CardioRecordForm

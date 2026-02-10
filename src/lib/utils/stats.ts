@@ -30,9 +30,14 @@ export function getStartDate(preset: DateRangePreset): Date {
 
 /**
  * 最大重量が更新された日のみを抽出する
+ * isPersonalRecordフラグがtrueの日は、記録が下がった場合でも記録する
  */
 export function extractMaxWeightUpdates(
-  maxWeightByDate: Array<{ date: string; maxWeight: number | string }>
+  maxWeightByDate: Array<{
+    date: string;
+    maxWeight: number | string;
+    hasPersonalRecord?: boolean;
+  }>
 ): Array<{ date: string; maxWeight: number }> {
   let previousMax: number | null = null;
   const progressData: Array<{ date: string; maxWeight: number }> = [];
@@ -48,8 +53,12 @@ export function extractMaxWeightUpdates(
       continue;
     }
 
-    // 最初の記録、または最大重量が更新された場合のみ追加
-    if (previousMax === null || maxWeight > previousMax) {
+    // 最初の記録、または最大重量が更新された場合、またはisPersonalRecordフラグがtrueの場合に追加
+    if (
+      previousMax === null ||
+      maxWeight > previousMax ||
+      row.hasPersonalRecord
+    ) {
       progressData.push({
         date: row.date,
         maxWeight,
