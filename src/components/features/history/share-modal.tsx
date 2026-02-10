@@ -148,6 +148,7 @@ export function ShareModal({
           </DialogTitle>
           <button
             onClick={onClose}
+            aria-label="閉じる"
             className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
           >
             <X className="w-4 h-4" />
