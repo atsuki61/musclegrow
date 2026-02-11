@@ -5,6 +5,7 @@ import { calculateMaxWeightsFromStorage } from "@/lib/max-weight";
 import { TotalDaysBadge } from "./total-days-badge";
 import { Big3Progress } from "./big3-progress";
 import { RecordButton } from "./record-button";
+import { LoginStatusBadge } from "./login-status-badge";
 
 import {
   createBig3Data,
@@ -30,6 +31,8 @@ interface HomePageProps {
     deadlift?: string;
   };
   totalDays: number;
+  isLoggedIn: boolean;
+  userName?: string | null;
 }
 
 export function HomePage({
@@ -37,6 +40,8 @@ export function HomePage({
   targets,
   exerciseIds,
   totalDays,
+  isLoggedIn,
+  userName,
 }: HomePageProps) {
   const [big3Data, setBig3Data] = useState<Big3ProgressData>(() =>
     createBig3Data(dbWeights, targets)
@@ -95,7 +100,10 @@ export function HomePage({
         <h1 className="text-xl font-black italic tracking-tighter text-foreground">
           MuscleGrow
         </h1>
-        <TotalDaysBadge days={totalDays} />
+        <div className="flex items-center gap-2">
+          <LoginStatusBadge isLoggedIn={isLoggedIn} userName={userName} />
+          <TotalDaysBadge days={totalDays} />
+        </div>
       </div>
 
       <Big3Progress

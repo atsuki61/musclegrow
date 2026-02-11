@@ -48,6 +48,8 @@ export default async function Home() {
       targets={targets}
       exerciseIds={exerciseIds}
       totalDays={totalDays}
+      isLoggedIn={!!userId}
+      userName={session?.user?.name}
     />
   );
 }
