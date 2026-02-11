@@ -143,9 +143,11 @@ export function ProfileMenu({
             <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center justify-center gap-2">
               {userName}
             </h2>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary">
-              {isGuest ? "ゲストユーザー" : "ベーシックプラン"}
-            </span>
+            {isGuest && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-500/10 text-orange-600 dark:text-orange-400">
+                ゲストユーザー
+              </span>
+            )}
           </div>
         </div>
 
