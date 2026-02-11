@@ -7,7 +7,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  ResponsiveContainer,
   Customized,
 } from "recharts";
 import type { ProfileHistoryData, ProfileChartType } from "@/types/stats";
@@ -54,6 +53,7 @@ export function ProfileChart({
 }: ProfileChartProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [enableAnimation, setEnableAnimation] = useState(false);
 
   const primaryColor = "var(--primary)";
@@ -68,10 +68,24 @@ export function ProfileChart({
     return () => clearTimeout(timer);
   }, []);
 
+  // 初期スクロール位置を右端（最新データ）に設定
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft =
+        scrollContainerRef.current.scrollWidth;
+    }
+  }, [data]);
+
   const chartData = transformChartData(data, chartType);
   const [dataPointCoordinates, collectCoordinate] = useDataPointCoordinates(
     chartData.length
   );
+
+  // グラフの幅を計算（データ数に応じて）
+  const CELL_WIDTH = 70; // 1データポイントあたりの幅
+  const MIN_VISIBLE_POINTS = 11; // 最小表示データ数
+  const minChartWidth = MIN_VISIBLE_POINTS * CELL_WIDTH;
+  const chartWidth = Math.max(minChartWidth, chartData.length * CELL_WIDTH);
 
   const Icon = CHART_ICONS[chartType];
 
@@ -131,15 +145,20 @@ export function ProfileChart({
         )}
       </div>
 
-      <div
-        ref={containerRef}
-        className="relative w-full"
-        style={{ minHeight: "280px" }}
-      >
-        <ResponsiveContainer width="100%" height={280}>
+      <div ref={containerRef} className="relative w-full">
+        <div
+          ref={scrollContainerRef}
+          className="overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
+          style={{
+            minHeight: "280px",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
           <LineChart
+            width={chartWidth}
+            height={280}
             data={chartData}
-            margin={{ top: 8, right: 20, left: 0, bottom: 10 }}
+            margin={{ top: 8, right: 20, left: 20, bottom: 10 }}
             {...chartEventHandlers}
           >
             <defs>
@@ -260,7 +279,7 @@ export function ProfileChart({
                 />
               )}
           </LineChart>
-        </ResponsiveContainer>
+        </div>
 
         {selectedIndex !== null &&
           selectedIndex < dataPointCoordinates.length &&
