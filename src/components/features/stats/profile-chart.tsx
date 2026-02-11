@@ -20,6 +20,7 @@ import {
   transformChartData,
   calculateXAxisDomain,
   calculateYAxisDomain,
+  calculateVisibleXAxisTicks,
 } from "./profile-chart.utils";
 import { useDataPointCoordinates } from "./profile-chart.hooks";
 import {
@@ -55,6 +56,8 @@ export function ProfileChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [enableAnimation, setEnableAnimation] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
   const primaryColor = "var(--primary)";
   const gridColor = "var(--border)";
@@ -68,13 +71,34 @@ export function ProfileChart({
     return () => clearTimeout(timer);
   }, []);
 
+  // コンテナの幅を取得
+  useEffect(() => {
+    const updateContainerWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+
+    updateContainerWidth();
+    window.addEventListener("resize", updateContainerWidth);
+    return () => window.removeEventListener("resize", updateContainerWidth);
+  }, []);
+
   // 初期スクロール位置を右端（最新データ）に設定
   useEffect(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollLeft =
         scrollContainerRef.current.scrollWidth;
+      setScrollLeft(scrollContainerRef.current.scrollLeft);
     }
   }, [data]);
+
+  // スクロールイベントを監視
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      setScrollLeft(scrollContainerRef.current.scrollLeft);
+    }
+  };
 
   const chartData = transformChartData(data, chartType);
   const [dataPointCoordinates, collectCoordinate] = useDataPointCoordinates(
@@ -82,10 +106,13 @@ export function ProfileChart({
   );
 
   // グラフの幅を計算（データ数に応じて）
-  const CELL_WIDTH = 70; // 1データポイントあたりの幅
   const MIN_VISIBLE_POINTS = 10; // 最小表示データ数
-  const minChartWidth = MIN_VISIBLE_POINTS * CELL_WIDTH;
-  const chartWidth = Math.max(minChartWidth, chartData.length * CELL_WIDTH);
+  const PADDING = 40; // 左右のパディング合計
+  const CELL_WIDTH =
+    containerWidth > 0
+      ? Math.max(38, (containerWidth - PADDING) / MIN_VISIBLE_POINTS)
+      : 60; // コンテナ幅に基づいて計算、最小40px
+  const chartWidth = chartData.length * CELL_WIDTH;
 
   const Icon = CHART_ICONS[chartType];
 
@@ -118,6 +145,68 @@ export function ProfileChart({
   const xAxisDomain = calculateXAxisDomain(chartData);
   const yAxisDomain = calculateYAxisDomain(chartData);
 
+  // 表示するX軸のticksを動的に計算
+  const { indices: visibleXAxisIndices, yearChangeIndices } =
+    calculateVisibleXAxisTicks(
+      chartData,
+      scrollLeft,
+      containerWidth,
+      chartWidth,
+      CELL_WIDTH
+    );
+
+  // インデックスから実際の日付値に変換
+  const visibleXAxisTicks = visibleXAxisIndices.map((i) => chartData[i].date);
+
+  // カスタムtickコンポーネント
+  const CustomTick = (props: {
+    x?: number;
+    y?: number;
+    payload?: { value: string };
+  }) => {
+    const { x, y, payload } = props;
+
+    if (!payload || x === undefined || y === undefined) return null;
+
+    const index = chartData.findIndex((d) => d.date === payload.value);
+
+    // 年の区切りの場合は年を表示
+    if (index !== -1 && yearChangeIndices.has(index)) {
+      const year = new Date(chartData[index].fullDate).getFullYear();
+      return (
+        <g transform={`translate(${x},${y})`}>
+          <text
+            x={0}
+            y={0}
+            dy={16}
+            textAnchor="middle"
+            fill={textMutedColor}
+            fontSize={10}
+            fontWeight="bold"
+          >
+            {year}
+          </text>
+        </g>
+      );
+    }
+
+    // 通常の日付表示
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text
+          x={0}
+          y={0}
+          dy={16}
+          textAnchor="middle"
+          fill={textMutedColor}
+          fontSize={10}
+        >
+          {payload.value}
+        </text>
+      </g>
+    );
+  };
+
   const chartEventHandlers = createChartEventHandlers(
     dataPointCoordinates,
     setSelectedIndex
@@ -149,9 +238,12 @@ export function ProfileChart({
         <div
           ref={scrollContainerRef}
           className="overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
+          onScroll={handleScroll}
           style={{
-            minHeight: "280px",
-            WebkitOverflowScrolling: "touch",
+    minHeight: "280px",
+    width: "100%",
+    maxWidth: "100%",
+    WebkitOverflowScrolling: "touch",
           }}
         >
           <LineChart
@@ -189,11 +281,11 @@ export function ProfileChart({
             <XAxis
               dataKey="date"
               stroke={gridColor}
-              tick={{ fill: textMutedColor, fontSize: 10 }}
+              tick={xAxisDomain ? { fill: textMutedColor, fontSize: 10 } : CustomTick}
               tickLine={false}
               axisLine={{ stroke: gridColor, strokeWidth: 1 }}
               domain={xAxisDomain}
-              ticks={xAxisDomain}
+              ticks={xAxisDomain || visibleXAxisTicks}
             />
 
             <YAxis
