@@ -3,6 +3,12 @@
 import { db } from "../../../db";
 import { sets, exercises, workoutSessions } from "../../../db/schemas/app";
 import { eq, and, sql, isNull, or, inArray } from "drizzle-orm";
+
+/**
+ * NOTE: unstable_cacheを使用中
+ * 将来的にNext.jsで削除された場合は、React cacheに移行する予定
+ * 移行方法: import { cache } from 'react' でラップ
+ */
 import { unstable_cache } from "next/cache";
 
 type Big3MaxWeightsResult = {

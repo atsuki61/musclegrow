@@ -10,6 +10,12 @@ import {
 import { eq, and, gte, lte, desc, inArray } from "drizzle-orm";
 import type { SetRecord, CardioRecord } from "@/types/workout";
 import type { BodyPart } from "@/types/workout";
+
+/**
+ * NOTE: unstable_cacheを使用中
+ * 将来的にNext.jsで削除された場合は、React cacheに移行する予定
+ * 移行方法: import { cache } from 'react' でラップ
+ */
 import { unstable_cache } from "next/cache";
 
 /**
