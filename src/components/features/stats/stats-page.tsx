@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DateRangeSelector } from "./date-range-selector";
 import { BodyPartSelector } from "./body-part-selector";
 import { ExerciseSelector } from "./exercise-selector";
 import { HorizontalNav } from "./horizontal-nav";
 import { ChartLoading } from "./chart-loading";
-import { getProfileHistory } from "@/lib/actions/stats";
 import { getExercisesWithDataFromStorage } from "@/lib/local-storage-exercise-progress";
 import { useTrainingStats } from "@/hooks/use-training-stats";
-import { useAuthSession } from "@/lib/auth-session-context";
 import type {
   DateRangePreset,
   ProfileChartType,
@@ -60,7 +58,6 @@ function EmptyStateMessage({
 
 interface StatsPageProps {
   initialProfileHistory: ProfileHistoryData[];
-  initialProfileDateRange: DateRangePreset;
   initialTrainingDateRange: DateRangePreset;
   initialExercises: Exercise[];
   initialExercisesWithData: string[];
@@ -68,32 +65,18 @@ interface StatsPageProps {
 
 export function StatsPage({
   initialProfileHistory,
-  initialProfileDateRange,
   initialTrainingDateRange,
   initialExercises,
   initialExercisesWithData,
 }: StatsPageProps) {
-  const { userId } = useAuthSession();
   const [isPending, startTransition] = useTransition(); // トランジション追加
 
   // タブ状態
   const [activeTab, setActiveTab] = useState<"profile" | "training">("profile");
 
   // プロフィールタブの状態
-  const [profileDateRange, setProfileDateRange] = useState<DateRangePreset>(
-    initialProfileDateRange
-  );
   const [profileChartType, setProfileChartType] =
     useState<ProfileChartType>("weight");
-
-  const [profileHistory, setProfileHistory] = useState<ProfileHistoryData[]>(
-    initialProfileHistory
-  );
-
-  // キャッシュ用のRef
-  const profileCache = useRef<Record<string, ProfileHistoryData[]>>({
-    [initialProfileDateRange]: initialProfileHistory,
-  });
 
   // トレーニングタブの状態
   const [trainingDateRange, setTrainingDateRange] = useState<DateRangePreset>(
@@ -115,29 +98,6 @@ export function StatsPage({
     selectedExerciseId,
     initialExercisesWithData,
   });
-
-  // プロフィール期間変更ハンドラ（キャッシュ活用 & トランジション）
-  const handleProfileDateRangeChange = (range: DateRangePreset) => {
-    startTransition(() => {
-      setProfileDateRange(range);
-
-      // キャッシュにあれば即座にセット
-      if (profileCache.current[range]) {
-        setProfileHistory(profileCache.current[range]);
-      } else {
-        // なければフェッチ（この間 isPending が true になるが、前のデータは表示されたまま）
-        fetchProfileHistory(range);
-      }
-    });
-  };
-
-  async function fetchProfileHistory(range: DateRangePreset) {
-    const result = await getProfileHistory(userId ?? "", { preset: range });
-    if (result.success && result.data) {
-      setProfileHistory(result.data);
-      profileCache.current[range] = result.data;
-    }
-  }
 
   // トレーニング期間変更ハンドラ
   const handleTrainingDateRangeChange = (range: DateRangePreset) => {
@@ -186,11 +146,6 @@ export function StatsPage({
 
         {/* プロフィールタブ */}
         <TabsContent value="profile" className="space-y-4 mt-4">
-          <DateRangeSelector
-            value={profileDateRange}
-            onChange={handleProfileDateRangeChange}
-          />
-
           <HorizontalNav
             items={PROFILE_CHART_TYPES}
             value={profileChartType}
@@ -207,9 +162,9 @@ export function StatsPage({
             }`}
           >
             <ProfileChart
-              data={profileHistory}
+              data={initialProfileHistory}
               chartType={profileChartType}
-              dataCount={profileHistory.length}
+              dataCount={initialProfileHistory.length}
             />
           </div>
         </TabsContent>

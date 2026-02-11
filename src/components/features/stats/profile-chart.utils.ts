@@ -88,3 +88,57 @@ export function findClosestDataPointIndex(
     : null;
 }
 
+/**
+ * 表示範囲とデータから、X軸に表示すべき日付のインデックスを計算
+ * - 表示範囲の最初と最後
+ * - 年の区切り
+ */
+export function calculateVisibleXAxisTicks(
+  chartData: Array<{ date: string; fullDate: string }>,
+  scrollLeft: number,
+  containerWidth: number,
+  chartWidth: number,
+  cellWidth: number
+): {
+  indices: number[];
+  yearChangeIndices: Set<number>;
+} {
+  if (chartData.length === 0) return { indices: [], yearChangeIndices: new Set() };
+  if (chartData.length === 1) {
+    return { indices: [0], yearChangeIndices: new Set() };
+  }
+
+  // 表示されている範囲のインデックスを計算
+  const startIndex = Math.max(0, Math.floor(scrollLeft / cellWidth));
+  const endIndex = Math.min(
+    chartData.length - 1,
+    Math.ceil((scrollLeft + containerWidth) / cellWidth)
+  );
+
+  const indices: number[] = [];
+  const yearChangeIndices = new Set<number>();
+
+  // 表示範囲の最初
+  if (startIndex < chartData.length) {
+    indices.push(startIndex);
+  }
+
+  // 年の区切りを検出
+  for (let i = startIndex + 1; i <= endIndex; i++) {
+    const currentYear = new Date(chartData[i].fullDate).getFullYear();
+    const prevYear = new Date(chartData[i - 1].fullDate).getFullYear();
+
+    if (currentYear !== prevYear) {
+      indices.push(i);
+      yearChangeIndices.add(i);
+    }
+  }
+
+  // 表示範囲の最後
+  if (endIndex > startIndex && !indices.includes(endIndex)) {
+    indices.push(endIndex);
+  }
+
+  return { indices, yearChangeIndices };
+}
+
