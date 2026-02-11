@@ -83,7 +83,7 @@ export function ProfileChart({
 
   // グラフの幅を計算（データ数に応じて）
   const CELL_WIDTH = 70; // 1データポイントあたりの幅
-  const MIN_VISIBLE_POINTS = 11; // 最小表示データ数
+  const MIN_VISIBLE_POINTS = 10; // 最小表示データ数
   const minChartWidth = MIN_VISIBLE_POINTS * CELL_WIDTH;
   const chartWidth = Math.max(minChartWidth, chartData.length * CELL_WIDTH);
 

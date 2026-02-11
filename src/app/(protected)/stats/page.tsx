@@ -8,13 +8,12 @@ export default async function Page() {
   const userId = await getAuthUserId();
   const safeUserId = userId ?? "";
 
-  const defaultProfileRange: DateRangePreset = "month";
   const defaultTrainingRange: DateRangePreset = "month";
 
   //Promise.all の中身と受け取り変数を一致させる
   const [profileHistoryResult, exercisesResult, recordedIdsResult] =
     await Promise.all([
-      getProfileHistory(safeUserId, { preset: defaultProfileRange }),
+      getProfileHistory(safeUserId, { preset: "all" }),
       getExercises(userId),
       userId ? getRecordedExerciseIds(userId) : Promise.resolve([]),
     ]);
@@ -33,7 +32,6 @@ export default async function Page() {
   return (
     <StatsPage
       initialProfileHistory={initialProfileHistory}
-      initialProfileDateRange={defaultProfileRange}
       initialTrainingDateRange={defaultTrainingRange}
       initialExercises={initialExercises}
       initialExercisesWithData={initialExercisesWithData}
