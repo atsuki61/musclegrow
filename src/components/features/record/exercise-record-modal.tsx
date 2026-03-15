@@ -30,6 +30,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { isCardioExercise, isTimeBasedExercise } from "@/lib/utils";
+import { MAX_SETS, hasAnyPositiveInputValue } from "@/lib/utils/record";
 import { SetRecordForm } from "./set-record-form";
 import { CardioRecordForm } from "./cardio-record-form";
 import {
@@ -51,22 +52,6 @@ function isValidSet(set: SetRecord): boolean {
   const hasReps = set.reps > 0;
   const hasDuration = (set.duration ?? 0) > 0;
   return hasReps || hasDuration;
-}
-
-// 前回記録コピー時も含め、セット数は上限を統一
-const MAX_SETS = 50;
-
-// 「最後の行が埋まっているなら、続き入力用に空行を足す」判定に使う
-function hasAnyPositiveInputValue(set: SetRecord): boolean {
-  const weight = Number(set.weight ?? 0);
-  const reps = Number(set.reps ?? 0);
-  const duration = Number(set.duration ?? 0);
-//数値が有限かつ0より大きいかどうか
-  const hasWeight = Number.isFinite(weight) && weight > 0;
-  const hasReps = Number.isFinite(reps) && reps > 0;
-  const hasDuration = Number.isFinite(duration) && duration > 0;
-
-  return hasWeight || hasReps || hasDuration;
 }
 
 type PreviousRecordData =

@@ -14,27 +14,13 @@ import {
   isBodyweightExercise,
 } from "@/lib/utils";
 import type { Exercise, SetRecord } from "@/types/workout";
+import { MAX_SETS, hasAnyPositiveInputValue } from "@/lib/utils/record";
 
 interface SetRecordFormProps {
   exercise: Exercise;
   sets: SetRecord[];
   onSetsChange: (sets: SetRecord[]) => void;
   isLoading?: boolean;
-}
-// セット入力は多くても現実的に 50 までに制限
-const MAX_SETS = 50;
-
-// 入力欄に「次のセットを出すべき値」が入っているか（0 は未入力扱い）
-function hasAnyPositiveInputValue(set: SetRecord): boolean {
-  const weight = Number(set.weight ?? 0);
-  const reps = Number(set.reps ?? 0);
-  const duration = Number(set.duration ?? 0);
-//数値が有限かつ0より大きいかどうか
-  const hasWeight = Number.isFinite(weight) && weight > 0;
-  const hasReps = Number.isFinite(reps) && reps > 0;
-  const hasDuration = Number.isFinite(duration) && duration > 0;
-
-  return hasWeight || hasReps || hasDuration;
 }
 //セット行のプロパティ
 interface SetRowProps {
