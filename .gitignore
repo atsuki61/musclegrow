@@ -53,3 +53,12 @@ next-env.d.ts
 /.cursor/plans
 /.specstory
 X
+# AI tools
+.claude/
+.cursor/
+.gemini/
+CLAUDE.md
+
+# Misc
+*.report.html
+vscode-extensions.txt
