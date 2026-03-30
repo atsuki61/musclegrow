@@ -50,6 +50,8 @@ next-env.d.ts
 
 # docx
 /docx
+# ローカル用ドキュメント（リポジトリでは追跡しない）
+/doc
 /.cursor/plans
 /.specstory
 X
