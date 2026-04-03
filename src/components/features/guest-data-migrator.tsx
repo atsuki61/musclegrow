@@ -109,7 +109,7 @@ async function migrateExerciseSettings(userId: string) {
 
     const settings = JSON.parse(settingsRaw) as Record<string, boolean>;
     const promises = Object.entries(settings).map(([exerciseId, isVisible]) =>
-      toggleExerciseVisibility(userId, exerciseId, isVisible)
+      toggleExerciseVisibility(userId, exerciseId, isVisible),
     );
 
     await Promise.all(promises);
@@ -123,7 +123,7 @@ async function migrateExerciseSettings(userId: string) {
  */
 async function migrateCustomExercises(
   userId: string,
-  localExercises: Exercise[]
+  localExercises: Exercise[],
 ) {
   for (const exercise of localExercises) {
     try {
@@ -187,7 +187,7 @@ function collectRecordedDatesFromStorage(): string[] {
 
 function createExerciseMappingData(
   localExercises: Exercise[],
-  dbExercises: Exercise[]
+  dbExercises: Exercise[],
 ) {
   const localExerciseById = new Map<string, Exercise>();
   localExercises.forEach((ex) => localExerciseById.set(ex.id, ex));
@@ -210,7 +210,7 @@ function createExerciseIdMapper(
   localExerciseById: Map<string, Exercise>,
   dbExerciseIds: Set<string>,
   dbExerciseIdByNameAndBodyPart: Map<string, string>,
-  dbExercises: Exercise[]
+  dbExercises: Exercise[],
 ) {
   return (localExerciseId: string): string | null => {
     // モックデータは無視（過去データとの互換性のため）
@@ -229,7 +229,7 @@ function createExerciseIdMapper(
 
     const key = createNameBodyPartKey(
       localExercise.name,
-      localExercise.bodyPart
+      localExercise.bodyPart,
     );
     const mappedId = dbExerciseIdByNameAndBodyPart.get(key);
     if (mappedId) return mappedId;
@@ -246,10 +246,10 @@ async function getExistingExerciseIds(userId: string, sessionId: string) {
   const details = await getSessionDetails(userId, sessionId);
   if (details.success && details.data) {
     details.data.workoutExercises.forEach((e) =>
-      workoutExerciseIds.add(e.exerciseId)
+      workoutExerciseIds.add(e.exerciseId),
     );
     details.data.cardioExercises.forEach((e) =>
-      cardioExerciseIds.add(e.exerciseId)
+      cardioExerciseIds.add(e.exerciseId),
     );
   }
   return { workoutExerciseIds, cardioExerciseIds };
@@ -260,7 +260,7 @@ async function migrateDateRecords(
   dateStr: string,
   mapExerciseId: (id: string) => string | null,
   workoutExercises: Array<{ exerciseId: string; sets: SetRecord[] }>,
-  cardioExercises: Array<{ exerciseId: string; records: CardioRecord[] }>
+  cardioExercises: Array<{ exerciseId: string; records: CardioRecord[] }>,
 ) {
   const sessionResult = await saveWorkoutSession({ date: dateStr });
   if (!sessionResult.success || !sessionResult.data) return false;
@@ -327,7 +327,7 @@ async function migrateGuestData(userId: string): Promise<void> {
     localExerciseById,
     dbExerciseIds,
     dbExerciseIdByNameAndBodyPart,
-    dbExercises
+    dbExercises,
   );
 
   // 7. 記録データの移行
@@ -347,7 +347,7 @@ async function migrateGuestData(userId: string): Promise<void> {
       yyyyMMdd,
       mapExerciseId,
       workoutExercises,
-      cardioExercises
+      cardioExercises,
     );
     if (!success) hadError = true;
   }
