@@ -39,7 +39,9 @@ const ExerciseRecordModal = dynamic(
   { ssr: false }
 );
 
-const HistoryCalendar = dynamic(() => import("./history-calendar"));
+const HistoryCalendar = dynamic(() => import("./history-calendar"), {
+  loading: () => <HistoryCalendarSkeleton />,
+});
 
 interface HistoryPageProps {
   initialMonthDate: string;
@@ -171,9 +173,11 @@ export function HistoryPage({
       if (selectedDate) {
         // 少し待機してから再読み込み（状態反映待ち）
         await new Promise((resolve) => setTimeout(resolve, 100));
-        await loadSessionDetails(selectedDate);
-        await loadBodyPartsByDate(currentMonth);
-        await recalculateMaxWeights();
+        await Promise.all([
+          loadSessionDetails(selectedDate),
+          loadBodyPartsByDate(currentMonth),
+          recalculateMaxWeights(),
+        ]);
       }
     },
     [
