@@ -52,11 +52,6 @@ export function SwipeableExerciseCard({
     [SWIPE_THRESHOLD, DELETE_THRESHOLD],
     [1, 1.3]
   );
-  const deleteColor = useTransform(
-    x,
-    [SWIPE_THRESHOLD, DELETE_THRESHOLD],
-    ["#ef4444", "#dc2626"] // red-500 -> red-600
-  );
 
   // ドラッグ開始時
   const handleDragStart = () => {
@@ -149,17 +144,17 @@ export function SwipeableExerciseCard({
         {/* 背景の削除エリア */}
         <div className="absolute inset-0 flex justify-end rounded-xl overflow-hidden">
           <motion.div
-            className="h-full bg-red-100 flex items-center justify-center rounded-r-xl"
+            className="h-full bg-red-500 flex items-center justify-center"
             style={{
               width: useTransform(x, (val) => Math.max(0, -val)), // スワイプ量に合わせて背景を伸ばす
               opacity: deleteOpacity,
             }}
           >
             <motion.div
-              style={{ scale: deleteScale, color: deleteColor }}
-              className="pr-6"
+              style={{ scale: deleteScale }}
+              className="pr-5 text-white"
             >
-              <Trash2 className="w-6 h-6" />
+              <Trash2 className="w-5 h-5" strokeWidth={2} />
             </motion.div>
           </motion.div>
         </div>
