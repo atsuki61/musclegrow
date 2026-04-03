@@ -56,6 +56,26 @@ interface SettingsViewProps {
 
 // --- 通知設定 ---
 export function NotificationSettings({ onBack }: SettingsViewProps) {
+  const [loginPromptEnabled, setLoginPromptEnabled] = useState(() => {
+    // SSR時はデフォルトtrue（クライアントでuseEffectで上書き）
+    return true;
+  });
+
+  useEffect(() => {
+    const hidden =
+      localStorage.getItem("mg_hide_login_prompt") === "true";
+    setLoginPromptEnabled(!hidden);
+  }, []);
+
+  const handleLoginPromptChange = (checked: boolean) => {
+    setLoginPromptEnabled(checked);
+    if (!checked) {
+      localStorage.setItem("mg_hide_login_prompt", "true");
+    } else {
+      localStorage.removeItem("mg_hide_login_prompt");
+    }
+  };
+
   return (
     <div className="animate-in fade-in slide-in-from-right-8 duration-300 min-h-screen bg-gray-50/50 dark:bg-background">
       <BackHeader title="通知設定" onBack={onBack} />
@@ -78,6 +98,21 @@ export function NotificationSettings({ onBack }: SettingsViewProps) {
               </div>
             </div>
             <Switch />
+          </div>
+        </Card>
+
+        <Card className="divide-y divide-border/40 border-border/60 shadow-sm">
+          <div className="flex items-center justify-between p-3.5">
+            <div className="space-y-0.5">
+              <div className="text-sm font-bold">未ログイン時のログイン案内</div>
+              <div className="text-xs text-muted-foreground">
+                ログアウト状態で起動した際に通知を表示する
+              </div>
+            </div>
+            <Switch
+              checked={loginPromptEnabled}
+              onCheckedChange={handleLoginPromptChange}
+            />
           </div>
         </Card>
       </div>

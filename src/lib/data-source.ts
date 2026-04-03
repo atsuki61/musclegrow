@@ -25,4 +25,3 @@ export function shouldUseDbOnly(userId: string | null): boolean {
   // ログイン済みで移行完了済みならDBのみ
   return localStorage.getItem(GUEST_DATA_MIGRATED_KEY) === "true";
 }
-
