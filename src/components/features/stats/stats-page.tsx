@@ -44,11 +44,8 @@ function EmptyStateMessage({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-6">
-      <div
-        className="flex flex-col items-center justify-center h-[280px]"
-        style={{ color: "#6B7280" }}
-      >
+    <div className="rounded-2xl bg-card border border-border p-6">
+      <div className="flex flex-col items-center justify-center h-[280px] text-muted-foreground">
         <p className="text-sm">{title}</p>
         <p className="text-xs mt-1">{description}</p>
       </div>
