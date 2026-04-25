@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { parse } from "date-fns";
 import { Search, Pencil, Check, ChevronLeft, ChevronRight } from "lucide-react";
@@ -15,7 +15,10 @@ import { Button } from "@/components/ui/button";
 import { saveExercise } from "@/lib/api";
 import { useMaxWeights } from "@/hooks/use-max-weights";
 import { useLastTrainedDates } from "@/hooks/use-last-trained";
-import { usePreviousRecord } from "@/hooks/use-previous-record";
+import {
+  fetchPreviousRecord,
+  type PreviousRecordData,
+} from "@/hooks/use-previous-record";
 import { useAuthSession } from "@/lib/auth-session-context";
 import type { BodyPart, Exercise } from "@/types/workout";
 import { toast } from "sonner";
@@ -27,6 +30,16 @@ import {
   toggleGuestExerciseVisibility,
   saveGuestCustomExercise,
 } from "@/lib/local-storage-guest";
+import { formatDateToYYYYMMDD } from "@/lib/utils";
+
+interface PreviousRecordCacheEntry {
+  record: PreviousRecordData;
+  isLoading: boolean;
+}
+
+const getPreviousRecordCacheKey = (date: Date, exerciseId: string): string => {
+  return `${formatDateToYYYYMMDD(date)}_${exerciseId}`;
+};
 
 /**
  * スワイプ可能な部位の順番リスト
@@ -107,14 +120,20 @@ export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
   const [addExerciseBodyPart, setAddExerciseBodyPart] =
     useState<Exclude<BodyPart, "all">>("chest");
+  const [previousRecordCache, setPreviousRecordCache] = useState<
+    Record<string, PreviousRecordCacheEntry>
+  >({});
+  const previousRecordRequestKeysRef = useRef<Set<string>>(new Set());
 
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
   const { refresh: refreshLastTrained } = useLastTrainedDates();
 
-  const { record: prefetchedRecord } = usePreviousRecord(
-    selectedDate,
-    selectedExercise
-  );
+  const selectedPreviousRecordKey = selectedExercise
+    ? getPreviousRecordCacheKey(selectedDate, selectedExercise.id)
+    : null;
+  const selectedPreviousRecordEntry = selectedPreviousRecordKey
+    ? previousRecordCache[selectedPreviousRecordKey]
+    : undefined;
 
   //データ読み込みロジック (ゲスト対応)
 useEffect(() => {
@@ -189,6 +208,44 @@ useEffect(() => {
     setIsEditMode(false);
   };
 
+  const loadPreviousRecordForExercise = useCallback(
+    async (exercise: Exercise) => {
+      const cacheKey = getPreviousRecordCacheKey(selectedDate, exercise.id);
+      const hasCachedRecord = Boolean(previousRecordCache[cacheKey]);
+      const isRequesting =
+        previousRecordRequestKeysRef.current.has(cacheKey);
+
+      if (hasCachedRecord || isRequesting) return;
+
+      previousRecordRequestKeysRef.current.add(cacheKey);
+      setPreviousRecordCache((prev) => ({
+        ...prev,
+        [cacheKey]: { record: null, isLoading: true },
+      }));
+
+      try {
+        const record = await fetchPreviousRecord(
+          selectedDate,
+          exercise,
+          userId
+        );
+        setPreviousRecordCache((prev) => ({
+          ...prev,
+          [cacheKey]: { record, isLoading: false },
+        }));
+      } catch (error) {
+        console.error("前回記録取得エラー", error);
+        setPreviousRecordCache((prev) => ({
+          ...prev,
+          [cacheKey]: { record: null, isLoading: false },
+        }));
+      } finally {
+        previousRecordRequestKeysRef.current.delete(cacheKey);
+      }
+    },
+    [previousRecordCache, selectedDate, userId]
+  );
+
 
   /**
    * スワイプ終了時のハンドラ
@@ -237,6 +294,7 @@ useEffect(() => {
     }
     setSelectedExercise(exercise);//種目を選択
     setIsModalOpen(true);//モーダルを開く
+    void loadPreviousRecordForExercise(exercise);
   };
   // モーダルを閉じるハンドラ
   const handleModalClose = () => {
@@ -471,7 +529,8 @@ useEffect(() => {
         isOpen={isModalOpen}
         onClose={handleModalClose}
         date={selectedDate}
-        prefetchedPreviousRecord={prefetchedRecord}
+        previousRecord={selectedPreviousRecordEntry?.record ?? null}
+        isPreviousRecordLoading={selectedPreviousRecordEntry?.isLoading ?? false}
       />
       {/* 種目追加モーダル */}
       <AddExerciseModal

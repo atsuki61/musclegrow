@@ -40,7 +40,7 @@ import {
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import { useWorkoutSession } from "@/hooks/use-workout-session";
 import { useCardioSession } from "@/hooks/use-cardio-session";
-import { usePreviousRecord } from "@/hooks/use-previous-record";
+import type { PreviousRecordData } from "@/hooks/use-previous-record";
 import {
   setRecordSchema,
   cardioRecordSchema,
@@ -54,17 +54,13 @@ function isValidSet(set: SetRecord): boolean {
   return hasReps || hasDuration;
 }
 
-type PreviousRecordData =
-  | { type: "workout"; sets: SetRecord[]; date: Date }
-  | { type: "cardio"; records: CardioRecord[]; date: Date }
-  | null;
-
 interface ExerciseRecordModalProps {
   exercise: Exercise | null;
   isOpen: boolean;
   onClose: () => void;
   date: Date;
-  prefetchedPreviousRecord?: PreviousRecordData;
+  previousRecord?: PreviousRecordData;
+  isPreviousRecordLoading?: boolean;
 }
 
 export default function ExerciseRecordModal({
@@ -72,7 +68,8 @@ export default function ExerciseRecordModal({
   isOpen,
   onClose,
   date,
-  prefetchedPreviousRecord,
+  previousRecord = null,
+  isPreviousRecordLoading = false,
 }: ExerciseRecordModalProps) {
   // ▼ タイマー機能を取得
   const { startTimer } = useTimer();
@@ -81,11 +78,7 @@ export default function ExerciseRecordModal({
   const [activeTab, setActiveTab] = useState("record");//タブをrecordに設定
   const [updateMaxRecord, setUpdateMaxRecord] = useState(false); // MAX重量更新フラグ
 
-  const { record: fetchedPreviousRecord, isLoading: isPreviousLoading } =
-    usePreviousRecord(date, exercise);//前回記録を取得
-
-  const previousRecord = fetchedPreviousRecord || prefetchedPreviousRecord;//前回記録を取得
-  const isLoading = isPreviousLoading && !prefetchedPreviousRecord;//前回記録を取得中かどうか
+  const isLoading = isPreviousRecordLoading && !previousRecord;//前回記録を取得中かどうか
 
   const createInitialSet = (): SetRecord => {//セットを作成
     const isTimeBased = exercise ? isTimeBasedExercise(exercise) : false;//exerciseがnullの場合はfalseを返す
@@ -348,48 +341,6 @@ export default function ExerciseRecordModal({
             <ScrollArea className="h-full w-full">
               <div className="p-4 pb-4">
                 <TabsContent value="record" className="mt-0 space-y-4">
-                  {/* 前回記録 */}
-                  {isLoading ? (
-                    <div className="bg-muted/20 rounded-xl p-3 text-center text-xs text-muted-foreground">
-                      前回記録を読み込み中...
-                    </div>
-                  ) : previousRecord ? (
-                    <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-primary flex items-center gap-1">
-                          <History className="w-3 h-3" />
-                          前回の記録 (
-                          {new Date(previousRecord.date).toLocaleDateString()})
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleCopyPreviousRecord}
-                          className="h-6 text-[10px] px-2 text-primary hover:text-primary hover:bg-primary/10"
-                        >
-                          コピーする
-                        </Button>
-                      </div>
-                      <div className="text-foreground/90">
-                        {previousRecord.type === "cardio" ? (
-                          <PreviousCardioRecordCard
-                            records={previousRecord.records}
-                            date={previousRecord.date}
-                            onCopy={() => {}}
-                            hideHeader
-                          />
-                        ) : (
-                          <PreviousWorkoutRecordCard
-                            sets={previousRecord.sets}
-                            date={previousRecord.date}
-                            onCopy={() => {}}
-                            hideHeader
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-
                   {/* MAX重量更新チェックボックス（筋トレ種目のみ） */}
                   {!isCardio && (
                     <div className="flex items-center gap-2 py-2">
@@ -437,6 +388,48 @@ export default function ExerciseRecordModal({
                       isLoading={isSetsLoading}
                     />
                   )}
+
+                  {/* 前回記録 */}
+                  {isLoading ? (
+                    <div className="bg-muted/20 rounded-xl p-3 text-center text-xs text-muted-foreground">
+                      前回記録を読み込み中...
+                    </div>
+                  ) : previousRecord ? (
+                    <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-primary flex items-center gap-1">
+                          <History className="w-3 h-3" />
+                          前回の記録 (
+                          {new Date(previousRecord.date).toLocaleDateString()})
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCopyPreviousRecord}
+                          className="h-6 text-[10px] px-2 text-primary hover:text-primary hover:bg-primary/10"
+                        >
+                          コピーする
+                        </Button>
+                      </div>
+                      <div className="text-foreground/90">
+                        {previousRecord.type === "cardio" ? (
+                          <PreviousCardioRecordCard
+                            records={previousRecord.records}
+                            date={previousRecord.date}
+                            onCopy={() => {}}
+                            hideHeader
+                          />
+                        ) : (
+                          <PreviousWorkoutRecordCard
+                            sets={previousRecord.sets}
+                            date={previousRecord.date}
+                            onCopy={() => {}}
+                            hideHeader
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
                 </TabsContent>
 
                 <TabsContent value="history" className="mt-0">
