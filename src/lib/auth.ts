@@ -24,6 +24,11 @@ export const auth = betterAuth({
   }),
   // セッション暗号化用のシークレットキー
   secret: env.BETTER_AUTH_SECRET,
+  // セッション期限を90日に延長し、日常利用時に期限を更新する
+  session: {
+    expiresIn: 60 * 60 * 24 * 90,
+    updateAge: 60 * 60 * 24,
+  },
   // メール/パスワード認証を有効化
   emailAndPassword: {
     enabled: true,
