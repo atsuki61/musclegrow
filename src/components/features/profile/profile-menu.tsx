@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   Settings,
-  Bell,
   Moon,
   ChevronRight,
   LogOut,
@@ -38,7 +37,6 @@ import { toast } from "sonner";
 import Link from "next/link";
 
 export type ViewStateTarget =
-  | "notifications"
   | "appearance"
   | "account"
   | "data";
@@ -207,11 +205,6 @@ export function ProfileMenu({
                 アプリ設定
               </h3>
               <Card className="border border-border/60 rounded-2xl overflow-hidden divide-y divide-border/40 shadow-sm">
-                <SettingItem
-                  icon={Bell}
-                  label="通知設定"
-                  onClick={() => onNavigate("notifications")}
-                />
                 <SettingItem
                   icon={Moon}
                   label="テーマ設定"

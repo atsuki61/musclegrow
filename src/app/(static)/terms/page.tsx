@@ -94,7 +94,7 @@ export default function TermsPage() {
         </section>
 
         <div className="pt-8 text-xs text-center opacity-60">
-          制定日：2024年12月3日<br />
+          制定日：2025年12月3日<br />
           最終更新日：2026年2月11日
         </div>
       </div>

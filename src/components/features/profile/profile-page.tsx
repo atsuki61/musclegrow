@@ -5,7 +5,6 @@ import type { ProfileResponse } from "@/types/profile";
 import { ProfileMenu, type ViewStateTarget } from "./profile-menu";
 import { BodyCompositionEditor } from "./body-composition-editor";
 import {
-  NotificationSettings,
   AppearanceSettings,
   AccountSettings,
   DataSettings,
@@ -97,8 +96,6 @@ export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
           isSaving={isSaving}
         />
       );
-    case "notifications":
-      return <NotificationSettings onBack={goBack} />;
     case "appearance":
       return <AppearanceSettings onBack={goBack} />;
     case "account":
