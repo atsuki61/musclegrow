@@ -263,7 +263,7 @@ pnpm build
 
 ## 🔗 関連リソース
 
-- **要件定義**: `docx/要件定義.md`
+- **要件定義**: `doc/要件定義.md`
 - **README**: `README.md`
 - **認証設定**: `src/lib/auth.ts`
 - **データベーススキーマ**: `db/schemas/`
