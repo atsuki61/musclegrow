@@ -8,8 +8,12 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-foreground">1. はじめに</h2>
           <p>
-            MuscleGrow（以下、「本アプリ」）は、ユーザーのプライバシーを尊重し、個人情報を適切に取り扱います。
+            MuscleGrow（以下、「本アプリ」）は、個人開発により提供される筋トレ記録Webアプリケーションです。
+            本アプリは、ユーザーのプライバシーを尊重し、個人情報を適切に取り扱います。
             本ポリシーでは、どのような情報を収集し、どのように利用・保護するかを説明します。
+          </p>
+          <p>
+            本アプリは公開URLからアクセス可能ですが、主に個人利用およびポートフォリオ提示を目的として運用しています。
           </p>
         </section>
 
@@ -46,6 +50,7 @@ export default function PrivacyPage() {
             <li>複数端末でのデータ同期（ログインモードのみ）</li>
             <li>不正利用の防止および対応</li>
             <li>重要なお知らせやメンテナンス情報の通知</li>
+            <li>お問い合わせへの対応</li>
           </ul>
         </section>
 
@@ -84,7 +89,7 @@ export default function PrivacyPage() {
               <strong>ログインモード</strong>：データはクラウド（Supabase）に保存されます。アカウントを削除するまで保持されます。
             </li>
             <li>
-              削除されたデータは、バックアップから30日以内に完全に削除されます。
+              削除されたデータは、バックアップや各サービスの仕様により、完全な削除まで一定期間を要する場合があります。
             </li>
           </ul>
         </section>
@@ -95,7 +100,7 @@ export default function PrivacyPage() {
             法令に基づく場合を除き、ユーザーの同意なく個人情報を第三者に提供することはありません。
           </p>
           <p>
-            ただし、データのバックアップや解析のために、上記の信頼できるクラウドサービスプロバイダー（Supabase、Vercel）を利用します。
+            ただし、本アプリの提供・認証・データ保存・ホスティングのために、委託先として上記のクラウドサービスプロバイダー（Supabase、Vercel、Google等）を利用します。
           </p>
         </section>
 
@@ -113,7 +118,7 @@ export default function PrivacyPage() {
               <strong>データの削除</strong>：設定からアカウントとすべてのデータを削除できます。
             </li>
             <li>
-              <strong>データのエクスポート</strong>：設定からデータをJSON形式でエクスポートできます。
+              <strong>データのエクスポート</strong>：設定からデータをCSV形式でエクスポートできます。
             </li>
           </ul>
         </section>
@@ -142,7 +147,7 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-bold text-foreground">10. プライバシーポリシーの変更</h2>
           <p>
             本ポリシーは、必要に応じて変更されることがあります。
-            重要な変更がある場合は、アプリ内で通知します。
+            重要な変更がある場合は、本アプリ上または本サイト上で告知します。
           </p>
         </section>
 
@@ -154,8 +159,8 @@ export default function PrivacyPage() {
         </section>
 
         <div className="pt-8 text-xs text-center opacity-60">
-          制定日：2024年12月3日<br />
-          最終更新日：2026年2月11日
+          制定日：2025年12月3日<br />
+          最終更新日：2026年4月26日
         </div>
       </div>
     </>

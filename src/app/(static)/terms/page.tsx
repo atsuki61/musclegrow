@@ -8,8 +8,11 @@ export default function TermsPage() {
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-foreground">1. サービスについて</h2>
           <p>
-            MuscleGrow（以下、「本アプリ」）は、筋トレの記録と進捗を管理するための無料Webアプリケーションです。
+            MuscleGrow（以下、「本アプリ」）は、個人開発により提供される、筋トレの記録と進捗を管理するための無料Webアプリケーションです。
             ユーザーは、ゲストモード（ローカルのみ）またはアカウント登録（クラウド保存）を選択して利用できます。
+          </p>
+          <p>
+            本規約は、本アプリにアクセスし、または本アプリを利用するすべてのユーザーに適用されます。
           </p>
         </section>
 
@@ -58,7 +61,8 @@ export default function TermsPage() {
             トレーニングを始める前に、必要に応じて医師や専門家に相談してください。
           </p>
           <p>
-            本アプリの利用により生じた損害（データの紛失、身体的損害、その他の損害）について、運営者は一切の責任を負いません。
+            本アプリの利用により生じた損害（データの紛失、身体的損害、その他の損害）について、運営者は法令上認められる範囲で責任を負いません。
+            ただし、運営者の故意または重過失による場合はこの限りではありません。
           </p>
         </section>
 
@@ -82,7 +86,7 @@ export default function TermsPage() {
           <h2 className="text-lg font-bold text-foreground">8. 利用規約の変更</h2>
           <p>
             運営者は、必要に応じて本規約を変更することがあります。
-            重要な変更がある場合は、アプリ内で通知します。
+            重要な変更がある場合は、本アプリ上または本サイト上で告知します。
           </p>
         </section>
 
@@ -95,7 +99,7 @@ export default function TermsPage() {
 
         <div className="pt-8 text-xs text-center opacity-60">
           制定日：2025年12月3日<br />
-          最終更新日：2026年2月11日
+          最終更新日：2026年4月26日
         </div>
       </div>
     </>
