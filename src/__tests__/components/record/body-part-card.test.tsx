@@ -116,7 +116,7 @@ describe("BodyPartCard", () => {
       expect(screen.queryByText("記録なし")).not.toBeInTheDocument();
     });
 
-    it("線画がない種目は部位フォールバックを表示する", () => {
+    it("線画がない種目は人体フォールバック画像を表示する", () => {
       // Given: 線画マップにないカスタム種目
       const customExercise: Exercise = {
         id: "ex-custom",
@@ -136,8 +136,10 @@ describe("BodyPartCard", () => {
         />
       );
 
-      // Then: 線画ではなく部位フォールバックが表示される
-      expect(screen.getByText("全体")).toBeInTheDocument();
+      // Then: 個別線画ではなく人体フォールバック画像が表示される
+      expect(
+        screen.getByAltText("カスタム胸種目の人体フォールバック線画")
+      ).toBeInTheDocument();
       expect(
         screen.queryByAltText("カスタム胸種目の線画イラスト")
       ).not.toBeInTheDocument();

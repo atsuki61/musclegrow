@@ -29,10 +29,12 @@ import {
   Timer as TimerIcon,
   HelpCircle,
 } from "lucide-react";
-import { isCardioExercise, isTimeBasedExercise } from "@/lib/utils";
+import { BODY_PART_LABELS, cn, isCardioExercise, isTimeBasedExercise } from "@/lib/utils";
 import { MAX_SETS, hasAnyPositiveInputValue } from "@/lib/utils/record";
 import { SetRecordForm } from "./set-record-form";
 import { CardioRecordForm } from "./cardio-record-form";
+import { ExerciseIllustrationVisual } from "./exercise-card-primitives";
+import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
 import {
   PreviousWorkoutRecordCard,
   PreviousCardioRecordCard,
@@ -79,6 +81,12 @@ export default function ExerciseRecordModal({
   const [updateMaxRecord, setUpdateMaxRecord] = useState(false); // MAX重量更新フラグ
 
   const isLoading = isPreviousRecordLoading && !previousRecord;//前回記録を取得中かどうか
+  const bodyPartColor = exercise
+    ? `var(--color-${exercise.bodyPart})`
+    : "var(--primary)";
+  const subGroupLabel = exercise?.muscleSubGroup
+    ? MUSCLE_SUB_GROUP_LABELS[exercise.muscleSubGroup] ?? "全体"
+    : "全体";
 
   const createInitialSet = (): SetRecord => {//セットを作成
     const isTimeBased = exercise ? isTimeBasedExercise(exercise) : false;//exerciseがnullの場合はfalseを返す
@@ -256,40 +264,18 @@ export default function ExerciseRecordModal({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
-        className="w-full max-w-lg h-[95dvh] sm:h-[85vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl border-0 sm:border"
+        className="flex h-[95dvh] w-full max-w-lg flex-col gap-0 overflow-hidden border-0 bg-[var(--mg-bg)] p-0 text-foreground sm:h-[88vh] sm:rounded-2xl sm:border sm:border-[var(--mg-border)]"
         onInteractOutside={handleInteractOutside}
       >
         {/* 1. ヘッダーエリア */}
-        <div className="bg-background border-b px-4 py-3 flex items-center justify-center shrink-0 z-10 shadow-sm relative">
-          <div className="flex flex-col items-center gap-0.5 overflow-hidden">
-            <div className="flex items-center gap-2">
-              <DialogTitle className="text-lg font-bold truncate leading-tight">
-                {exercise.name}
-              </DialogTitle>
-              <Badge
-                variant="secondary"
-                className="text-[10px] px-1.5 h-5 shrink-0 font-medium"
-              >
-                {exercise.bodyPart}
-              </Badge>
-            </div>
-            <DialogDescription className="text-xs text-muted-foreground flex items-center gap-1">
-              {isCardio ? (
-                <Activity className="w-3 h-3" />
-              ) : (
-                <Dumbbell className="w-3 h-3" />
-              )}
-              {date.toLocaleDateString()} の記録
-            </DialogDescription>
-          </div>
-
+        <div className="relative z-10 shrink-0 border-b border-[var(--mg-border)] bg-[var(--mg-surface)] px-3 py-3 shadow-sm">
           {/*タイマー起動ボタン*/}
-          <div className="absolute right-12 top-1/2 -translate-y-1/2">
+          <div className="absolute right-12 top-3">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => startTimer(60)}
-              className="h-9 w-9 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+              className="h-9 w-9 rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
               title="タイマー開始 (60秒)"
             >
               <TimerIcon className="h-5 w-5" />
@@ -301,10 +287,58 @@ export default function ExerciseRecordModal({
             size="icon"
             onClick={handleClose}
             aria-label="閉じる"
-            className="absolute right-2 h-9 w-9 rounded-full hover:bg-muted active:scale-90 transition-transform"
+            className="absolute right-2 top-3 h-9 w-9 rounded-full transition-transform hover:bg-muted active:scale-95"
           >
             <X className="h-5 w-5" />
           </Button>
+
+          <div className="pr-20">
+            <DialogDescription className="mb-2 flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+              {isCardio ? (
+                <Activity className="size-3.5" />
+              ) : (
+                <Dumbbell className="size-3.5" />
+              )}
+              {date.toLocaleDateString()} の記録
+            </DialogDescription>
+            <div className="grid grid-cols-[86px_1fr] items-center gap-3 rounded-2xl border border-[var(--mg-border)] bg-background/55 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <div
+                className="relative h-20 overflow-hidden rounded-xl border"
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${bodyPartColor} 12%, transparent)`,
+                  borderColor: `color-mix(in srgb, ${bodyPartColor} 28%, transparent)`,
+                }}
+              >
+                <div className="absolute inset-1">
+                  <ExerciseIllustrationVisual
+                    exercise={exercise}
+                    fallbackLabel={subGroupLabel}
+                    imageClassName="max-h-[78px]"
+                  />
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                  <Badge
+                    variant="secondary"
+                    className="h-5 shrink-0 rounded-md px-1.5 text-[10px] font-black"
+                    style={{
+                      backgroundColor: `color-mix(in srgb, ${bodyPartColor} 16%, transparent)`,
+                      color: bodyPartColor,
+                    }}
+                  >
+                    {BODY_PART_LABELS[exercise.bodyPart]}
+                  </Badge>
+                  <span className="rounded-md bg-muted/55 px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                    {subGroupLabel}
+                  </span>
+                </div>
+                <DialogTitle className="text-xl font-black leading-tight tracking-normal">
+                  {exercise.name}
+                </DialogTitle>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* 2. タブ切り替え */}
@@ -313,23 +347,23 @@ export default function ExerciseRecordModal({
           onValueChange={setActiveTab}
           className="flex-1 flex flex-col min-h-0"
         >
-          <div className="px-4 py-2 border-b bg-muted/10 shrink-0">
-            <TabsList className="grid w-full grid-cols-3 h-8 bg-muted/50 p-0.5">
+          <div className="shrink-0 border-b border-[var(--mg-border)] bg-[var(--mg-bg)] px-4 py-2">
+            <TabsList className="grid h-9 w-full grid-cols-3 rounded-xl bg-[var(--mg-surface)] p-1">
               <TabsTrigger
                 value="record"
-                className="text-xs font-bold data-[state=active]:shadow-sm h-7"
+                className="h-7 rounded-lg text-xs font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 記録
               </TabsTrigger>
               <TabsTrigger
                 value="history"
-                className="text-xs font-bold gap-1.5 data-[state=active]:shadow-sm h-7"
+                className="h-7 gap-1.5 rounded-lg text-xs font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 <History className="w-3 h-3" /> 履歴
               </TabsTrigger>
               <TabsTrigger
                 value="info"
-                className="text-xs font-bold gap-1.5 data-[state=active]:shadow-sm h-7"
+                className="h-7 gap-1.5 rounded-lg text-xs font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
                 <Info className="w-3 h-3" /> 解説
               </TabsTrigger>
@@ -343,7 +377,10 @@ export default function ExerciseRecordModal({
                 <TabsContent value="record" className="mt-0 space-y-4">
                   {/* MAX重量更新チェックボックス（筋トレ種目のみ） */}
                   {!isCardio && (
-                    <div className="flex items-center gap-2 py-2">
+                    <div className={cn(
+                      "flex items-center gap-2 rounded-2xl border border-[var(--mg-border)] bg-[var(--mg-surface)] px-3 py-2",
+                      updateMaxRecord && "border-primary/35 bg-primary/[0.06]"
+                    )}>
                       <Checkbox
                         id="update-max-record"
                         checked={updateMaxRecord}
@@ -391,11 +428,11 @@ export default function ExerciseRecordModal({
 
                   {/* 前回記録 */}
                   {isLoading ? (
-                    <div className="bg-muted/20 rounded-xl p-3 text-center text-xs text-muted-foreground">
+                    <div className="rounded-xl border border-[var(--mg-border)] bg-[var(--mg-surface)] p-3 text-center text-xs text-muted-foreground">
                       前回記録を読み込み中...
                     </div>
                   ) : previousRecord ? (
-                    <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-3">
+                    <div className="rounded-2xl border border-primary/20 bg-primary/[0.06] p-3">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-primary flex items-center gap-1">
                           <History className="w-3 h-3" />
@@ -449,7 +486,7 @@ export default function ExerciseRecordModal({
           </div>
 
           {/* 4. フッターアクション（固定） */}
-          <div className="p-4 border-t bg-background shrink-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <div className="z-20 shrink-0 border-t border-[var(--mg-border)] bg-[var(--mg-surface)] p-4 shadow-[0_-4px_18px_-12px_rgba(0,0,0,0.35)]">
             <Button
               onClick={handleClose}
               className="w-full h-11 text-base font-bold shadow-md shadow-primary/20 rounded-xl active:scale-[0.98] transition-all bg-primary text-primary-foreground hover:bg-primary/90"

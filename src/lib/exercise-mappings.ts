@@ -1,4 +1,4 @@
-import type { Exercise } from "@/types/workout";
+import type { BodyPart, Exercise } from "@/types/workout";
 import {
   MUSCLE_SUB_GROUPS,
   MUSCLE_SUB_GROUP_LABELS,
@@ -6,9 +6,80 @@ import {
 
 export { MUSCLE_SUB_GROUP_LABELS };
 
+const OVERALL_SUB_GROUP_BY_PART: Partial<
+  Record<Exclude<BodyPart, "all">, string>
+> = {
+  chest: MUSCLE_SUB_GROUPS.CHEST_OVERALL,
+  back: MUSCLE_SUB_GROUPS.BACK_OVERALL,
+  shoulders: MUSCLE_SUB_GROUPS.SHOULDERS_OVERALL,
+};
+
+const SUB_GROUP_MAP_BY_PART: Partial<
+  Record<Exclude<BodyPart, "all">, Record<string, string>>
+> = {
+  chest: {
+    全体: MUSCLE_SUB_GROUPS.CHEST_OVERALL,
+    上部: MUSCLE_SUB_GROUPS.CHEST_UPPER,
+    大胸筋上部: MUSCLE_SUB_GROUPS.CHEST_UPPER,
+    下部: MUSCLE_SUB_GROUPS.CHEST_LOWER,
+    大胸筋下部: MUSCLE_SUB_GROUPS.CHEST_LOWER,
+    外側: MUSCLE_SUB_GROUPS.CHEST_OUTER,
+    大胸筋外側: MUSCLE_SUB_GROUPS.CHEST_OUTER,
+  },
+  back: {
+    全体: MUSCLE_SUB_GROUPS.BACK_OVERALL,
+    幅: MUSCLE_SUB_GROUPS.BACK_WIDTH,
+    広背筋: MUSCLE_SUB_GROUPS.BACK_WIDTH,
+    厚み: MUSCLE_SUB_GROUPS.BACK_THICKNESS,
+    "僧帽筋・菱形筋": MUSCLE_SUB_GROUPS.BACK_THICKNESS,
+    "僧帽筋・下部": MUSCLE_SUB_GROUPS.BACK_TRAPS,
+    僧帽筋: MUSCLE_SUB_GROUPS.BACK_TRAPS,
+    脊柱起立筋: MUSCLE_SUB_GROUPS.BACK_ERECTORS,
+  },
+  legs: {
+    大腿四頭筋: MUSCLE_SUB_GROUPS.LEGS_QUADS,
+    ハムストリングス: MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS,
+    臀筋: MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+    下腿: MUSCLE_SUB_GROUPS.LEGS_CALVES,
+    ふくらはぎ: MUSCLE_SUB_GROUPS.LEGS_CALVES,
+    内転筋: MUSCLE_SUB_GROUPS.LEGS_ADDUCTORS,
+  },
+  shoulders: {
+    全体: MUSCLE_SUB_GROUPS.SHOULDERS_OVERALL,
+    前部: MUSCLE_SUB_GROUPS.SHOULDERS_FRONT,
+    三角筋前部: MUSCLE_SUB_GROUPS.SHOULDERS_FRONT,
+    中部: MUSCLE_SUB_GROUPS.SHOULDERS_MIDDLE,
+    三角筋中部: MUSCLE_SUB_GROUPS.SHOULDERS_MIDDLE,
+    後部: MUSCLE_SUB_GROUPS.SHOULDERS_REAR,
+    三角筋後部: MUSCLE_SUB_GROUPS.SHOULDERS_REAR,
+  },
+  arms: {
+    上腕二頭筋: MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+    上腕三頭筋: MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+    前腕: MUSCLE_SUB_GROUPS.ARMS_FOREARMS,
+    前腕筋群: MUSCLE_SUB_GROUPS.ARMS_FOREARMS,
+  },
+  core: {
+    腹直筋: MUSCLE_SUB_GROUPS.CORE_RECTUS,
+    腹横筋: MUSCLE_SUB_GROUPS.CORE_TRANSVERSE,
+    腹斜筋: MUSCLE_SUB_GROUPS.CORE_OBLIQUES,
+    腸腰筋: MUSCLE_SUB_GROUPS.CORE_HIP_FLEXORS,
+  },
+};
+
+export function resolveSubGroupForBodyPart(
+  bodyPart: Exclude<BodyPart, "all">,
+  label: string
+): string | undefined {
+  const cleanedLabel = label.replace(/[（(].*?[）)]/g, "").trim();
+  return (
+    SUB_GROUP_MAP_BY_PART[bodyPart]?.[cleanedLabel] ??
+    OVERALL_SUB_GROUP_BY_PART[bodyPart]
+  );
+}
+
 /**
- * サブ分類のマッピング（日本語名 → DB用の値）
- * mock-exercises.ts と seed.ts で共通使用
+ * @deprecated bodyPartが必要なため、可能な箇所ではresolveSubGroupForBodyPartを使用する。
  */
 export const SUB_GROUP_MAP: Record<string, string> = {
   全体: MUSCLE_SUB_GROUPS.CHEST_OVERALL,
@@ -162,5 +233,4 @@ export const NAME_EN_MAP: Record<string, string> = {
   クロストレーナー: "Cross Trainer",
   スピンバイク: "Spin Bike",
 };
-
 

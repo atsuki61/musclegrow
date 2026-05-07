@@ -1,10 +1,12 @@
-import type { BodyPart, EquipmentType } from "@/types/workout";
+import { MUSCLE_SUB_GROUPS } from "@/constants/body-parts";
+import type { BodyPart, EquipmentType, MuscleSubGroup } from "@/types/workout";
 
 type ExerciseIllustration = {
   src?: string;
   alt: string;
   isFallback: boolean;
   fit: ExerciseIllustrationFit;
+  fallbackKind?: "compound" | "subgroup";
 };
 
 type ExerciseIllustrationFit = {
@@ -155,14 +157,99 @@ const ILLUSTRATION_FIT_BY_NAME: Record<string, ExerciseIllustrationFit> = {
   [normalizeExerciseName("ペックフライ")]: { scale: 1.18, x: 0, y: 2 },
 };
 
+const COMPOUND_FALLBACK_BY_NAME: Record<string, string> = {
+  [normalizeExerciseName("ディップス")]:
+    "/exercise-illustrations/fallback/upper-front/chest-lower-triceps.png",
+  [normalizeExerciseName("ディッププレス")]:
+    "/exercise-illustrations/fallback/upper-front/chest-lower-triceps.png",
+  [normalizeExerciseName("ディップスマシン")]:
+    "/exercise-illustrations/fallback/upper-front/chest-lower-triceps.png",
+  [normalizeExerciseName("プッシュアップ")]:
+    "/exercise-illustrations/fallback/upper-front/chest-triceps.png",
+  [normalizeExerciseName("ナローベンチプレス")]:
+    "/exercise-illustrations/fallback/upper-front/chest-triceps.png",
+  [normalizeExerciseName("スミスナロープレス")]:
+    "/exercise-illustrations/fallback/upper-front/chest-triceps.png",
+  [normalizeExerciseName("ナロープレス")]:
+    "/exercise-illustrations/fallback/upper-front/chest-triceps.png",
+  [normalizeExerciseName("クローズグリッププッシュアップ")]:
+    "/exercise-illustrations/fallback/upper-front/chest-triceps.png",
+  [normalizeExerciseName("懸垂")]:
+    "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+  [normalizeExerciseName("ラットプルダウン")]:
+    "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+  [normalizeExerciseName("フロントラットプルダウン")]:
+    "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+  [normalizeExerciseName("シーテッドロー")]:
+    "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+  [normalizeExerciseName("ワンハンドローイング")]:
+    "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+  [normalizeExerciseName("Tバーローイング")]:
+    "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+  [normalizeExerciseName("T バーローイング")]:
+    "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+  [normalizeExerciseName("シーテッドケーブルロー")]:
+    "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+  [normalizeExerciseName("デッドリフト")]:
+    "/exercise-illustrations/fallback/full-back/posterior-chain.png",
+  [normalizeExerciseName("ハーフデッドリフト")]:
+    "/exercise-illustrations/fallback/full-back/posterior-chain.png",
+  [normalizeExerciseName("ルーマニアンデッドリフト")]:
+    "/exercise-illustrations/fallback/full-back/posterior-chain.png",
+};
+
+const SUBGROUP_FALLBACK_BY_KEY: Partial<Record<MuscleSubGroup, string>> = {
+  [MUSCLE_SUB_GROUPS.CHEST_LOWER]:
+    "/exercise-illustrations/fallback/upper-front/chest-lower-triceps.png",
+  [MUSCLE_SUB_GROUPS.BACK_WIDTH]:
+    "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+  [MUSCLE_SUB_GROUPS.BACK_THICKNESS]:
+    "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+  [MUSCLE_SUB_GROUPS.BACK_ERECTORS]:
+    "/exercise-illustrations/fallback/full-back/posterior-chain.png",
+  [MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS]:
+    "/exercise-illustrations/fallback/full-back/posterior-chain.png",
+  [MUSCLE_SUB_GROUPS.LEGS_GLUTES]:
+    "/exercise-illustrations/fallback/full-back/posterior-chain.png",
+};
+
+const DEFAULT_FALLBACK_BY_PART: Partial<Record<Exclude<BodyPart, "all">, string>> = {
+  chest: "/exercise-illustrations/fallback/upper-front/upper-front.png",
+  back: "/exercise-illustrations/fallback/upper-back/upper-back.png",
+  legs: "/exercise-illustrations/fallback/lower-front/lower-front.png",
+  shoulders: "/exercise-illustrations/fallback/upper-front/upper-front.png",
+  arms: "/exercise-illustrations/fallback/upper-front/upper-front.png",
+  core: "/exercise-illustrations/fallback/upper-front/upper-front.png",
+};
+
+function normalizeSubGroupForBodyPart(
+  bodyPart: Exclude<BodyPart, "all">,
+  muscleSubGroup?: MuscleSubGroup
+): MuscleSubGroup | undefined {
+  if (!muscleSubGroup) return undefined;
+
+  if (
+    muscleSubGroup === MUSCLE_SUB_GROUPS.CHEST_OVERALL &&
+    bodyPart !== "chest"
+  ) {
+    if (bodyPart === "back") return MUSCLE_SUB_GROUPS.BACK_OVERALL;
+    if (bodyPart === "shoulders") return MUSCLE_SUB_GROUPS.SHOULDERS_OVERALL;
+    return undefined;
+  }
+
+  return muscleSubGroup;
+}
+
 export function resolveExerciseIllustration({
   name,
   bodyPart,
   equipmentType,
+  muscleSubGroup,
 }: {
   name: string;
   bodyPart: Exclude<BodyPart, "all">;
   equipmentType?: EquipmentType;
+  muscleSubGroup?: MuscleSubGroup;
 }): ExerciseIllustration {
   const normalizedName = normalizeExerciseName(name);
   const nameWithoutDetails = normalizeExerciseName(
@@ -182,6 +269,49 @@ export function resolveExerciseIllustration({
         ILLUSTRATION_FIT_BY_NAME[normalizedName] ??
         ILLUSTRATION_FIT_BY_NAME[nameWithoutDetails] ??
         DEFAULT_FIT,
+    };
+  }
+
+  const compoundFallbackSrc =
+    COMPOUND_FALLBACK_BY_NAME[normalizedName] ??
+    COMPOUND_FALLBACK_BY_NAME[nameWithoutDetails];
+
+  if (compoundFallbackSrc) {
+    return {
+      src: compoundFallbackSrc,
+      alt: `${name}の複合部位フォールバック線画`,
+      isFallback: true,
+      fallbackKind: "compound",
+      fit: DEFAULT_FIT,
+    };
+  }
+
+  const normalizedSubGroup = normalizeSubGroupForBodyPart(
+    bodyPart,
+    muscleSubGroup
+  );
+  const subgroupFallbackSrc =
+    normalizedSubGroup && SUBGROUP_FALLBACK_BY_KEY[normalizedSubGroup];
+
+  if (subgroupFallbackSrc) {
+    return {
+      src: subgroupFallbackSrc,
+      alt: `${name}の部位フォールバック線画`,
+      isFallback: true,
+      fallbackKind: "subgroup",
+      fit: DEFAULT_FIT,
+    };
+  }
+
+  const defaultFallbackSrc = DEFAULT_FALLBACK_BY_PART[bodyPart];
+
+  if (defaultFallbackSrc) {
+    return {
+      src: defaultFallbackSrc,
+      alt: `${name}の人体フォールバック線画`,
+      isFallback: true,
+      fallbackKind: "subgroup",
+      fit: DEFAULT_FIT,
     };
   }
 

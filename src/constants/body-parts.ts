@@ -42,11 +42,13 @@ export const MUSCLE_SUB_GROUPS = {
   BACK_WIDTH: "back_width",
   BACK_THICKNESS: "back_thickness",
   BACK_TRAPS: "back_traps",
+  BACK_ERECTORS: "back_erectors",
   // 脚
   LEGS_QUADS: "legs_quads",
   LEGS_HAMSTRINGS: "legs_hamstrings",
   LEGS_GLUTES: "legs_glutes",
   LEGS_CALVES: "legs_calves",
+  LEGS_ADDUCTORS: "legs_adductors",
   // 肩
   SHOULDERS_OVERALL: "shoulders_overall",
   SHOULDERS_FRONT: "shoulders_front",
@@ -55,10 +57,12 @@ export const MUSCLE_SUB_GROUPS = {
   // 腕
   ARMS_BICEPS: "arms_biceps",
   ARMS_TRICEPS: "arms_triceps",
+  ARMS_FOREARMS: "arms_forearms",
   // 腹筋
   CORE_RECTUS: "core_rectus",
   CORE_TRANSVERSE: "core_transverse",
   CORE_OBLIQUES: "core_obliques",
+  CORE_HIP_FLEXORS: "core_hip_flexors",
 } as const;
 
 export type MuscleSubGroupValue =
@@ -70,31 +74,35 @@ export type MuscleSubGroupValue =
 export const MUSCLE_SUB_GROUP_LABELS: Record<MuscleSubGroupValue, string> = {
   // 胸
   [MUSCLE_SUB_GROUPS.CHEST_OVERALL]: "全体",
-  [MUSCLE_SUB_GROUPS.CHEST_UPPER]: "上部",
-  [MUSCLE_SUB_GROUPS.CHEST_LOWER]: "下部",
-  [MUSCLE_SUB_GROUPS.CHEST_OUTER]: "外側",
+  [MUSCLE_SUB_GROUPS.CHEST_UPPER]: "大胸筋上部",
+  [MUSCLE_SUB_GROUPS.CHEST_LOWER]: "大胸筋下部",
+  [MUSCLE_SUB_GROUPS.CHEST_OUTER]: "大胸筋外側",
   // 背中
   [MUSCLE_SUB_GROUPS.BACK_OVERALL]: "全体",
-  [MUSCLE_SUB_GROUPS.BACK_WIDTH]: "幅",
-  [MUSCLE_SUB_GROUPS.BACK_THICKNESS]: "厚み",
-  [MUSCLE_SUB_GROUPS.BACK_TRAPS]: "僧帽筋・下部（首の付け根～肩）",
+  [MUSCLE_SUB_GROUPS.BACK_WIDTH]: "広背筋（背中の幅）",
+  [MUSCLE_SUB_GROUPS.BACK_THICKNESS]: "僧帽筋・菱形筋（背中の厚み）",
+  [MUSCLE_SUB_GROUPS.BACK_TRAPS]: "僧帽筋（首の付け根～肩）",
+  [MUSCLE_SUB_GROUPS.BACK_ERECTORS]: "脊柱起立筋（腰～背中下部）",
   // 脚
   [MUSCLE_SUB_GROUPS.LEGS_QUADS]: "大腿四頭筋（太ももの前側）",
   [MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS]: "ハムストリングス（太ももの後側）",
   [MUSCLE_SUB_GROUPS.LEGS_GLUTES]: "臀筋（お尻）",
   [MUSCLE_SUB_GROUPS.LEGS_CALVES]: "下腿（ふくらはぎ）",
+  [MUSCLE_SUB_GROUPS.LEGS_ADDUCTORS]: "内転筋（太ももの内側）",
   // 肩
   [MUSCLE_SUB_GROUPS.SHOULDERS_OVERALL]: "全体",
-  [MUSCLE_SUB_GROUPS.SHOULDERS_FRONT]: "前部",
-  [MUSCLE_SUB_GROUPS.SHOULDERS_MIDDLE]: "中部",
-  [MUSCLE_SUB_GROUPS.SHOULDERS_REAR]: "後部",
+  [MUSCLE_SUB_GROUPS.SHOULDERS_FRONT]: "三角筋前部",
+  [MUSCLE_SUB_GROUPS.SHOULDERS_MIDDLE]: "三角筋中部",
+  [MUSCLE_SUB_GROUPS.SHOULDERS_REAR]: "三角筋後部",
   // 腕
   [MUSCLE_SUB_GROUPS.ARMS_BICEPS]: "上腕二頭筋（力こぶ）",
   [MUSCLE_SUB_GROUPS.ARMS_TRICEPS]: "上腕三頭筋（二の腕の後ろ）",
+  [MUSCLE_SUB_GROUPS.ARMS_FOREARMS]: "前腕筋群（前腕）",
   // 腹筋
   [MUSCLE_SUB_GROUPS.CORE_RECTUS]: "腹直筋（お腹の前側）",
   [MUSCLE_SUB_GROUPS.CORE_TRANSVERSE]: "腹横筋（お腹の深い部分）",
   [MUSCLE_SUB_GROUPS.CORE_OBLIQUES]: "腹斜筋（お腹の横側）",
+  [MUSCLE_SUB_GROUPS.CORE_HIP_FLEXORS]: "腸腰筋（脚の付け根）",
 };
 
 /**
@@ -127,4 +135,3 @@ export const BODY_PART_COLOR_HEX: Record<
   [BODY_PARTS.CORE]: "#f97316",
   [BODY_PARTS.OTHER]: "#6b7280",
 };
-

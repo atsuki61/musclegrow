@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   BodyPart,
   Exercise,
@@ -21,6 +20,10 @@ import type {
 } from "@/types/workout";
 import { BODY_PART_LABELS } from "@/lib/utils";
 import { exerciseSchema, getValidationErrorDetails } from "@/lib/validations";
+import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
+import {
+  ExerciseIllustrationVisual,
+} from "./exercise-card-primitives";
 
 const SUB_GROUP_OPTIONS: Record<
   Exclude<BodyPart, "all">,
@@ -34,15 +37,17 @@ const SUB_GROUP_OPTIONS: Record<
   ],
   back: [
     { value: "back_overall", label: "全体" },
-    { value: "back_width", label: "幅" },
-    { value: "back_thickness", label: "厚み" },
-    { value: "back_traps", label: "僧帽筋・下部" },
+    { value: "back_width", label: "広背筋（背中の幅）" },
+    { value: "back_thickness", label: "僧帽筋・菱形筋（背中の厚み）" },
+    { value: "back_traps", label: "僧帽筋（首の付け根～肩）" },
+    { value: "back_erectors", label: "脊柱起立筋（腰～背中下部）" },
   ],
   legs: [
     { value: "legs_quads", label: "大腿四頭筋" },
     { value: "legs_hamstrings", label: "ハムストリングス" },
     { value: "legs_glutes", label: "臀筋" },
     { value: "legs_calves", label: "下腿" },
+    { value: "legs_adductors", label: "内転筋" },
   ],
   shoulders: [
     { value: "shoulders_overall", label: "全体" },
@@ -53,11 +58,13 @@ const SUB_GROUP_OPTIONS: Record<
   arms: [
     { value: "arms_biceps", label: "上腕二頭筋" },
     { value: "arms_triceps", label: "上腕三頭筋" },
+    { value: "arms_forearms", label: "前腕筋群" },
   ],
   core: [
     { value: "core_rectus", label: "腹直筋" },
     { value: "core_transverse", label: "腹横筋" },
     { value: "core_obliques", label: "腹斜筋" },
+    { value: "core_hip_flexors", label: "腸腰筋" },
   ],
   other: [],
 };
@@ -92,6 +99,22 @@ export function CustomExerciseForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const availableSubGroups = SUB_GROUP_OPTIONS[bodyPart] || [];
+  const selectedSubGroupLabel = subGroup
+    ? MUSCLE_SUB_GROUP_LABELS[subGroup] ?? "全体"
+    : "未選択";
+  const previewExercise = useMemo<Exercise>(
+    () => ({
+      id: "custom-preview",
+      name: exerciseName.trim() || "カスタム種目",
+      bodyPart,
+      muscleSubGroup: subGroup || undefined,
+      primaryEquipment: equipment,
+      tier: "custom",
+      isBig3: false,
+    }),
+    [bodyPart, equipment, exerciseName, subGroup]
+  );
+  const bodyPartColor = `var(--color-${bodyPart})`;
 
   const clearFieldError = (fieldName: string) => {
     setErrors((prev) => {
@@ -140,12 +163,58 @@ export function CustomExerciseForm({
   };
 
   return (
-    <Card className="border-none shadow-none">
-      <CardHeader className="px-0 pt-0">
-        <CardTitle className="text-lg">カスタム種目の詳細</CardTitle>
-      </CardHeader>
-      <CardContent className="px-0">
-        <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-4">
+      <div className="grid grid-cols-[118px_1fr] gap-3 rounded-2xl border border-[var(--mg-border)] bg-[var(--mg-surface)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <div className="group relative h-[132px] overflow-hidden rounded-[1.15rem] border border-[var(--mg-border)] bg-background/45 p-2">
+          <span
+            className="absolute right-1.5 top-1.5 z-20 rounded-md border px-1.5 py-0.5 text-[9px] font-black leading-none shadow-sm backdrop-blur-md"
+            style={{
+              borderColor: `color-mix(in srgb, ${bodyPartColor} 35%, transparent)`,
+              color: bodyPartColor,
+            }}
+          >
+            確認
+          </span>
+          <div className="relative z-10 h-full pt-5">
+            <ExerciseIllustrationVisual
+              exercise={previewExercise}
+              fallbackLabel={
+                subGroup ? selectedSubGroupLabel : BODY_PART_LABELS[bodyPart]
+              }
+              imageClassName="max-h-[104px]"
+            />
+          </div>
+        </div>
+
+        <div className="flex min-w-0 flex-col justify-center">
+          <p className="mb-2 text-xs font-black text-muted-foreground">
+            作成前に確認
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            <span
+              className="rounded-md px-1.5 py-0.5 text-[10px] font-black"
+              style={{
+                backgroundColor: `color-mix(in srgb, ${bodyPartColor} 16%, transparent)`,
+                color: bodyPartColor,
+              }}
+            >
+              {BODY_PART_LABELS[bodyPart]}
+            </span>
+            <span className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+              {selectedSubGroupLabel}
+            </span>
+          </div>
+          <p className="mt-3 text-sm font-bold leading-snug text-foreground">
+            {previewExercise.name}
+          </p>
+          <p className="mt-1 text-xs font-medium text-muted-foreground">
+            {EQUIPMENT_OPTIONS.find((option) => option.value === equipment)
+              ?.label ?? "その他"}
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
           {/* 部位 & サブ分類 (2列) */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -285,8 +354,7 @@ export function CustomExerciseForm({
               追加する
             </Button>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+      </form>
+    </div>
   );
 }

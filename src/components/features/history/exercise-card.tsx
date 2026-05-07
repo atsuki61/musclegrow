@@ -3,6 +3,8 @@
 import { Trophy, ChevronsLeft } from "lucide-react";
 import { BODY_PART_LABELS, calculate1RM, cn } from "@/lib/utils";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
+import { ExerciseIllustrationVisual } from "@/components/features/record/exercise-card-primitives";
+import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -22,20 +24,56 @@ export function ExerciseCard({
   showSwipeHint = false,
 }: ExerciseCardProps) {
   const maxWeight = maxWeights[exercise.id] || 0;
+  const bodyPartColor = `var(--color-${exercise.bodyPart})`;
+  const subGroupLabel = exercise.muscleSubGroup
+    ? MUSCLE_SUB_GROUP_LABELS[exercise.muscleSubGroup] ?? "全体"
+    : "全体";
 
   return (
     <div
-      className="w-full p-3 bg-card rounded-xl border shadow-sm transition-all hover:shadow-md active:bg-muted/40 cursor-pointer"
+      className="group w-full cursor-pointer rounded-2xl border border-[var(--mg-border)] bg-[var(--mg-surface)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-[transform,border-color,background-color,box-shadow] hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.025] active:scale-[0.99]"
       onClick={onClick}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground shrink-0">
-            {BODY_PART_LABELS[exercise.bodyPart]}
-          </span>
-          <span className="font-bold text-sm truncate text-foreground/90">
+      <div className="mb-3 grid grid-cols-[78px_1fr_auto] items-center gap-3">
+        <div
+          className="relative h-[74px] overflow-hidden rounded-xl border"
+          style={{
+            backgroundColor: `color-mix(in srgb, ${bodyPartColor} 12%, transparent)`,
+            borderColor: `color-mix(in srgb, ${bodyPartColor} 28%, transparent)`,
+          }}
+        >
+          <div className="absolute inset-1">
+            <ExerciseIllustrationVisual
+              exercise={exercise}
+              fallbackLabel={subGroupLabel}
+              imageClassName="max-h-[72px]"
+            />
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          <div className="mb-1.5 flex flex-wrap gap-1.5">
+            <span
+              className="rounded-md px-1.5 py-0.5 text-[10px] font-black leading-none"
+              style={{
+                backgroundColor: `color-mix(in srgb, ${bodyPartColor} 16%, transparent)`,
+                color: bodyPartColor,
+              }}
+            >
+              {BODY_PART_LABELS[exercise.bodyPart]}
+            </span>
+            <span className="rounded-md bg-muted/55 px-1.5 py-0.5 text-[10px] font-bold leading-none text-muted-foreground">
+              {subGroupLabel}
+            </span>
+          </div>
+          <h4 className="break-words text-base font-black leading-tight text-foreground">
             {exercise.name}
-          </span>
+          </h4>
+          {maxWeight > 0 && (
+            <p className="mt-1 text-[11px] font-black text-primary">
+              MAX {maxWeight}kg
+            </p>
+          )}
         </div>
 
         {showSwipeHint && (
@@ -58,8 +96,7 @@ export function ExerciseCard({
               <div
                 key={set.id || index}
                 className={cn(
-                  "flex items-center justify-between text-sm py-1.5 px-2 rounded-lg transition-colors",
-                  //MAX記録時の背景色をprimary系に変更
+                  "flex items-center justify-between rounded-xl px-2.5 py-2 text-sm transition-colors",
                   isMaxWeight
                     ? "bg-primary/10 dark:bg-primary/20"
                     : "hover:bg-muted/30"
@@ -98,8 +135,8 @@ export function ExerciseCard({
                 <div className="flex items-center gap-2">
                   {/*MAXバッジの色とアイコンfillをprimaryに変更 */}
                   {isMaxWeight && (
-                    <span className="flex items-center gap-0.5 text-[9px] font-bold text-primary bg-primary/10 dark:bg-primary/30 px-1.5 py-0.5 rounded-full shadow-sm animate-in fade-in zoom-in duration-300">
-                      <Trophy className="w-2.5 h-2.5 fill-primary text-primary" />{" "}
+                    <span className="flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary shadow-sm animate-in fade-in zoom-in duration-300 dark:bg-primary/30">
+                      <Trophy className="w-2.5 h-2.5 fill-primary text-primary" />
                       MAX
                     </span>
                   )}
@@ -123,7 +160,7 @@ export function ExerciseCard({
             return (
               <div
                 key={record.id || index}
-                className="flex items-center gap-3 text-sm py-1.5 px-2 rounded-lg hover:bg-muted/30"
+                className="flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm hover:bg-muted/30"
               >
                 <span className="text-xs text-muted-foreground/40 font-mono w-3 text-right">
                   {index + 1}

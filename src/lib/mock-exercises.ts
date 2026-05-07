@@ -1,8 +1,8 @@
 import type { Exercise } from "@/types/workout";
 import {
-  SUB_GROUP_MAP,
   NAME_EN_MAP,
   getEquipmentType,
+  resolveSubGroupForBodyPart,
 } from "./exercise-mappings";
 import { BODY_PARTS } from "@/constants/body-parts";
 
@@ -621,14 +621,15 @@ const createExercise = (
   index: number,
   offset: number = 0
 ): Exercise => {
-  const subGroup = SUB_GROUP_MAP[exercise.subGroup] || undefined;
+  const bodyPart = exercise.bodyPart as Exercise["bodyPart"];
+  const subGroup = resolveSubGroupForBodyPart(bodyPart, exercise.subGroup);
   const equipment = getEquipmentType(exercise.name);
 
   return {
     id: `mock-${offset + index + 1}`,
     name: exercise.name,
     nameEn: NAME_EN_MAP[exercise.name],
-    bodyPart: exercise.bodyPart as Exercise["bodyPart"],
+    bodyPart,
     muscleSubGroup: subGroup as Exercise["muscleSubGroup"],
     primaryEquipment: equipment,
     tier: exercise.tier as Exercise["tier"],

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { MUSCLE_SUB_GROUPS } from "@/constants/body-parts";
 import { resolveExerciseIllustration } from "@/lib/exercise-illustrations";
 
 describe("resolveExerciseIllustration", () => {
@@ -60,5 +61,98 @@ describe("resolveExerciseIllustration", () => {
 
     expect(benchPress.fit.scale).toBeGreaterThan(1);
     expect(pecFly.fit.scale).toBeGreaterThan(1);
+  });
+
+  it("個別線画がある場合は複合フォールバックより個別線画を優先する", () => {
+    const illustration = resolveExerciseIllustration({
+      name: "ディップス",
+      bodyPart: "chest",
+      muscleSubGroup: MUSCLE_SUB_GROUPS.CHEST_LOWER,
+    });
+
+    expect(illustration).toMatchObject({
+      src: "/exercise-illustrations/chest/dips.png",
+      isFallback: false,
+    });
+  });
+
+  it("個別線画がない複合種目名は複合フォールバックを返す", () => {
+    const illustration = resolveExerciseIllustration({
+      name: "クローズグリッププッシュアップ",
+      bodyPart: "arms",
+      muscleSubGroup: MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+    });
+
+    expect(illustration).toMatchObject({
+      src: "/exercise-illustrations/fallback/upper-front/chest-triceps.png",
+      isFallback: true,
+      fallbackKind: "compound",
+    });
+  });
+
+  it("カスタム種目はbodyPartとmuscleSubGroupから人体フォールバックを返す", () => {
+    const illustration = resolveExerciseIllustration({
+      name: "カスタム背中種目",
+      bodyPart: "back",
+      muscleSubGroup: MUSCLE_SUB_GROUPS.BACK_WIDTH,
+    });
+
+    expect(illustration).toMatchObject({
+      src: "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+      isFallback: true,
+      fallbackKind: "subgroup",
+    });
+  });
+
+  it("bodyPartと矛盾する古いchest_overallはbodyPart側の全体フォールバックへ丸める", () => {
+    const illustration = resolveExerciseIllustration({
+      name: "未登録の背中種目",
+      bodyPart: "back",
+      muscleSubGroup: MUSCLE_SUB_GROUPS.CHEST_OVERALL,
+    });
+
+    expect(illustration).toMatchObject({
+      src: "/exercise-illustrations/fallback/upper-back/upper-back.png",
+      isFallback: true,
+      fallbackKind: "subgroup",
+    });
+  });
+
+  it("人体フォールバック対象外の部位は既存アイコンフォールバックまで落ちる", () => {
+    const illustration = resolveExerciseIllustration({
+      name: "未登録種目",
+      bodyPart: "other",
+    });
+
+    expect(illustration).toMatchObject({
+      src: undefined,
+      isFallback: true,
+    });
+  });
+
+  it("返したフォールバック画像はpublic配下に存在する", () => {
+    const illustrations = [
+      resolveExerciseIllustration({
+        name: "クローズグリッププッシュアップ",
+        bodyPart: "arms",
+        muscleSubGroup: MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+      }),
+      resolveExerciseIllustration({
+        name: "カスタム背中種目",
+        bodyPart: "back",
+        muscleSubGroup: MUSCLE_SUB_GROUPS.BACK_WIDTH,
+      }),
+      resolveExerciseIllustration({
+        name: "未登録の脚種目",
+        bodyPart: "legs",
+      }),
+    ];
+
+    for (const illustration of illustrations) {
+      expect(illustration.src).toBeDefined();
+      expect(
+        fs.existsSync(path.join(process.cwd(), "public", illustration.src!))
+      ).toBe(true);
+    }
   });
 });

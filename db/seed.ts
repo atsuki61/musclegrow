@@ -2,9 +2,9 @@ import { nanoid } from "nanoid";
 import { db } from "./index";
 import { exercises } from "./schemas/app";
 import {
-  SUB_GROUP_MAP,
   NAME_EN_MAP,
   getEquipmentType,
+  resolveSubGroupForBodyPart,
 } from "../src/lib/exercise-mappings";
 
 // 種目データの定義（種目.mdから抽出）
@@ -622,7 +622,11 @@ const seedExercises = [
 
 // シードデータを生成
 const seedExercisesData = seedExercises.map((exercise) => {
-  const subGroup = SUB_GROUP_MAP[exercise.subGroup] || null;
+  const subGroup =
+    resolveSubGroupForBodyPart(
+      exercise.bodyPart as Parameters<typeof resolveSubGroupForBodyPart>[0],
+      exercise.subGroup
+    ) || null;
   const equipment = getEquipmentType(exercise.name);
 
   return {
