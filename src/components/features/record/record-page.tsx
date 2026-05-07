@@ -396,7 +396,7 @@ useEffect(() => {
       </header>
 
       {/* Main Content - スワイプ対応エリア */}
-      <main className="flex-1 flex flex-col container mx-auto px-4 py-4 gap-4 overflow-hidden">
+      <main className="flex-1 flex w-full max-w-[430px] flex-col mx-auto px-4 py-4 gap-4 overflow-hidden">
         {/* 検索バーと編集ボタン（スワイプ対象外） */}
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -518,6 +518,7 @@ useEffect(() => {
               onExerciseSelect={handleExerciseSelect}
               onAddExerciseClick={handleAddExerciseClick}
               isEditMode={isEditMode}
+              selectedDate={selectedDate}
             />
           </motion.div>
         </AnimatePresence>

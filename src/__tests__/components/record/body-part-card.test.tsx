@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BodyPartCard } from "@/components/features/record/body-part-card";
 import type { Exercise } from "@/types/workout";
@@ -72,7 +72,35 @@ describe("BodyPartCard", () => {
       expect(screen.queryByText("デッドリフト")).not.toBeInTheDocument();
     });
 
-    it("サブグループラベルが表示される", () => {
+    it("長い種目名は1行表示用のスタイルになる", () => {
+      // Given: 2行になりやすい長い種目名
+      const longNameExercise: Exercise = {
+        id: "ex-long",
+        name: "インクラインダンベルプレス",
+        bodyPart: "chest",
+        tier: "initial",
+        isBig3: false,
+      };
+
+      // When: コンポーネントをレンダリング
+      render(
+        <BodyPartCard
+          bodyPart="chest"
+          exercises={[longNameExercise]}
+          maxWeights={{}}
+        />
+      );
+
+      // Then: 省略せずに1行固定と長い名前用の縮小テキストが適用される
+      const name = screen.getByText("インクラインダンベルプレス");
+      expect(name.className).toContain("whitespace-nowrap");
+      expect(name.className).not.toContain("truncate");
+      expect(name.className).not.toContain("line-clamp-2");
+      expect(name).toHaveStyle({ fontSize: "8px", transform: "scaleX(1)" });
+      expect(name.parentElement?.className).toContain("overflow-hidden");
+    });
+
+    it("一覧カードでは前回記録を表示しない", () => {
       // Given: muscleSubGroup付きの種目
       // When: コンポーネントをレンダリング
       render(
@@ -83,10 +111,36 @@ describe("BodyPartCard", () => {
         />
       );
 
-      // Then: サブグループラベル（またはデフォルトの「全体」）が表示される
-      // muscleSubGroupが定義されていない場合は「全体」が表示される
-      const labels = screen.getAllByText("全体");
-      expect(labels.length).toBeGreaterThan(0);
+      // Then: 前回記録はモーダル側に集約するため表示されない
+      expect(screen.queryByText("前回の記録")).not.toBeInTheDocument();
+      expect(screen.queryByText("記録なし")).not.toBeInTheDocument();
+    });
+
+    it("線画がない種目は部位フォールバックを表示する", () => {
+      // Given: 線画マップにないカスタム種目
+      const customExercise: Exercise = {
+        id: "ex-custom",
+        name: "カスタム胸種目",
+        bodyPart: "chest",
+        tier: "initial",
+        isBig3: false,
+        muscleSubGroup: "upper",
+      };
+
+      // When: コンポーネントをレンダリング
+      render(
+        <BodyPartCard
+          bodyPart="chest"
+          exercises={[customExercise]}
+          maxWeights={{}}
+        />
+      );
+
+      // Then: 線画ではなく部位フォールバックが表示される
+      expect(screen.getByText("全体")).toBeInTheDocument();
+      expect(
+        screen.queryByAltText("カスタム胸種目の線画イラスト")
+      ).not.toBeInTheDocument();
     });
 
     it("追加ボタンが表示される", () => {
@@ -101,7 +155,7 @@ describe("BodyPartCard", () => {
       );
 
       // Then: 追加ボタンが表示される
-      expect(screen.getByText("追加")).toBeInTheDocument();
+      expect(screen.getByText("種目を追加")).toBeInTheDocument();
     });
   });
 
@@ -118,8 +172,8 @@ describe("BodyPartCard", () => {
       );
 
       // Then: MAX重量が表示される
-      expect(screen.getByText("100kg")).toBeInTheDocument();
-      expect(screen.getByText("150kg")).toBeInTheDocument();
+      expect(screen.getByText("MAX 100kg")).toBeInTheDocument();
+      expect(screen.getByText("MAX 150kg")).toBeInTheDocument();
     });
 
     it("MAX重量がない場合は\"-\"が表示される", () => {
@@ -129,8 +183,8 @@ describe("BodyPartCard", () => {
         <BodyPartCard bodyPart="chest" exercises={mockExercises} maxWeights={{}} />
       );
 
-      // Then: "-"が表示される
-      const badges = screen.getAllByText("-");
+      // Then: "MAX -"が表示される
+      const badges = screen.getAllByText("MAX -");
       expect(badges.length).toBeGreaterThan(0);
     });
 
@@ -155,7 +209,7 @@ describe("BodyPartCard", () => {
       );
 
       // Then: MAX重量バッジが表示されない（"-"も表示されない）
-      expect(screen.queryByText("-")).not.toBeInTheDocument();
+      expect(screen.queryByText("MAX -")).not.toBeInTheDocument();
       expect(screen.queryByText(/kg/)).not.toBeInTheDocument();
     });
   });
@@ -179,7 +233,7 @@ describe("BodyPartCard", () => {
       expect(minusIcons.length).toBeGreaterThan(0);
     });
 
-    it("編集モード時は追加ボタンが非表示", () => {
+    it("編集モード時も追加カードは同じ位置に残り無効化される", () => {
       // Given: isEditMode = true
       // When: コンポーネントをレンダリング
       render(
@@ -191,8 +245,9 @@ describe("BodyPartCard", () => {
         />
       );
 
-      // Then: 追加ボタンが表示されない
-      expect(screen.queryByText("追加")).not.toBeInTheDocument();
+      // Then: 追加カードは表示されるが無効状態になる
+      const addButton = screen.getByText("種目を追加").closest("button");
+      expect(addButton).toHaveAttribute("aria-disabled", "true");
     });
 
     it("編集モード時は特別なスタイルが適用される", () => {
@@ -207,10 +262,9 @@ describe("BodyPartCard", () => {
         />
       );
 
-      // Then: 編集モード用のクラスが適用される
+      // Then: 編集モード用の赤い境界スタイルが適用される
       const exerciseButtons = container.querySelectorAll("button");
-      // 最初のボタン（種目カード）に編集モード用クラスがある
-      expect(exerciseButtons[0]).toHaveClass("animate-pulse-slow");
+      expect(exerciseButtons[0].className).toContain("border-red-500/40");
     });
   });
 
@@ -250,7 +304,7 @@ describe("BodyPartCard", () => {
           onAddExerciseClick={onAddExerciseClick}
         />
       );
-      const addButton = screen.getByText("追加");
+      const addButton = screen.getByText("種目を追加");
       await user.click(addButton);
 
       // Then: onAddExerciseClickが呼ばれる
