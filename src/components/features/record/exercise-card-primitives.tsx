@@ -41,10 +41,10 @@ function getInitialExerciseNameFontSize(name: string): number {
 
   if (length <= 6) return 15.5;
   if (length <= 8) return 14;
-  if (length <= 10) return 12;
-  if (length <= 12) return 10;
-  if (length <= 14) return 8;
-  return 7;
+  if (length <= 10) return 11;
+  if (length <= 12) return 8.5;
+  if (length <= 14) return 7;
+  return 6;
 }
 
 export function ExerciseFallbackVisual({
@@ -117,7 +117,10 @@ export function ExerciseIllustrationVisual({
         alt={illustration.alt}
         width={176}
         height={176}
-        className={cn("h-full w-full object-contain object-center", imageClassName)}
+        className={cn(
+          "h-full w-full object-contain object-center",
+          imageClassName
+        )}
       />
     </div>
   );
@@ -157,7 +160,7 @@ export function ExerciseName({
       }
 
       const fittedFontSize = Math.max(
-        5.2,
+        4.6,
         Math.floor((initialFontSize * availableWidth * 10) / neededWidth) / 10
       );
       setFontSize(fittedFontSize);
@@ -168,7 +171,7 @@ export function ExerciseName({
         const nextAvailableWidth = container.clientWidth;
         setScaleX(
           nextNeededWidth > nextAvailableWidth
-            ? Math.max(0.72, nextAvailableWidth / nextNeededWidth)
+            ? Math.max(0.58, nextAvailableWidth / nextNeededWidth)
             : 1
         );
       });

@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BodyPartCard } from "@/components/features/record/body-part-card";
+import { MUSCLE_SUB_GROUPS } from "@/constants/body-parts";
 import type { Exercise } from "@/types/workout";
 
 describe("BodyPartCard", () => {
@@ -12,7 +13,7 @@ describe("BodyPartCard", () => {
       bodyPart: "chest",
       tier: "initial",
       isBig3: false,
-      muscleSubGroup: "upper",
+      muscleSubGroup: MUSCLE_SUB_GROUPS.CHEST_UPPER,
     },
     {
       id: "ex-2",
@@ -20,13 +21,13 @@ describe("BodyPartCard", () => {
       bodyPart: "legs",
       tier: "initial",
       isBig3: true,
-      muscleSubGroup: "front",
+      muscleSubGroup: MUSCLE_SUB_GROUPS.LEGS_QUADS,
     },
     {
       id: "ex-3",
       name: "デッドリフト",
       bodyPart: "back",
-      tier: "advanced", // tier が initial ではない
+      tier: "selectable", // tier が initial ではない
       isBig3: true,
     },
   ];
@@ -96,7 +97,7 @@ describe("BodyPartCard", () => {
       expect(name.className).toContain("whitespace-nowrap");
       expect(name.className).not.toContain("truncate");
       expect(name.className).not.toContain("line-clamp-2");
-      expect(name).toHaveStyle({ fontSize: "8px", transform: "scaleX(1)" });
+      expect(name).toHaveStyle({ fontSize: "7px", transform: "scaleX(1)" });
       expect(name.parentElement?.className).toContain("overflow-hidden");
     });
 
@@ -124,7 +125,7 @@ describe("BodyPartCard", () => {
         bodyPart: "chest",
         tier: "initial",
         isBig3: false,
-        muscleSubGroup: "upper",
+        muscleSubGroup: MUSCLE_SUB_GROUPS.CHEST_UPPER,
       };
 
       // When: コンポーネントをレンダリング
@@ -198,7 +199,6 @@ describe("BodyPartCard", () => {
         bodyPart: "other",
         tier: "initial",
         isBig3: false,
-        isCardio: true,
       };
 
       // When: コンポーネントをレンダリング
