@@ -3,7 +3,10 @@
 import { Trophy, ChevronsLeft } from "lucide-react";
 import { BODY_PART_LABELS, calculate1RM, cn } from "@/lib/utils";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
-import { ExerciseIllustrationVisual } from "@/components/features/record/exercise-card-primitives";
+import {
+  ExerciseIllustrationVisual,
+  ExerciseName,
+} from "@/components/features/record/exercise-card-primitives";
 import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
 
 interface ExerciseCardProps {
@@ -31,27 +34,32 @@ export function ExerciseCard({
 
   return (
     <div
-      className="group w-full cursor-pointer rounded-2xl border border-[var(--mg-border)] bg-[var(--mg-surface)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-[transform,border-color,background-color,box-shadow] hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.025] active:scale-[0.99]"
+      className="group w-full cursor-pointer overflow-hidden rounded-2xl border border-[var(--mg-border)] bg-[var(--mg-surface)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-[transform,border-color,background-color,box-shadow] hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.025] active:scale-[0.99]"
       onClick={onClick}
     >
-      <div className="mb-3 grid grid-cols-[78px_1fr_auto] items-center gap-3">
+      <div className="grid grid-cols-[98px_1fr_auto] items-stretch gap-3 p-3 pb-2">
         <div
-          className="relative h-[74px] overflow-hidden rounded-xl border"
+          className="group relative h-[102px] overflow-hidden rounded-[1.15rem] border"
           style={{
             backgroundColor: `color-mix(in srgb, ${bodyPartColor} 12%, transparent)`,
             borderColor: `color-mix(in srgb, ${bodyPartColor} 28%, transparent)`,
           }}
         >
-          <div className="absolute inset-1">
+          <div className="absolute inset-0 bg-linear-to-br from-white/[0.045] via-transparent to-primary/[0.035] opacity-80" />
+          <div className="absolute inset-x-1 top-2 bottom-7">
             <ExerciseIllustrationVisual
               exercise={exercise}
               fallbackLabel={subGroupLabel}
-              imageClassName="max-h-[72px]"
+              imageClassName="max-h-[76px]"
             />
           </div>
+          <ExerciseName
+            name={exercise.name}
+            className="absolute inset-x-2 bottom-2"
+          />
         </div>
 
-        <div className="min-w-0">
+        <div className="flex min-w-0 flex-col justify-center">
           <div className="mb-1.5 flex flex-wrap gap-1.5">
             <span
               className="rounded-md px-1.5 py-0.5 text-[10px] font-black leading-none"
@@ -70,7 +78,7 @@ export function ExerciseCard({
             {exercise.name}
           </h4>
           {maxWeight > 0 && (
-            <p className="mt-1 text-[11px] font-black text-primary">
+            <p className="mt-1 w-fit rounded-md border border-primary/35 bg-primary/[0.08] px-1.5 py-0.5 text-[10px] font-black leading-none text-primary">
               MAX {maxWeight}kg
             </p>
           )}
@@ -83,7 +91,7 @@ export function ExerciseCard({
 
       {/* セット記録 */}
       {sets && sets.length > 0 && (
-        <div className="space-y-1">
+        <div className="space-y-1 border-t border-[var(--mg-border)] px-3 pb-3 pt-2">
           {sets.map((set, index) => {
             const weight = set.weight ?? 0;
             const isMaxWeight = maxWeight > 0 && weight >= maxWeight;
@@ -155,7 +163,7 @@ export function ExerciseCard({
 
       {/* 有酸素記録 */}
       {records && records.length > 0 && (
-        <div className="space-y-1">
+        <div className="space-y-1 border-t border-[var(--mg-border)] px-3 pb-3 pt-2">
           {records.map((record, index) => {
             return (
               <div

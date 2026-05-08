@@ -29,11 +29,19 @@ import {
   Timer as TimerIcon,
   HelpCircle,
 } from "lucide-react";
-import { BODY_PART_LABELS, cn, isCardioExercise, isTimeBasedExercise } from "@/lib/utils";
+import {
+  BODY_PART_LABELS,
+  cn,
+  isCardioExercise,
+  isTimeBasedExercise,
+} from "@/lib/utils";
 import { MAX_SETS, hasAnyPositiveInputValue } from "@/lib/utils/record";
 import { SetRecordForm } from "./set-record-form";
 import { CardioRecordForm } from "./cardio-record-form";
-import { ExerciseIllustrationVisual } from "./exercise-card-primitives";
+import {
+  ExerciseIllustrationVisual,
+  ExerciseName,
+} from "./exercise-card-primitives";
 import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
 import {
   PreviousWorkoutRecordCard,
@@ -301,23 +309,28 @@ export default function ExerciseRecordModal({
               )}
               {date.toLocaleDateString()} の記録
             </DialogDescription>
-            <div className="grid grid-cols-[86px_1fr] items-center gap-3 rounded-2xl border border-[var(--mg-border)] bg-background/55 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <div className="grid grid-cols-[116px_1fr] items-stretch gap-3 rounded-2xl border border-[var(--mg-border)] bg-background/55 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div
-                className="relative h-20 overflow-hidden rounded-xl border"
+                className="group relative h-[112px] overflow-hidden rounded-[1.15rem] border"
                 style={{
                   backgroundColor: `color-mix(in srgb, ${bodyPartColor} 12%, transparent)`,
                   borderColor: `color-mix(in srgb, ${bodyPartColor} 28%, transparent)`,
                 }}
               >
-                <div className="absolute inset-1">
+                <div className="absolute inset-0 bg-linear-to-br from-white/[0.045] via-transparent to-primary/[0.035] opacity-80" />
+                <div className="absolute inset-x-1 top-2 bottom-6">
                   <ExerciseIllustrationVisual
                     exercise={exercise}
                     fallbackLabel={subGroupLabel}
-                    imageClassName="max-h-[78px]"
+                    imageClassName="max-h-[88px]"
                   />
                 </div>
+                <ExerciseName
+                  name={exercise.name}
+                  className="absolute inset-x-2 bottom-2"
+                />
               </div>
-              <div className="min-w-0">
+              <div className="flex min-w-0 flex-col justify-center py-1">
                 <div className="mb-2 flex flex-wrap items-center gap-1.5">
                   <Badge
                     variant="secondary"
@@ -333,7 +346,7 @@ export default function ExerciseRecordModal({
                     {subGroupLabel}
                   </span>
                 </div>
-                <DialogTitle className="text-xl font-black leading-tight tracking-normal">
+                <DialogTitle className="text-[1.35rem] font-black leading-tight tracking-normal">
                   {exercise.name}
                 </DialogTitle>
               </div>

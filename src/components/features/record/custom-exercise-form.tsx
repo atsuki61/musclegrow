@@ -23,6 +23,7 @@ import { exerciseSchema, getValidationErrorDetails } from "@/lib/validations";
 import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
 import {
   ExerciseIllustrationVisual,
+  ExerciseName,
 } from "./exercise-card-primitives";
 
 const SUB_GROUP_OPTIONS: Record<
@@ -164,8 +165,9 @@ export function CustomExerciseForm({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-[118px_1fr] gap-3 rounded-2xl border border-[var(--mg-border)] bg-[var(--mg-surface)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-        <div className="group relative h-[132px] overflow-hidden rounded-[1.15rem] border border-[var(--mg-border)] bg-background/45 p-2">
+      <div className="grid grid-cols-[132px_minmax(0,1fr)] gap-3 rounded-2xl border border-[var(--mg-border)] bg-[var(--mg-surface)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <div className="group relative h-[150px] overflow-hidden rounded-[1.15rem] border border-[var(--mg-border)] bg-background/45 p-2">
+          <div className="absolute inset-0 bg-linear-to-br from-white/[0.045] via-transparent to-primary/[0.035] opacity-80" />
           <span
             className="absolute right-1.5 top-1.5 z-20 rounded-md border px-1.5 py-0.5 text-[9px] font-black leading-none shadow-sm backdrop-blur-md"
             style={{
@@ -175,15 +177,19 @@ export function CustomExerciseForm({
           >
             確認
           </span>
-          <div className="relative z-10 h-full pt-5">
+          <div className="absolute inset-x-1 top-7 bottom-8 z-10">
             <ExerciseIllustrationVisual
               exercise={previewExercise}
               fallbackLabel={
                 subGroup ? selectedSubGroupLabel : BODY_PART_LABELS[bodyPart]
               }
-              imageClassName="max-h-[104px]"
+              imageClassName="max-h-[94px]"
             />
           </div>
+          <ExerciseName
+            name={previewExercise.name}
+            className="absolute inset-x-2 bottom-3 z-20"
+          />
         </div>
 
         <div className="flex min-w-0 flex-col justify-center">
