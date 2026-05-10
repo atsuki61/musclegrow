@@ -1,4 +1,4 @@
-import type { BodyPart, Exercise } from "@/types/workout";
+import type { BodyPart, Exercise, MuscleSubGroup } from "@/types/workout";
 import {
   MUSCLE_SUB_GROUPS,
   MUSCLE_SUB_GROUP_LABELS,
@@ -6,8 +6,87 @@ import {
 
 export { MUSCLE_SUB_GROUP_LABELS };
 
+const TARGET_PARTS = [
+  "chest",
+  "back",
+  "legs",
+  "shoulders",
+  "arms",
+  "core",
+] as const satisfies Exclude<BodyPart, "all" | "other">[];
+
+export type TargetMuscleGroupOption = {
+  value: MuscleSubGroup;
+  label: string;
+};
+
+export const TARGET_MUSCLE_GROUP_OPTIONS_BY_PART: Record<
+  Exclude<BodyPart, "all" | "other">,
+  TargetMuscleGroupOption[]
+> = {
+  chest: [
+    { value: MUSCLE_SUB_GROUPS.CHEST_OVERALL, label: "大胸筋全体" },
+    { value: MUSCLE_SUB_GROUPS.CHEST_UPPER, label: "大胸筋上部" },
+    { value: MUSCLE_SUB_GROUPS.CHEST_LOWER, label: "大胸筋下部" },
+    { value: MUSCLE_SUB_GROUPS.CHEST_OUTER, label: "大胸筋外側" },
+  ],
+  back: [
+    { value: MUSCLE_SUB_GROUPS.BACK_OVERALL, label: "背中全体" },
+    { value: MUSCLE_SUB_GROUPS.BACK_WIDTH, label: "広背筋（背中の幅）" },
+    {
+      value: MUSCLE_SUB_GROUPS.BACK_THICKNESS,
+      label: "僧帽筋・菱形筋（背中の厚み）",
+    },
+    {
+      value: MUSCLE_SUB_GROUPS.BACK_TRAPS,
+      label: "僧帽筋（首の付け根～肩）",
+    },
+    {
+      value: MUSCLE_SUB_GROUPS.BACK_ERECTORS,
+      label: "脊柱起立筋（腰～背中下部）",
+    },
+  ],
+  legs: [
+    { value: MUSCLE_SUB_GROUPS.LEGS_QUADS, label: "大腿四頭筋（太ももの前側）" },
+    {
+      value: MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS,
+      label: "ハムストリングス（太ももの後側）",
+    },
+    { value: MUSCLE_SUB_GROUPS.LEGS_GLUTES, label: "臀筋（お尻）" },
+    { value: MUSCLE_SUB_GROUPS.LEGS_CALVES, label: "下腿（ふくらはぎ）" },
+    { value: MUSCLE_SUB_GROUPS.LEGS_ADDUCTORS, label: "内転筋（太ももの内側）" },
+  ],
+  shoulders: [
+    { value: MUSCLE_SUB_GROUPS.SHOULDERS_OVERALL, label: "三角筋全体" },
+    { value: MUSCLE_SUB_GROUPS.SHOULDERS_FRONT, label: "三角筋前部" },
+    { value: MUSCLE_SUB_GROUPS.SHOULDERS_MIDDLE, label: "三角筋中部" },
+    { value: MUSCLE_SUB_GROUPS.SHOULDERS_REAR, label: "三角筋後部" },
+  ],
+  arms: [
+    { value: MUSCLE_SUB_GROUPS.ARMS_BICEPS, label: "上腕二頭筋（力こぶ）" },
+    {
+      value: MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+      label: "上腕三頭筋（二の腕の後ろ）",
+    },
+    { value: MUSCLE_SUB_GROUPS.ARMS_FOREARMS, label: "前腕筋群（前腕）" },
+  ],
+  core: [
+    { value: MUSCLE_SUB_GROUPS.CORE_RECTUS, label: "腹直筋（お腹の前側）" },
+    { value: MUSCLE_SUB_GROUPS.CORE_TRANSVERSE, label: "腹横筋（お腹の深い部分）" },
+    { value: MUSCLE_SUB_GROUPS.CORE_OBLIQUES, label: "腹斜筋（お腹の横側）" },
+    { value: MUSCLE_SUB_GROUPS.CORE_HIP_FLEXORS, label: "腸腰筋（脚の付け根）" },
+  ],
+};
+
+export const TARGET_MUSCLE_GROUP_OPTIONS = TARGET_PARTS.flatMap((part) =>
+  TARGET_MUSCLE_GROUP_OPTIONS_BY_PART[part].map((option) => ({
+    ...option,
+    bodyPart: part,
+  }))
+);
+
 const OVERALL_SUB_GROUP_BY_PART: Partial<
-  Record<Exclude<BodyPart, "all">, string>
+  Record<Exclude<BodyPart, "all">, MuscleSubGroup>
 > = {
   chest: MUSCLE_SUB_GROUPS.CHEST_OVERALL,
   back: MUSCLE_SUB_GROUPS.BACK_OVERALL,
@@ -15,7 +94,7 @@ const OVERALL_SUB_GROUP_BY_PART: Partial<
 };
 
 const SUB_GROUP_MAP_BY_PART: Partial<
-  Record<Exclude<BodyPart, "all">, Record<string, string>>
+  Record<Exclude<BodyPart, "all">, Record<string, MuscleSubGroup>>
 > = {
   chest: {
     全体: MUSCLE_SUB_GROUPS.CHEST_OVERALL,
@@ -70,12 +149,62 @@ const SUB_GROUP_MAP_BY_PART: Partial<
 export function resolveSubGroupForBodyPart(
   bodyPart: Exclude<BodyPart, "all">,
   label: string
-): string | undefined {
+): MuscleSubGroup | undefined {
   const cleanedLabel = label.replace(/[（(].*?[）)]/g, "").trim();
   return (
     SUB_GROUP_MAP_BY_PART[bodyPart]?.[cleanedLabel] ??
     OVERALL_SUB_GROUP_BY_PART[bodyPart]
   );
+}
+
+export function getBodyPartForMuscleSubGroup(
+  muscleSubGroup: MuscleSubGroup
+): Exclude<BodyPart, "all" | "other"> | undefined {
+  return TARGET_MUSCLE_GROUP_OPTIONS.find(
+    (option) => option.value === muscleSubGroup
+  )?.bodyPart;
+}
+
+export function isOverallMuscleSubGroup(
+  muscleSubGroup: MuscleSubGroup
+): boolean {
+  return muscleSubGroup.endsWith("_overall");
+}
+
+export function getDefaultTargetMuscleGroups(
+  bodyPart: Exclude<BodyPart, "all">
+): MuscleSubGroup[] {
+  const overallGroup = OVERALL_SUB_GROUP_BY_PART[bodyPart];
+  if (overallGroup) return [overallGroup];
+  if (bodyPart === "other") return [];
+
+  return TARGET_MUSCLE_GROUP_OPTIONS_BY_PART[bodyPart][0]
+    ? [TARGET_MUSCLE_GROUP_OPTIONS_BY_PART[bodyPart][0].value]
+    : [];
+}
+
+export function getExerciseTargetMuscleGroups(
+  exercise: Pick<Exercise, "targetMuscleGroups" | "muscleSubGroup">
+): MuscleSubGroup[] {
+  if (exercise.targetMuscleGroups?.length) {
+    return exercise.targetMuscleGroups;
+  }
+
+  return exercise.muscleSubGroup ? [exercise.muscleSubGroup] : [];
+}
+
+export function getTargetMuscleGroupLabels(
+  targetMuscleGroups: MuscleSubGroup[]
+): string[] {
+  return targetMuscleGroups.map(
+    (muscleSubGroup) => MUSCLE_SUB_GROUP_LABELS[muscleSubGroup] ?? "全体"
+  );
+}
+
+export function getExerciseTargetMuscleLabels(
+  exercise: Pick<Exercise, "targetMuscleGroups" | "muscleSubGroup">
+): string[] {
+  return getTargetMuscleGroupLabels(getExerciseTargetMuscleGroups(exercise));
 }
 
 /**
@@ -233,4 +362,3 @@ export const NAME_EN_MAP: Record<string, string> = {
   クロストレーナー: "Cross Trainer",
   スピンバイク: "Spin Bike",
 };
-

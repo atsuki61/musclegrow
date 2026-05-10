@@ -45,6 +45,11 @@ function mapExerciseRow(ex: ExerciseRow): Exercise {
     bodyPart: ex.bodyPart as Exercise["bodyPart"],
     muscleSubGroup:
       (ex.muscleSubGroup as Exercise["muscleSubGroup"] | null) ?? undefined,
+    targetMuscleGroups: ex.targetMuscleGroups?.length
+      ? (ex.targetMuscleGroups as Exercise["targetMuscleGroups"])
+      : ex.muscleSubGroup
+        ? [ex.muscleSubGroup as NonNullable<Exercise["muscleSubGroup"]>]
+        : undefined,
     primaryEquipment:
       (ex.primaryEquipment as Exercise["primaryEquipment"] | null) ?? undefined,
     tier: ex.tier as Exercise["tier"],
@@ -141,7 +146,9 @@ export async function saveExercise(
         name: exercise.name,
         nameEn: exercise.nameEn ?? null,
         bodyPart: exercise.bodyPart,
-        muscleSubGroup: exercise.muscleSubGroup ?? null,
+        muscleSubGroup:
+          exercise.targetMuscleGroups?.[0] ?? exercise.muscleSubGroup ?? null,
+        targetMuscleGroups: exercise.targetMuscleGroups ?? null,
         primaryEquipment: exercise.primaryEquipment ?? null,
         tier: exercise.tier,
         isBig3: exercise.isBig3,

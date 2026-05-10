@@ -91,6 +91,7 @@ export function ExerciseIllustrationVisual({
     bodyPart: exercise.bodyPart,
     equipmentType: exercise.primaryEquipment,
     muscleSubGroup: exercise.muscleSubGroup,
+    targetMuscleGroups: exercise.targetMuscleGroups,
   });
 
   if (!illustration.src) {

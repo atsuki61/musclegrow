@@ -50,6 +50,13 @@
       "when": 1764507689281,
       "tag": "0006_lethal_silhouette",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778419928950,
+      "tag": "0007_sparkling_nightmare",
+      "breakpoints": true
     }
   ]
 }

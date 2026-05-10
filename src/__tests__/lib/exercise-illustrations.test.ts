@@ -90,7 +90,7 @@ describe("resolveExerciseIllustration", () => {
     });
   });
 
-  it("カスタム種目はbodyPartとmuscleSubGroupから人体フォールバックを返す", () => {
+  it("カスタム種目はbodyPartとmuscleSubGroupから単独対象筋フォールバックを返す", () => {
     const illustration = resolveExerciseIllustration({
       name: "カスタム背中種目",
       bodyPart: "back",
@@ -98,9 +98,50 @@ describe("resolveExerciseIllustration", () => {
     });
 
     expect(illustration).toMatchObject({
-      src: "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+      src: "/exercise-illustrations/fallback/upper-back/back-width.png",
       isFallback: true,
       fallbackKind: "subgroup",
+    });
+  });
+
+  it("胸上部・胸下部・胸全体はそれぞれ専用フォールバックを返す", () => {
+    expect(
+      resolveExerciseIllustration({
+        name: "カスタム胸上部",
+        bodyPart: "chest",
+        muscleSubGroup: MUSCLE_SUB_GROUPS.CHEST_UPPER,
+      }).src
+    ).toBe("/exercise-illustrations/fallback/upper-front/chest-upper.png");
+    expect(
+      resolveExerciseIllustration({
+        name: "カスタム胸下部",
+        bodyPart: "chest",
+        muscleSubGroup: MUSCLE_SUB_GROUPS.CHEST_LOWER,
+      }).src
+    ).toBe("/exercise-illustrations/fallback/upper-front/chest-lower.png");
+    expect(
+      resolveExerciseIllustration({
+        name: "カスタム胸全体",
+        bodyPart: "chest",
+        muscleSubGroup: MUSCLE_SUB_GROUPS.CHEST_OVERALL,
+      }).src
+    ).toBe("/exercise-illustrations/fallback/upper-front/chest-overall.png");
+  });
+
+  it("targetMuscleGroupsの複合対象筋は複合フォールバックを返す", () => {
+    const illustration = resolveExerciseIllustration({
+      name: "未登録ディップ系",
+      bodyPart: "chest",
+      targetMuscleGroups: [
+        MUSCLE_SUB_GROUPS.CHEST_LOWER,
+        MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+      ],
+    });
+
+    expect(illustration).toMatchObject({
+      src: "/exercise-illustrations/fallback/upper-front/chest-lower-triceps.png",
+      isFallback: true,
+      fallbackKind: "compound",
     });
   });
 
@@ -112,7 +153,7 @@ describe("resolveExerciseIllustration", () => {
     });
 
     expect(illustration).toMatchObject({
-      src: "/exercise-illustrations/fallback/upper-back/upper-back.png",
+      src: "/exercise-illustrations/fallback/upper-back/back-overall.png",
       isFallback: true,
       fallbackKind: "subgroup",
     });

@@ -40,9 +40,8 @@ import { SetRecordForm } from "./set-record-form";
 import { CardioRecordForm } from "./cardio-record-form";
 import {
   ExerciseIllustrationVisual,
-  ExerciseName,
 } from "./exercise-card-primitives";
-import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
+import { getExerciseTargetMuscleLabels } from "@/lib/exercise-mappings";
 import {
   PreviousWorkoutRecordCard,
   PreviousCardioRecordCard,
@@ -92,9 +91,10 @@ export default function ExerciseRecordModal({
   const bodyPartColor = exercise
     ? `var(--color-${exercise.bodyPart})`
     : "var(--primary)";
-  const subGroupLabel = exercise?.muscleSubGroup
-    ? MUSCLE_SUB_GROUP_LABELS[exercise.muscleSubGroup] ?? "全体"
-    : "全体";
+  const targetMuscleLabels = exercise
+    ? getExerciseTargetMuscleLabels(exercise)
+    : [];
+  const fallbackLabel = targetMuscleLabels[0] ?? "全体";
 
   const createInitialSet = (): SetRecord => {//セットを作成
     const isTimeBased = exercise ? isTimeBasedExercise(exercise) : false;//exerciseがnullの場合はfalseを返す
@@ -318,17 +318,13 @@ export default function ExerciseRecordModal({
                 }}
               >
                 <div className="absolute inset-0 bg-linear-to-br from-white/[0.045] via-transparent to-primary/[0.035] opacity-80" />
-                <div className="absolute inset-x-1 top-2 bottom-6">
-                  <ExerciseIllustrationVisual
-                    exercise={exercise}
-                    fallbackLabel={subGroupLabel}
-                    imageClassName="max-h-[88px]"
-                  />
+                <div className="absolute inset-x-1 top-2 bottom-2">
+                    <ExerciseIllustrationVisual
+                      exercise={exercise}
+                      fallbackLabel={fallbackLabel}
+                      imageClassName="max-h-[96px]"
+                    />
                 </div>
-                <ExerciseName
-                  name={exercise.name}
-                  className="absolute inset-x-2 bottom-2"
-                />
               </div>
               <div className="flex min-w-0 flex-col justify-center py-1">
                 <div className="mb-2 flex flex-wrap items-center gap-1.5">
@@ -342,9 +338,20 @@ export default function ExerciseRecordModal({
                   >
                     {BODY_PART_LABELS[exercise.bodyPart]}
                   </Badge>
-                  <span className="rounded-md bg-muted/55 px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
-                    {subGroupLabel}
-                  </span>
+                  {targetMuscleLabels.length > 0 ? (
+                    targetMuscleLabels.slice(0, 3).map((label) => (
+                      <span
+                        key={label}
+                        className="rounded-md bg-muted/55 px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground"
+                      >
+                        {label}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="rounded-md bg-muted/55 px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                      全体
+                    </span>
+                  )}
                 </div>
                 <DialogTitle className="text-[1.35rem] font-black leading-tight tracking-normal">
                   {exercise.name}

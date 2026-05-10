@@ -1,4 +1,5 @@
 import { MUSCLE_SUB_GROUPS } from "@/constants/body-parts";
+import { getBodyPartForMuscleSubGroup } from "@/lib/exercise-mappings";
 import type { BodyPart, EquipmentType, MuscleSubGroup } from "@/types/workout";
 
 type ExerciseIllustration = {
@@ -199,27 +200,113 @@ const COMPOUND_FALLBACK_BY_NAME: Record<string, string> = {
 };
 
 const SUBGROUP_FALLBACK_BY_KEY: Partial<Record<MuscleSubGroup, string>> = {
+  [MUSCLE_SUB_GROUPS.CHEST_OVERALL]:
+    "/exercise-illustrations/fallback/upper-front/chest-overall.png",
+  [MUSCLE_SUB_GROUPS.CHEST_UPPER]:
+    "/exercise-illustrations/fallback/upper-front/chest-upper.png",
   [MUSCLE_SUB_GROUPS.CHEST_LOWER]:
-    "/exercise-illustrations/fallback/upper-front/chest-lower-triceps.png",
+    "/exercise-illustrations/fallback/upper-front/chest-lower.png",
+  [MUSCLE_SUB_GROUPS.CHEST_OUTER]:
+    "/exercise-illustrations/fallback/upper-front/chest-outer.png",
+  [MUSCLE_SUB_GROUPS.BACK_OVERALL]:
+    "/exercise-illustrations/fallback/upper-back/back-overall.png",
   [MUSCLE_SUB_GROUPS.BACK_WIDTH]:
-    "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+    "/exercise-illustrations/fallback/upper-back/back-width.png",
   [MUSCLE_SUB_GROUPS.BACK_THICKNESS]:
-    "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+    "/exercise-illustrations/fallback/upper-back/back-thickness.png",
+  [MUSCLE_SUB_GROUPS.BACK_TRAPS]:
+    "/exercise-illustrations/fallback/upper-back/back-traps.png",
   [MUSCLE_SUB_GROUPS.BACK_ERECTORS]:
-    "/exercise-illustrations/fallback/full-back/posterior-chain.png",
+    "/exercise-illustrations/fallback/upper-back/back-erectors.png",
+  [MUSCLE_SUB_GROUPS.LEGS_QUADS]:
+    "/exercise-illustrations/fallback/lower-front/legs-quads.png",
   [MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS]:
-    "/exercise-illustrations/fallback/full-back/posterior-chain.png",
+    "/exercise-illustrations/fallback/lower-back/legs-hamstrings.png",
   [MUSCLE_SUB_GROUPS.LEGS_GLUTES]:
-    "/exercise-illustrations/fallback/full-back/posterior-chain.png",
+    "/exercise-illustrations/fallback/lower-back/legs-glutes.png",
+  [MUSCLE_SUB_GROUPS.LEGS_CALVES]:
+    "/exercise-illustrations/fallback/lower-back/legs-calves.png",
+  [MUSCLE_SUB_GROUPS.LEGS_ADDUCTORS]:
+    "/exercise-illustrations/fallback/lower-front/legs-adductors.png",
+  [MUSCLE_SUB_GROUPS.SHOULDERS_OVERALL]:
+    "/exercise-illustrations/fallback/upper-front/shoulders-middle.png",
+  [MUSCLE_SUB_GROUPS.SHOULDERS_FRONT]:
+    "/exercise-illustrations/fallback/upper-front/shoulders-front.png",
+  [MUSCLE_SUB_GROUPS.SHOULDERS_MIDDLE]:
+    "/exercise-illustrations/fallback/upper-front/shoulders-middle.png",
+  [MUSCLE_SUB_GROUPS.SHOULDERS_REAR]:
+    "/exercise-illustrations/fallback/upper-back/shoulders-rear.png",
+  [MUSCLE_SUB_GROUPS.ARMS_BICEPS]:
+    "/exercise-illustrations/fallback/upper-front/arms-biceps.png",
+  [MUSCLE_SUB_GROUPS.ARMS_TRICEPS]:
+    "/exercise-illustrations/fallback/upper-back/arms-triceps.png",
+  [MUSCLE_SUB_GROUPS.ARMS_FOREARMS]:
+    "/exercise-illustrations/fallback/upper-front/arms-forearms.png",
+  [MUSCLE_SUB_GROUPS.CORE_RECTUS]:
+    "/exercise-illustrations/fallback/upper-front/core-rectus.png",
+  [MUSCLE_SUB_GROUPS.CORE_TRANSVERSE]:
+    "/exercise-illustrations/fallback/upper-front/core-transverse.png",
+  [MUSCLE_SUB_GROUPS.CORE_OBLIQUES]:
+    "/exercise-illustrations/fallback/upper-front/core-obliques.png",
+  [MUSCLE_SUB_GROUPS.CORE_HIP_FLEXORS]:
+    "/exercise-illustrations/fallback/full-front/core-hip-flexors.png",
 };
 
 const DEFAULT_FALLBACK_BY_PART: Partial<Record<Exclude<BodyPart, "all">, string>> = {
-  chest: "/exercise-illustrations/fallback/upper-front/upper-front.png",
-  back: "/exercise-illustrations/fallback/upper-back/upper-back.png",
-  legs: "/exercise-illustrations/fallback/lower-front/lower-front.png",
-  shoulders: "/exercise-illustrations/fallback/upper-front/upper-front.png",
-  arms: "/exercise-illustrations/fallback/upper-front/upper-front.png",
-  core: "/exercise-illustrations/fallback/upper-front/upper-front.png",
+  chest: "/exercise-illustrations/fallback/upper-front/chest-overall.png",
+  back: "/exercise-illustrations/fallback/upper-back/back-overall.png",
+  legs: "/exercise-illustrations/fallback/lower-front/legs-quads.png",
+  shoulders: "/exercise-illustrations/fallback/upper-front/shoulders-middle.png",
+  arms: "/exercise-illustrations/fallback/upper-front/arms-biceps.png",
+  core: "/exercise-illustrations/fallback/upper-front/core-rectus.png",
+};
+
+function createTargetGroupKey(targetMuscleGroups: MuscleSubGroup[]): string {
+  return [...new Set(targetMuscleGroups)].sort().join("+");
+}
+
+const COMPOUND_FALLBACK_BY_TARGET_GROUPS: Record<string, string> = {
+  [createTargetGroupKey([
+    MUSCLE_SUB_GROUPS.CHEST_LOWER,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ])]: "/exercise-illustrations/fallback/upper-front/chest-lower-triceps.png",
+  [createTargetGroupKey([
+    MUSCLE_SUB_GROUPS.CHEST_OVERALL,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ])]: "/exercise-illustrations/fallback/upper-front/chest-triceps.png",
+  [createTargetGroupKey([
+    MUSCLE_SUB_GROUPS.CHEST_UPPER,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ])]: "/exercise-illustrations/fallback/upper-front/chest-triceps.png",
+  [createTargetGroupKey([
+    MUSCLE_SUB_GROUPS.CHEST_OUTER,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ])]: "/exercise-illustrations/fallback/upper-front/chest-triceps.png",
+  [createTargetGroupKey([
+    MUSCLE_SUB_GROUPS.BACK_WIDTH,
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+  ])]: "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+  [createTargetGroupKey([
+    MUSCLE_SUB_GROUPS.BACK_THICKNESS,
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+  ])]: "/exercise-illustrations/fallback/upper-back/back-biceps.png",
+  [createTargetGroupKey([
+    MUSCLE_SUB_GROUPS.BACK_TRAPS,
+    MUSCLE_SUB_GROUPS.SHOULDERS_REAR,
+  ])]: "/exercise-illustrations/fallback/upper-back/back-traps-shoulders-rear.png",
+  [createTargetGroupKey([
+    MUSCLE_SUB_GROUPS.LEGS_QUADS,
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+  ])]: "/exercise-illustrations/fallback/lower-front/quads-glutes.png",
+  [createTargetGroupKey([
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+    MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS,
+  ])]: "/exercise-illustrations/fallback/lower-back/glutes-hamstrings.png",
+  [createTargetGroupKey([
+    MUSCLE_SUB_GROUPS.BACK_ERECTORS,
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+    MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS,
+  ])]: "/exercise-illustrations/fallback/full-back/posterior-chain.png",
 };
 
 function normalizeSubGroupForBodyPart(
@@ -245,11 +332,13 @@ export function resolveExerciseIllustration({
   bodyPart,
   equipmentType,
   muscleSubGroup,
+  targetMuscleGroups,
 }: {
   name: string;
   bodyPart: Exclude<BodyPart, "all">;
   equipmentType?: EquipmentType;
   muscleSubGroup?: MuscleSubGroup;
+  targetMuscleGroups?: MuscleSubGroup[];
 }): ExerciseIllustration {
   const normalizedName = normalizeExerciseName(name);
   const nameWithoutDetails = normalizeExerciseName(
@@ -286,12 +375,36 @@ export function resolveExerciseIllustration({
     };
   }
 
-  const normalizedSubGroup = normalizeSubGroupForBodyPart(
-    bodyPart,
-    muscleSubGroup
-  );
+  const normalizedSubGroup = normalizeSubGroupForBodyPart(bodyPart, muscleSubGroup);
+  const resolvedTargetMuscleGroups =
+    targetMuscleGroups?.length
+      ? targetMuscleGroups
+      : normalizedSubGroup
+        ? [normalizedSubGroup]
+        : [];
+
+  const compoundTargetFallbackSrc =
+    COMPOUND_FALLBACK_BY_TARGET_GROUPS[
+      createTargetGroupKey(resolvedTargetMuscleGroups)
+    ];
+
+  if (compoundTargetFallbackSrc) {
+    return {
+      src: compoundTargetFallbackSrc,
+      alt: `${name}の複合対象筋フォールバック線画`,
+      isFallback: true,
+      fallbackKind: "compound",
+      fit: DEFAULT_FIT,
+    };
+  }
+
+  const primaryTargetMuscleGroup =
+    resolvedTargetMuscleGroups.find(
+      (targetMuscleGroup) =>
+        getBodyPartForMuscleSubGroup(targetMuscleGroup) === bodyPart
+    ) ?? resolvedTargetMuscleGroups[0];
   const subgroupFallbackSrc =
-    normalizedSubGroup && SUBGROUP_FALLBACK_BY_KEY[normalizedSubGroup];
+    primaryTargetMuscleGroup && SUBGROUP_FALLBACK_BY_KEY[primaryTargetMuscleGroup];
 
   if (subgroupFallbackSrc) {
     return {

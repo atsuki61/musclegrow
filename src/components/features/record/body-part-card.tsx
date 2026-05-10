@@ -3,12 +3,12 @@
 import { useMemo, useState, useEffect } from "react";
 import { Plus, Minus } from "lucide-react";
 import { cn, isCardioExercise } from "@/lib/utils";
-import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
+import { getExerciseTargetMuscleLabels } from "@/lib/exercise-mappings";
 import {
   ExerciseIllustrationVisual,
   ExerciseName,
 } from "./exercise-card-primitives";
-import type { Exercise, MuscleSubGroup } from "@/types/workout";
+import type { Exercise } from "@/types/workout";
 
 interface BodyPartCardProps {
   bodyPart: string;
@@ -47,11 +47,8 @@ export function BodyPartCard({
         {initialExercises.map((exercise) => {
           const maxWeight = isMounted ? maxWeights[exercise.id] : undefined;
           const isCardio = isCardioExercise(exercise);
-          const subGroupLabel = exercise.muscleSubGroup
-            ? MUSCLE_SUB_GROUP_LABELS[
-                exercise.muscleSubGroup as MuscleSubGroup
-              ] ?? "全体"
-            : "全体";
+          const targetMuscleLabels = getExerciseTargetMuscleLabels(exercise);
+          const fallbackLabel = targetMuscleLabels[0] ?? "全体";
           return (
             <button
               key={exercise.id}
@@ -97,7 +94,7 @@ export function BodyPartCard({
                   <div className="absolute inset-x-0 bottom-0 top-2">
                     <ExerciseIllustrationVisual
                       exercise={exercise}
-                      fallbackLabel={subGroupLabel}
+                      fallbackLabel={fallbackLabel}
                       imageClassName="max-h-[104px]"
                     />
                   </div>

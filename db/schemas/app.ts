@@ -87,6 +87,7 @@ export const exercises = pgTable("exercises", {
   nameEn: text("name_en"), // 英語名（例: "Bench Press"）
   bodyPart: text("body_part").notNull(), // 部位: chest, back, legs, shoulders, arms, core, other
   muscleSubGroup: text("muscle_sub_group"), // サブ分類（例: "chest_overall", "legs_quads"）
+  targetMuscleGroups: text("target_muscle_groups").array(), // 対象筋（複数選択）
   primaryEquipment: text("primary_equipment"), // 主要機材: barbell, dumbbell, machine, cable, bodyweight, kettlebell
   tier: text("tier").default("selectable").notNull(), // 表示階層: initial（初期）, selectable（リストに表示）, custom（カスタム）
   isBig3: boolean("is_big3").default(false).notNull(), // Big3種目か

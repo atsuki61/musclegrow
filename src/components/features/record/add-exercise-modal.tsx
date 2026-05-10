@@ -19,7 +19,7 @@ import {
 } from "./exercise-card-primitives";
 import type { Exercise, BodyPart } from "@/types/workout";
 import { cn } from "@/lib/utils";
-import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
+import { getExerciseTargetMuscleLabels } from "@/lib/exercise-mappings";
 
 // 種目追加モーダルのプロパティ
 interface AddExerciseModalProps {
@@ -157,9 +157,9 @@ export function AddExerciseModal({
                 ) : (
                   <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
                     {filteredExercises.map((exercise) => {
-                      const subGroupLabel = exercise.muscleSubGroup
-                        ? MUSCLE_SUB_GROUP_LABELS[exercise.muscleSubGroup]
-                        : undefined;
+                      const targetMuscleLabels =
+                        getExerciseTargetMuscleLabels(exercise);
+                      const fallbackLabel = targetMuscleLabels[0] ?? "全体";
                       return (
                         <button
                           key={exercise.id}
@@ -176,7 +176,7 @@ export function AddExerciseModal({
                             <Plus className="size-4 stroke-[3]" />
                           </span>
                           <span className="absolute left-1.5 top-1.5 z-20 max-w-[64%] rounded-md border border-border/50 bg-[var(--mg-surface)]/90 px-1.5 py-0.5 text-[8px] font-black leading-none text-muted-foreground backdrop-blur-md">
-                            {subGroupLabel || "全体"}
+                            {fallbackLabel}
                           </span>
 
                           <div className="relative z-10 flex h-full flex-col px-2 pb-2.5 pt-2.5">
@@ -184,7 +184,7 @@ export function AddExerciseModal({
                               <div className="absolute inset-x-0 bottom-0 top-2">
                                 <ExerciseIllustrationVisual
                                   exercise={exercise}
-                                  fallbackLabel={subGroupLabel || "全体"}
+                                  fallbackLabel={fallbackLabel}
                                   imageClassName="max-h-[104px]"
                                 />
                               </div>

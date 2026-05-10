@@ -5,9 +5,8 @@ import { BODY_PART_LABELS, calculate1RM, cn } from "@/lib/utils";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
 import {
   ExerciseIllustrationVisual,
-  ExerciseName,
 } from "@/components/features/record/exercise-card-primitives";
-import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
+import { getExerciseTargetMuscleLabels } from "@/lib/exercise-mappings";
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -28,9 +27,8 @@ export function ExerciseCard({
 }: ExerciseCardProps) {
   const maxWeight = maxWeights[exercise.id] || 0;
   const bodyPartColor = `var(--color-${exercise.bodyPart})`;
-  const subGroupLabel = exercise.muscleSubGroup
-    ? MUSCLE_SUB_GROUP_LABELS[exercise.muscleSubGroup] ?? "全体"
-    : "全体";
+  const targetMuscleLabels = getExerciseTargetMuscleLabels(exercise);
+  const fallbackLabel = targetMuscleLabels[0] ?? "全体";
 
   return (
     <div
@@ -46,17 +44,13 @@ export function ExerciseCard({
           }}
         >
           <div className="absolute inset-0 bg-linear-to-br from-white/[0.045] via-transparent to-primary/[0.035] opacity-80" />
-          <div className="absolute inset-x-1 top-2 bottom-7">
+          <div className="absolute inset-x-1 top-2 bottom-2">
             <ExerciseIllustrationVisual
               exercise={exercise}
-              fallbackLabel={subGroupLabel}
-              imageClassName="max-h-[76px]"
+              fallbackLabel={fallbackLabel}
+              imageClassName="max-h-[88px]"
             />
           </div>
-          <ExerciseName
-            name={exercise.name}
-            className="absolute inset-x-2 bottom-2"
-          />
         </div>
 
         <div className="flex min-w-0 flex-col justify-center">
@@ -70,9 +64,20 @@ export function ExerciseCard({
             >
               {BODY_PART_LABELS[exercise.bodyPart]}
             </span>
-            <span className="rounded-md bg-muted/55 px-1.5 py-0.5 text-[10px] font-bold leading-none text-muted-foreground">
-              {subGroupLabel}
-            </span>
+            {targetMuscleLabels.length > 0 ? (
+              targetMuscleLabels.slice(0, 3).map((label) => (
+                <span
+                  key={label}
+                  className="rounded-md bg-muted/55 px-1.5 py-0.5 text-[10px] font-bold leading-none text-muted-foreground"
+                >
+                  {label}
+                </span>
+              ))
+            ) : (
+              <span className="rounded-md bg-muted/55 px-1.5 py-0.5 text-[10px] font-bold leading-none text-muted-foreground">
+                全体
+              </span>
+            )}
           </div>
           <h4 className="break-words text-base font-black leading-tight text-foreground">
             {exercise.name}

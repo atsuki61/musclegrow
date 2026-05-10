@@ -139,7 +139,7 @@ describe("BodyPartCard", () => {
 
       // Then: 個別線画ではなく人体フォールバック画像が表示される
       expect(
-        screen.getByAltText("カスタム胸種目の人体フォールバック線画")
+        screen.getByAltText("カスタム胸種目の部位フォールバック線画")
       ).toBeInTheDocument();
       expect(
         screen.queryByAltText("カスタム胸種目の線画イラスト")

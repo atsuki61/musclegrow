@@ -30,6 +30,7 @@ import {
   toggleGuestExerciseVisibility,
   saveGuestCustomExercise,
 } from "@/lib/local-storage-guest";
+import { getExerciseTargetMuscleLabels } from "@/lib/exercise-mappings";
 import { formatDateToYYYYMMDD } from "@/lib/utils";
 
 interface PreviousRecordCacheEntry {
@@ -182,12 +183,15 @@ useEffect(() => {
     // 選択中の部位でフィルタ
     let result = exercises.filter((e) => e.bodyPart === selectedPart);
 
-    // 検索クエリが入力されている場合、名前またはサブグループに部分一致
+    // 検索クエリが入力されている場合、名前または対象筋に部分一致
     if (searchQuery.trim()) {
       const lowerQuery = searchQuery.toLowerCase();
       result = result.filter(
         (e) =>
           e.name.toLowerCase().includes(lowerQuery) ||
+          getExerciseTargetMuscleLabels(e).some((label) =>
+            label.toLowerCase().includes(lowerQuery)
+          ) ||
           (e.muscleSubGroup &&
             e.muscleSubGroup.toLowerCase().includes(lowerQuery))
       );
