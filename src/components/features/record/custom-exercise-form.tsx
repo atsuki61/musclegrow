@@ -2,16 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { nanoid } from "nanoid";
-import { ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -25,16 +19,107 @@ import type {
   EquipmentType,
   MuscleSubGroup,
 } from "@/types/workout";
-import { BODY_PART_LABELS } from "@/lib/utils";
+import { BODY_PART_LABELS, cn } from "@/lib/utils";
 import { exerciseSchema, getValidationErrorDetails } from "@/lib/validations";
 import {
   getBodyPartForMuscleSubGroup,
   getDefaultTargetMuscleGroups,
   getTargetMuscleGroupLabels,
   isOverallMuscleSubGroup,
+  TARGET_MUSCLE_GROUP_OPTIONS,
   TARGET_MUSCLE_GROUP_OPTIONS_BY_PART,
 } from "@/lib/exercise-mappings";
 import { ExerciseIllustrationVisual } from "./exercise-card-primitives";
+
+type TargetBodyPart = Exclude<BodyPart, "all" | "other">;
+type TargetMuscleSection = {
+  id: string;
+  title: string;
+  description?: string;
+  density: "normal" | "compact";
+  options: typeof TARGET_MUSCLE_GROUP_OPTIONS;
+};
+
+const TARGET_BODY_PARTS = [
+  "chest",
+  "back",
+  "legs",
+  "shoulders",
+  "arms",
+  "core",
+] as const satisfies TargetBodyPart[];
+
+const RELATED_TARGET_GROUPS_BY_PART: Record<TargetBodyPart, MuscleSubGroup[]> = {
+  chest: ["arms_triceps", "shoulders_front"],
+  back: ["arms_biceps", "shoulders_rear"],
+  legs: ["core_rectus", "core_hip_flexors"],
+  shoulders: ["arms_triceps", "chest_upper"],
+  arms: ["chest_overall", "back_width", "shoulders_overall"],
+  core: ["legs_quads", "legs_glutes", "legs_hamstrings"],
+};
+
+function getTargetBodyPart(bodyPart: Exclude<BodyPart, "all">) {
+  return bodyPart === "other" ? undefined : bodyPart;
+}
+
+function createTargetMuscleSections(
+  bodyPart: Exclude<BodyPart, "all">
+): TargetMuscleSection[] {
+  const targetBodyPart = getTargetBodyPart(bodyPart);
+  const usedGroups = new Set<MuscleSubGroup>();
+  const sections: TargetMuscleSection[] = [];
+
+  if (targetBodyPart) {
+    const mainOptions = TARGET_MUSCLE_GROUP_OPTIONS_BY_PART[targetBodyPart].map(
+      (option) => ({ ...option, bodyPart: targetBodyPart })
+    );
+    mainOptions.forEach((option) => usedGroups.add(option.value));
+    sections.push({
+      id: "main",
+      title: `${BODY_PART_LABELS[targetBodyPart]}の対象筋`,
+      description: "主に狙う筋肉",
+      density: "normal",
+      options: mainOptions,
+    });
+
+    const relatedOptions = RELATED_TARGET_GROUPS_BY_PART[targetBodyPart]
+      .map((value) =>
+        TARGET_MUSCLE_GROUP_OPTIONS.find((option) => option.value === value)
+      )
+      .filter((option): option is typeof TARGET_MUSCLE_GROUP_OPTIONS[number] =>
+        Boolean(option)
+      )
+      .filter((option) => !usedGroups.has(option.value));
+
+    relatedOptions.forEach((option) => usedGroups.add(option.value));
+    sections.push({
+      id: "related",
+      title: "入りやすい補助部位",
+      description: "複合種目で一緒に効きやすい筋肉",
+      density: "normal",
+      options: relatedOptions,
+    });
+  }
+
+  const otherOptions = TARGET_MUSCLE_GROUP_OPTIONS.filter(
+    (option) => !usedGroups.has(option.value)
+  ).sort((current, next) => {
+    return (
+      TARGET_BODY_PARTS.indexOf(current.bodyPart) -
+      TARGET_BODY_PARTS.indexOf(next.bodyPart)
+    );
+  });
+
+  sections.push({
+    id: "other",
+    title: targetBodyPart ? "その他の部位も追加" : "対象筋",
+    description: targetBodyPart ? "必要な場合だけ追加" : undefined,
+    density: targetBodyPart ? "compact" : "normal",
+    options: otherOptions,
+  });
+
+  return sections.filter((section) => section.options.length > 0);
+}
 
 const EQUIPMENT_OPTIONS: { value: EquipmentType; label: string }[] = [
   { value: "barbell", label: "バーベル" },
@@ -69,6 +154,10 @@ export function CustomExerciseForm({
 
   const targetMuscleLabels = getTargetMuscleGroupLabels(targetMuscleGroups);
   const primaryTargetMuscleGroup = targetMuscleGroups[0];
+  const targetMuscleSections = useMemo(
+    () => createTargetMuscleSections(bodyPart),
+    [bodyPart]
+  );
   const previewExercise = useMemo<Exercise>(
     () => ({
       id: "custom-preview",
@@ -165,11 +254,6 @@ export function CustomExerciseForm({
     });
   };
 
-  const selectedTargetSummary =
-    targetMuscleLabels.length > 0
-      ? targetMuscleLabels.join("、")
-      : "対象筋を選択";
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-[132px_minmax(0,1fr)] gap-3 rounded-2xl border border-[var(--mg-border)] bg-[var(--mg-surface)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
@@ -236,7 +320,7 @@ export function CustomExerciseForm({
 
       <form onSubmit={handleSubmit} className="space-y-6">
           {/* 部位 & 対象筋 */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
             <div className="space-y-2">
               <Label
                 htmlFor="body-part"
@@ -270,82 +354,104 @@ export function CustomExerciseForm({
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label
                 htmlFor="target-muscle-groups"
                 className="text-xs font-bold text-muted-foreground"
               >
                 対象筋
               </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="target-muscle-groups"
-                    type="button"
-                    variant="outline"
-                    className={`h-11 w-full justify-between rounded-md px-3 text-left font-medium ${
-                      errors.targetMuscleGroups ? "border-destructive" : ""
-                    }`}
-                  >
-                    <span className="min-w-0 truncate">
-                      {selectedTargetSummary}
-                    </span>
-                    <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="end"
-                  className="max-h-[360px] w-[min(28rem,calc(100vw-2rem))] overflow-y-auto p-3"
-                >
-                  <div className="space-y-4">
-                    {Object.entries(TARGET_MUSCLE_GROUP_OPTIONS_BY_PART).map(
-                      ([part, options]) => (
-                        <div key={part} className="space-y-2">
-                          <p className="text-xs font-black text-muted-foreground">
-                            {
-                              BODY_PART_LABELS[
-                                part as Exclude<BodyPart, "all">
-                              ]
-                            }
-                          </p>
-                          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                            {options.map((option) => {
-                              const checkboxId = `target-${option.value}`;
-                              return (
-                                <div
-                                  key={option.value}
-                                  className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/25 px-2 py-2"
-                                >
-                                  <Checkbox
-                                    id={checkboxId}
-                                    checked={targetMuscleGroups.includes(
-                                      option.value
-                                    )}
-                                    onCheckedChange={(checked) =>
-                                      handleTargetMuscleGroupChange(
-                                        option.value,
-                                        checked === true
-                                      )
-                                    }
-                                  />
-                                  <Label
-                                    htmlFor={checkboxId}
-                                    className="min-w-0 flex-1 cursor-pointer text-xs font-bold leading-snug"
-                                  >
-                                    {option.label}
-                                  </Label>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )
-                    )}
+              <div
+                id="target-muscle-groups"
+                className={cn(
+                  "rounded-xl border border-border/70 bg-muted/15 p-3",
+                  errors.targetMuscleGroups && "border-destructive"
+                )}
+              >
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-[11px] font-black text-muted-foreground">
+                      選択中
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {targetMuscleLabels.length > 0 ? (
+                        targetMuscleLabels.map((label) => (
+                          <Badge key={label} variant="secondary">
+                            {label}
+                          </Badge>
+                        ))
+                      ) : (
+                        <Badge variant="outline">未選択</Badge>
+                      )}
+                    </div>
                   </div>
-                </PopoverContent>
-              </Popover>
+
+                  {targetMuscleSections.map((section) => (
+                    <div key={section.id} className="flex flex-col gap-2">
+                      <div>
+                        <p className="text-[11px] font-black text-muted-foreground">
+                          {section.title}
+                        </p>
+                        {section.description && (
+                          <p className="mt-0.5 text-[10px] font-medium text-muted-foreground/80">
+                            {section.description}
+                          </p>
+                        )}
+                      </div>
+                      <div
+                        className={cn(
+                          "grid gap-1.5",
+                          section.density === "compact"
+                            ? "grid-cols-2"
+                            : "grid-cols-1"
+                        )}
+                      >
+                        {section.options.map((option) => {
+                          const isSelected = targetMuscleGroups.includes(
+                            option.value
+                          );
+                          const optionBodyPartColor = `var(--color-${option.bodyPart})`;
+
+                          return (
+                            <Button
+                              key={option.value}
+                              type="button"
+                              variant="outline"
+                              aria-pressed={isSelected}
+                              onClick={() =>
+                                handleTargetMuscleGroupChange(
+                                  option.value,
+                                  !isSelected
+                                )
+                              }
+                              className={cn(
+                                "h-auto min-h-10 justify-start rounded-lg px-2.5 py-2 text-left text-xs font-bold leading-snug whitespace-normal",
+                                section.density === "compact" &&
+                                  "min-h-8 px-2 py-1.5 text-[11px]",
+                                isSelected
+                                  ? "bg-primary/15 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                                  : "bg-background/35 text-muted-foreground"
+                              )}
+                              style={
+                                isSelected
+                                  ? {
+                                      borderColor: `color-mix(in srgb, ${optionBodyPartColor} 48%, transparent)`,
+                                      color: optionBodyPartColor,
+                                    }
+                                  : undefined
+                              }
+                            >
+                              {option.label}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
               {errors.targetMuscleGroups && (
-                <p className="text-xs text-destructive mt-1">
+                <p className="mt-1 text-xs text-destructive">
                   {errors.targetMuscleGroups}
                 </p>
               )}
