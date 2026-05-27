@@ -1,3 +1,8 @@
 # pnpm workspace configuration
 # minimumReleaseAge は .npmrc に設定してください
 
+allowBuilds:
+  esbuild: true
+  msw: true
+  sharp: true
+  unrs-resolver: true
