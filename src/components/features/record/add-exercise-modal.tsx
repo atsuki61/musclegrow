@@ -203,16 +203,16 @@ export function AddExerciseModal({
           {/* カスタム作成タブ */}
           <TabsContent
             value="custom"
-            className="flex-1 flex flex-col min-h-0 mt-0"
+            className="mt-0 min-h-0 flex-1 overflow-hidden"
           >
-            <ScrollArea className="min-h-0 flex-1 bg-[var(--mg-bg)]">
+            <div className="h-full overflow-y-auto bg-[var(--mg-bg)] [-webkit-overflow-scrolling:touch]">
               <div className="p-4 pb-20">
                 <CustomExerciseForm
                   initialBodyPart={initialBodyPart}
                   onAdd={handleAddCustomExercise}
                 />
               </div>
-            </ScrollArea>
+            </div>
           </TabsContent>
         </Tabs>
       </DialogContent>

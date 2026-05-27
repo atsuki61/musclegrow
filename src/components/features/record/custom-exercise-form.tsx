@@ -151,9 +151,12 @@ export function CustomExerciseForm({
   const [exerciseName, setExerciseName] = useState("");
   const [equipment, setEquipment] = useState<EquipmentType>("other");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isAdditionalTargetsOpen, setIsAdditionalTargetsOpen] =
+    useState(false);
 
   const targetMuscleLabels = getTargetMuscleGroupLabels(targetMuscleGroups);
   const primaryTargetMuscleGroup = targetMuscleGroups[0];
+  const selectedTargetBodyPart = getTargetBodyPart(bodyPart);
   const targetMuscleSections = useMemo(
     () => createTargetMuscleSections(bodyPart),
     [bodyPart]
@@ -170,7 +173,13 @@ export function CustomExerciseForm({
       tier: "custom",
       isBig3: false,
     }),
-    [bodyPart, equipment, exerciseName, primaryTargetMuscleGroup, targetMuscleGroups]
+    [
+      bodyPart,
+      equipment,
+      exerciseName,
+      primaryTargetMuscleGroup,
+      targetMuscleGroups,
+    ]
   );
   const bodyPartColor = `var(--color-${bodyPart})`;
 
@@ -218,6 +227,7 @@ export function CustomExerciseForm({
 
     setExerciseName("");
     setTargetMuscleGroups(getDefaultTargetMuscleGroups(bodyPart));
+    setIsAdditionalTargetsOpen(false);
     setEquipment("other");
     setErrors({});
   };
@@ -336,6 +346,7 @@ export function CustomExerciseForm({
                   setTargetMuscleGroups(
                     getDefaultTargetMuscleGroups(nextBodyPart)
                   );
+                  setIsAdditionalTargetsOpen(false);
                   clearFieldError("targetMuscleGroups");
                 }}
               >
@@ -388,64 +399,83 @@ export function CustomExerciseForm({
 
                   {targetMuscleSections.map((section) => (
                     <div key={section.id} className="flex flex-col gap-2">
-                      <div>
-                        <p className="text-[11px] font-black text-muted-foreground">
-                          {section.title}
-                        </p>
-                        {section.description && (
-                          <p className="mt-0.5 text-[10px] font-medium text-muted-foreground/80">
-                            {section.description}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-[11px] font-black text-muted-foreground">
+                            {section.title}
                           </p>
+                          {section.description && (
+                            <p className="mt-0.5 text-[10px] font-medium text-muted-foreground/80">
+                              {section.description}
+                            </p>
+                          )}
+                        </div>
+                        {section.id === "other" && selectedTargetBodyPart && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setIsAdditionalTargetsOpen((current) => !current)
+                            }
+                            className="h-7 shrink-0 rounded-md px-2 text-[11px] font-black"
+                          >
+                            {isAdditionalTargetsOpen ? "閉じる" : "表示"}
+                          </Button>
                         )}
                       </div>
-                      <div
-                        className={cn(
-                          "grid gap-1.5",
-                          section.density === "compact"
-                            ? "grid-cols-2"
-                            : "grid-cols-1"
-                        )}
-                      >
-                        {section.options.map((option) => {
-                          const isSelected = targetMuscleGroups.includes(
-                            option.value
-                          );
-                          const optionBodyPartColor = `var(--color-${option.bodyPart})`;
+                      {(section.id !== "other" ||
+                        !selectedTargetBodyPart ||
+                        isAdditionalTargetsOpen) && (
+                        <div
+                          className={cn(
+                            "grid gap-1.5",
+                            section.density === "compact"
+                              ? "grid-cols-2"
+                              : "grid-cols-1"
+                          )}
+                        >
+                          {section.options.map((option) => {
+                            const isSelected = targetMuscleGroups.includes(
+                              option.value
+                            );
+                            const optionBodyPartColor = `var(--color-${option.bodyPart})`;
 
-                          return (
-                            <Button
-                              key={option.value}
-                              type="button"
-                              variant="outline"
-                              aria-pressed={isSelected}
-                              onClick={() =>
-                                handleTargetMuscleGroupChange(
-                                  option.value,
-                                  !isSelected
-                                )
-                              }
-                              className={cn(
-                                "h-auto min-h-10 justify-start rounded-lg px-2.5 py-2 text-left text-xs font-bold leading-snug whitespace-normal",
-                                section.density === "compact" &&
-                                  "min-h-8 px-2 py-1.5 text-[11px]",
-                                isSelected
-                                  ? "bg-primary/15 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-                                  : "bg-background/35 text-muted-foreground"
-                              )}
-                              style={
-                                isSelected
-                                  ? {
-                                      borderColor: `color-mix(in srgb, ${optionBodyPartColor} 48%, transparent)`,
-                                      color: optionBodyPartColor,
-                                    }
-                                  : undefined
-                              }
-                            >
-                              {option.label}
-                            </Button>
-                          );
-                        })}
-                      </div>
+                            return (
+                              <Button
+                                key={option.value}
+                                type="button"
+                                variant="outline"
+                                aria-pressed={isSelected}
+                                onClick={() =>
+                                  handleTargetMuscleGroupChange(
+                                    option.value,
+                                    !isSelected
+                                  )
+                                }
+                                className={cn(
+                                  "h-auto min-h-10 justify-start rounded-lg px-2.5 py-2 text-left text-xs font-bold leading-snug whitespace-normal",
+                                  section.density === "compact" &&
+                                    "min-h-8 px-2 py-1.5 text-[11px]",
+                                  isSelected
+                                    ? "bg-primary/15 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                                    : "bg-background/35 text-muted-foreground"
+                                )}
+                                style={
+                                  isSelected
+                                    ? {
+                                        borderColor: `color-mix(in srgb, ${optionBodyPartColor} 48%, transparent)`,
+                                        color: optionBodyPartColor,
+                                      }
+                                    : undefined
+                                }
+                              >
+                                {option.label}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
