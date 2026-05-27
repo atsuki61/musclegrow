@@ -59,6 +59,8 @@ X
 .claude/
 .cursor/
 .gemini/
+.codegraph/
+/hyperframes/
 CLAUDE.md
 
 # Misc

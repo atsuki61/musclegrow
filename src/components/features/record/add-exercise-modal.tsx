@@ -144,7 +144,7 @@ export function AddExerciseModal({
             </div>
 
             {/* 種目リスト */}
-            <ScrollArea className="flex-1 bg-[var(--mg-bg)]">
+            <ScrollArea className="min-h-0 flex-1 bg-[var(--mg-bg)]">
               <div className="p-3 pb-20">
                 {filteredExercises.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
@@ -205,11 +205,13 @@ export function AddExerciseModal({
             value="custom"
             className="flex-1 flex flex-col min-h-0 mt-0"
           >
-            <ScrollArea className="flex-1 bg-[var(--mg-bg)] p-4">
-              <CustomExerciseForm
-                initialBodyPart={initialBodyPart}
-                onAdd={handleAddCustomExercise}
-              />
+            <ScrollArea className="min-h-0 flex-1 bg-[var(--mg-bg)]">
+              <div className="p-4 pb-20">
+                <CustomExerciseForm
+                  initialBodyPart={initialBodyPart}
+                  onAdd={handleAddCustomExercise}
+                />
+              </div>
             </ScrollArea>
           </TabsContent>
         </Tabs>
