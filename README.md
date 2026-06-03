@@ -140,7 +140,7 @@ users
 src/
   app/
     (auth)/          ログイン、サインアップ
-    (protected)/     ホーム、記録、履歴、統計、目標、プロフィール
+    (app)/           ホーム、記録、履歴、統計、目標、プロフィール（ゲスト可）
     (static)/        利用規約、プライバシーポリシー、お問い合わせ
     api/             Better Auth API
   components/

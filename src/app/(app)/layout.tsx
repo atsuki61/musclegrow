@@ -4,17 +4,18 @@ import { AuthSessionProvider } from "@/lib/auth-session-context";
 import { GuestDataMigrator } from "@/components/features/guest-data-migrator";
 import { LoginPromptBanner } from "@/components/features/auth/login-prompt-banner";
 
-interface ProtectedLayoutProps {
+interface AppLayoutProps {
   children: ReactNode;
 }
 
-export default async function ProtectedLayout({
-  children,
-}: ProtectedLayoutProps) {
-  // 共通のキャッシュ関数を使用
+/**
+ * メインアプリ用レイアウト（ゲスト利用可）
+ * - 未ログインでもページは表示する（リダイレクトしない）
+ * - userId は AuthSessionProvider 経由で子コンポーネントへ渡す
+ * - DB への保存は Server Action / フック側で userId 必須
+ */
+export default async function AppLayout({ children }: AppLayoutProps) {
   const session = await getAuthSession();
-
-  //sessionがない場合も null として許容し、リダイレクトしない
   const userId = session?.user?.id ?? null;
 
   return (

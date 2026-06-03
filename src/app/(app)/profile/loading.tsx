@@ -1,4 +1,4 @@
-// src/app/(protected)/profile/loading.tsx
+// src/app/(app)/profile/loading.tsx
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 
