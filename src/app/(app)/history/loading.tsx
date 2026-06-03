@@ -1,4 +1,4 @@
-// src/app/(protected)/history/loading.tsx
+// src/app/(app)/history/loading.tsx
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {

@@ -105,7 +105,7 @@ pnpm build
 src/
 ├── app/                          # Next.js App Router
 │   ├── (auth)/                  # 認証関連ページ
-│   ├── (protected)/             # 認証必須ページ
+│   ├── (app)/                   # メインアプリ（ゲスト可・ログイン時は DB 同期）
 │   ├── (static)/                # 静的ページ
 │   └── api/                     # API ルート
 ├── components/                   # React コンポーネント
