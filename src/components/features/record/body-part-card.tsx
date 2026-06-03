@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, Pencil } from "lucide-react";
 import { cn, isCardioExercise } from "@/lib/utils";
 import { getExerciseTargetMuscleLabels } from "@/lib/exercise-mappings";
 import {
@@ -16,6 +16,8 @@ interface BodyPartCardProps {
   maxWeights?: Record<string, number>;
   onExerciseSelect?: (exercise: Exercise) => void;
   onAddExerciseClick?: () => void;
+  onRenameCustomExercise?: (exercise: Exercise) => void;
+  isCustomExercise?: (exercise: Exercise) => boolean;
   isEditMode?: boolean;
   selectedDate?: Date;
 }
@@ -29,6 +31,8 @@ export function BodyPartCard({
   maxWeights = {},
   onExerciseSelect,
   onAddExerciseClick,
+  onRenameCustomExercise,
+  isCustomExercise,
   isEditMode = false, // デフォルトfalse
 }: BodyPartCardProps) {
   const initialExercises = useMemo(
@@ -49,16 +53,11 @@ export function BodyPartCard({
           const isCardio = isCardioExercise(exercise);
           const targetMuscleLabels = getExerciseTargetMuscleLabels(exercise);
           const fallbackLabel = targetMuscleLabels[0] ?? "全体";
+          const canRenameCustomExercise =
+            isEditMode && (isCustomExercise?.(exercise) ?? false);
           return (
-            <button
+            <div
               key={exercise.id}
-              onClick={() => onExerciseSelect?.(exercise)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onExerciseSelect?.(exercise);
-                }
-              }}
               className={cn(
                 "group relative aspect-[1/1.08] min-h-[128px] min-w-0 overflow-hidden rounded-[1.15rem] border text-left",
                 "bg-[var(--mg-surface)] border-[var(--mg-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
@@ -76,7 +75,18 @@ export function BodyPartCard({
                 </div>
               )}
 
-              {!isCardio && (
+              {canRenameCustomExercise && (
+                <button
+                  type="button"
+                  aria-label={`${exercise.name}の名前を変更`}
+                  onClick={() => onRenameCustomExercise?.(exercise)}
+                  className="absolute right-1.5 top-1.5 z-30 flex size-7 items-center justify-center rounded-full border border-primary/35 bg-[var(--mg-surface)]/90 text-primary shadow-sm backdrop-blur-md transition-colors hover:border-primary/60 hover:bg-primary/10"
+                >
+                  <Pencil className="size-3.5 stroke-[3]" />
+                </button>
+              )}
+
+              {!isCardio && !canRenameCustomExercise && (
                 <span
                   className={cn(
                     "absolute right-1.5 top-1.5 z-20 rounded-md border px-1.5 py-0.5 text-[9px] font-black leading-none tracking-normal shadow-sm backdrop-blur-md",
@@ -89,7 +99,17 @@ export function BodyPartCard({
                 </span>
               )}
 
-              <div className="relative z-10 flex h-full flex-col px-2 pb-2.5 pt-2.5">
+              <button
+                type="button"
+                onClick={() => onExerciseSelect?.(exercise)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onExerciseSelect?.(exercise);
+                  }
+                }}
+                className="relative z-10 flex h-full w-full flex-col px-2 pb-2.5 pt-2.5 text-left"
+              >
                 <div className="relative min-h-0 flex-1 overflow-visible pt-5">
                   <div className="absolute inset-x-0 bottom-0 top-2">
                     <ExerciseIllustrationVisual
@@ -100,8 +120,8 @@ export function BodyPartCard({
                   </div>
                 </div>
                 <ExerciseName name={exercise.name} />
-              </div>
-            </button>
+              </button>
+            </div>
           );
         })}
 

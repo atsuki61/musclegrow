@@ -12,7 +12,19 @@ import ExerciseRecordModal from "./exercise-record-modal";
 import { AddExerciseModal } from "./add-exercise-modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { saveExercise } from "@/lib/api";
+import {
+  deleteCustomExercise,
+  renameCustomExercise,
+  saveExercise,
+} from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useMaxWeights } from "@/hooks/use-max-weights";
 import { useLastTrainedDates } from "@/hooks/use-last-trained";
 import {
@@ -29,6 +41,9 @@ import {
   getGuestExercises,
   toggleGuestExerciseVisibility,
   saveGuestCustomExercise,
+  deleteGuestCustomExercise,
+  isGuestCustomExercise,
+  renameGuestCustomExercise,
 } from "@/lib/local-storage-guest";
 import { getExerciseTargetMuscleLabels } from "@/lib/exercise-mappings";
 import { formatDateToYYYYMMDD } from "@/lib/utils";
@@ -121,6 +136,13 @@ export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
   const [addExerciseBodyPart, setAddExerciseBodyPart] =
     useState<Exclude<BodyPart, "all">>("chest");
+  const [renamingExercise, setRenamingExercise] = useState<Exercise | null>(
+    null
+  );
+  const [renameExerciseName, setRenameExerciseName] = useState("");
+  const [renameExerciseError, setRenameExerciseError] = useState<string | null>(
+    null
+  );
   const [previousRecordCache, setPreviousRecordCache] = useState<
     Record<string, PreviousRecordCacheEntry>
   >({});
@@ -316,6 +338,8 @@ useEffect(() => {
 
   // ゲスト対応
   const handleAddExercise = async (exercise: Exercise) => {
+    let exerciseToAdd = exercise;
+
     if (userId) {// ログイン時
       // カスタム種目の場合は、まずexercisesテーブルに保存する
       if (exercise.tier === "custom") {
@@ -325,22 +349,23 @@ useEffect(() => {
           toast.error("種目の保存に失敗しました");
           return; // エラー時は処理を中断
         }
+        exerciseToAdd = result.data ?? exercise;
       }
       //種目が存在することを確認してから、表示設定を保存
-      await toggleExerciseVisibility(userId, exercise.id, true);
+      await toggleExerciseVisibility(userId, exerciseToAdd.id, true);
     } else {
       // ゲスト時
-      toggleGuestExerciseVisibility(exercise.id, true);
+      toggleGuestExerciseVisibility(exerciseToAdd.id, true);
       if (exercise.tier === "custom") {
-        saveGuestCustomExercise(exercise);
+        saveGuestCustomExercise(exerciseToAdd);
       }
     }
     //新しい種目を作成
-    const newExercise = { ...exercise, tier: "initial" as const };
+    const newExercise = { ...exerciseToAdd, tier: "initial" as const };
     setExercises((prev) => {//種目リストを更新
-      const exists = prev.some((e) => e.id === exercise.id);
+      const exists = prev.some((e) => e.id === exerciseToAdd.id);
       if (exists) {//もし種目が存在する場合
-        return prev.map((e) => (e.id === exercise.id ? newExercise : e));
+        return prev.map((e) => (e.id === exerciseToAdd.id ? newExercise : e));
       }
       return [...prev, newExercise];//種目リストに新しい種目を追加
     });
@@ -349,12 +374,125 @@ useEffect(() => {
     toast.success("種目をリストに追加しました");
   };
 
+  const isCustomExerciseOwnedByCurrentUser = useCallback(
+    (exercise: Exercise) => {
+      if (userId) return exercise.userId === userId;
+      return isGuestCustomExercise(exercise.id);
+    },
+    [userId]
+  );
+
+  const handleDeleteCustomExercise = useCallback(
+    async (exercise: Exercise) => {
+      if (userId) {
+        const result = await deleteCustomExercise(userId, exercise.id);
+        if (!result.success) {
+          toast.error(result.error ?? "カスタム種目の削除に失敗しました");
+          return;
+        }
+      } else if (!deleteGuestCustomExercise(exercise.id)) {
+        toast.error("削除できるカスタム種目が見つかりません");
+        return;
+      }
+
+      setExercises((prev) => prev.filter((e) => e.id !== exercise.id));
+      toast.success("カスタム種目を削除しました");
+    },
+    [userId]
+  );
+
+  const handleOpenRenameCustomExercise = useCallback((exercise: Exercise) => {
+    setRenamingExercise(exercise);
+    setRenameExerciseName(exercise.name);
+    setRenameExerciseError(null);
+  }, []);
+
+  const handleCloseRenameCustomExercise = useCallback(() => {
+    setRenamingExercise(null);
+    setRenameExerciseName("");
+    setRenameExerciseError(null);
+  }, []);
+
+  const handleRenameCustomExercise = useCallback(async () => {
+    if (!renamingExercise) return;
+
+    const nextName = renameExerciseName.trim();
+    if (!nextName) {
+      setRenameExerciseError("種目名を入力してください");
+      return;
+    }
+
+    if (nextName === renamingExercise.name) {
+      handleCloseRenameCustomExercise();
+      return;
+    }
+
+    if (userId) {
+      const result = await renameCustomExercise(
+        userId,
+        renamingExercise.id,
+        nextName
+      );
+      if (!result.success || !result.data) {
+        setRenameExerciseError(
+          result.error ?? "カスタム種目名の変更に失敗しました"
+        );
+        return;
+      }
+
+      setExercises((prev) =>
+        prev.map((exercise) =>
+          exercise.id === renamingExercise.id
+            ? { ...exercise, ...result.data, tier: exercise.tier }
+            : exercise
+        )
+      );
+    } else {
+      const renamedExercise = renameGuestCustomExercise(
+        renamingExercise.id,
+        nextName
+      );
+      if (!renamedExercise) {
+        setRenameExerciseError("カスタム種目名の変更に失敗しました");
+        return;
+      }
+
+      setExercises((prev) =>
+        prev.map((exercise) =>
+          exercise.id === renamingExercise.id
+            ? { ...exercise, name: renamedExercise.name }
+            : exercise
+        )
+      );
+    }
+
+    toast.success("カスタム種目名を変更しました");
+    handleCloseRenameCustomExercise();
+  }, [
+    handleCloseRenameCustomExercise,
+    renameExerciseName,
+    renamingExercise,
+    userId,
+  ]);
+
   // 削除ロジック (ゲスト対応)
   const handleRemoveExercise = async (exercise: Exercise) => {
+    if (isCustomExerciseOwnedByCurrentUser(exercise)) {
+      await handleDeleteCustomExercise(exercise);
+      return;
+    }
+
     if (userId) {
       // ログイン時
       await toggleExerciseVisibility(userId, exercise.id, false);
     } else {
+      const deletedCustomExercise = deleteGuestCustomExercise(exercise.id);
+      if (deletedCustomExercise) {
+        setExercises((prev) => prev.filter((e) => e.id !== exercise.id));
+        toast.success("カスタム種目を削除しました");
+        return;
+      }
+
       // ▼ ゲスト時
       toggleGuestExerciseVisibility(exercise.id, false);
     }
@@ -521,6 +659,8 @@ useEffect(() => {
               maxWeights={maxWeights}
               onExerciseSelect={handleExerciseSelect}
               onAddExerciseClick={handleAddExerciseClick}
+              onRenameCustomExercise={handleOpenRenameCustomExercise}
+              isCustomExercise={isCustomExerciseOwnedByCurrentUser}
               isEditMode={isEditMode}
               selectedDate={selectedDate}
             />
@@ -542,9 +682,61 @@ useEffect(() => {
         isOpen={isAddExerciseModalOpen}
         onClose={() => setIsAddExerciseModalOpen(false)}
         onAddExercise={handleAddExercise}
+        onDeleteCustomExercise={handleDeleteCustomExercise}
+        onRenameCustomExercise={handleOpenRenameCustomExercise}
+        isCustomExercise={isCustomExerciseOwnedByCurrentUser}
         allExercises={exercises}
         initialBodyPart={addExerciseBodyPart}
       />
+      <Dialog
+        open={renamingExercise !== null}
+        onOpenChange={(open) => {
+          if (!open) handleCloseRenameCustomExercise();
+        }}
+      >
+        <DialogContent className="border-[var(--mg-border)] bg-[var(--mg-bg)] text-foreground sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>種目名を変更</DialogTitle>
+            <DialogDescription>
+              カスタム作成した種目だけ名前を変更できます。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              aria-label="新しい種目名"
+              value={renameExerciseName}
+              onChange={(event) => {
+                setRenameExerciseName(event.target.value);
+                setRenameExerciseError(null);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void handleRenameCustomExercise();
+                }
+              }}
+              className="h-11 rounded-xl border-[var(--mg-border)] bg-[var(--mg-surface)] text-sm font-bold"
+            />
+            {renameExerciseError && (
+              <p className="text-sm font-bold text-red-500">
+                {renameExerciseError}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCloseRenameCustomExercise}
+            >
+              キャンセル
+            </Button>
+            <Button type="button" onClick={() => void handleRenameCustomExercise()}>
+              変更する
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

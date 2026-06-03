@@ -10,6 +10,8 @@ vi.mock("../../../../db", () => ({
   db: {
     select: vi.fn(),
     insert: vi.fn(),
+    delete: vi.fn(),
+    update: vi.fn(),
   },
 }));
 
@@ -22,6 +24,8 @@ vi.mock("next/cache", () => ({
 import {
   validateExerciseIdAndAuth,
   saveExercise,
+  deleteCustomExercise,
+  renameCustomExercise,
   getExercises,
 } from "@/lib/actions/exercises";
 import { db } from "../../../../db";
@@ -340,6 +344,114 @@ describe("getExercises", () => {
       // Then: success: true, 空配列
       expect(result.success).toBe(true);
       expect(result.data).toEqual([]);
+    });
+  });
+});
+
+describe("deleteCustomExercise", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("正常系", () => {
+    it("自分のカスタム種目を削除できる", async () => {
+      const mockReturning = vi.fn().mockResolvedValue([{ id: "custom-exercise" }]);
+      const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
+      const mockDelete = vi.fn().mockReturnValue({ where: mockWhere });
+      (db.delete as any) = mockDelete;
+
+      const result = await deleteCustomExercise("user1", "custom-exercise");
+
+      expect(result.success).toBe(true);
+      expect(revalidateTag).toHaveBeenCalledWith("exercises");
+    });
+  });
+
+  describe("異常系", () => {
+    it("削除対象がない場合はエラーを返す", async () => {
+      const mockReturning = vi.fn().mockResolvedValue([]);
+      const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
+      const mockDelete = vi.fn().mockReturnValue({ where: mockWhere });
+      (db.delete as any) = mockDelete;
+
+      const result = await deleteCustomExercise("user1", "missing-exercise");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("削除できるカスタム種目が見つかりません");
+    });
+
+    it("userIdが空の場合、エラーを返す", async () => {
+      const result = await deleteCustomExercise("", "custom-exercise");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("ユーザーIDが無効です");
+    });
+  });
+});
+
+describe("renameCustomExercise", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("正常系", () => {
+    it("自分のカスタム種目名を変更できる", async () => {
+      const mockReturning = vi.fn().mockResolvedValue([
+        {
+          id: "custom-exercise",
+          name: "新しい種目名",
+          nameEn: null,
+          bodyPart: "chest",
+          muscleSubGroup: "chest_upper",
+          targetMuscleGroups: ["chest_upper"],
+          primaryEquipment: "other",
+          tier: "custom",
+          isBig3: false,
+          userId: "user1",
+          createdAt: new Date("2024-01-01"),
+        },
+      ]);
+      const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
+      const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+      const mockUpdate = vi.fn().mockReturnValue({ set: mockSet });
+      (db.update as any) = mockUpdate;
+
+      const result = await renameCustomExercise(
+        "user1",
+        "custom-exercise",
+        " 新しい種目名 "
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.name).toBe("新しい種目名");
+      expect(mockSet).toHaveBeenCalledWith({ name: "新しい種目名" });
+      expect(revalidateTag).toHaveBeenCalledWith("exercises");
+    });
+  });
+
+  describe("異常系", () => {
+    it("空の種目名はエラーを返す", async () => {
+      const result = await renameCustomExercise("user1", "custom-exercise", " ");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("種目名を入力してください");
+    });
+
+    it("対象がない場合はエラーを返す", async () => {
+      const mockReturning = vi.fn().mockResolvedValue([]);
+      const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
+      const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+      const mockUpdate = vi.fn().mockReturnValue({ set: mockSet });
+      (db.update as any) = mockUpdate;
+
+      const result = await renameCustomExercise(
+        "user1",
+        "missing-exercise",
+        "新しい種目名"
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("名前変更できるカスタム種目が見つかりません");
     });
   });
 });

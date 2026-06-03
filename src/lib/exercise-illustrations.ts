@@ -35,6 +35,7 @@ const ILLUSTRATION_BY_NAME: Record<string, string> = {
   デクラインベンチプレス:
     "/exercise-illustrations/chest/decline-press.png",
   ディップス: "/exercise-illustrations/chest/dips.png",
+  プッシュアップ: "/exercise-illustrations/chest/push-up.png",
   ディッププレス: "/exercise-illustrations/chest/dip-press-machine.png",
   ディップスマシン: "/exercise-illustrations/chest/dip-press-machine.png",
   ダンベルフライ: "/exercise-illustrations/chest/dumbbell-fly.png",
@@ -50,10 +51,20 @@ const ILLUSTRATION_BY_NAME: Record<string, string> = {
   デッドリフト: "/exercise-illustrations/back/deadlift.png",
   懸垂: "/exercise-illustrations/back/pull-up.png",
   ラットプルダウン: "/exercise-illustrations/back/lat-pulldown.png",
+  リバースグリップラットプルダウン:
+    "/exercise-illustrations/back/reverse-grip-lat-pulldown.png",
+  ワイドグリップチンニング:
+    "/exercise-illustrations/back/wide-grip-chinning.png",
+  バーベルローイング:
+    "/exercise-illustrations/back/barbell-rowing.png",
   シーテッドロー: "/exercise-illustrations/back/seated-row.png",
   ワンハンドローイング: "/exercise-illustrations/back/one-hand-row.png",
   Tバーローイング: "/exercise-illustrations/back/t-bar-rowing.png",
   "T バーローイング": "/exercise-illustrations/back/t-bar-rowing.png",
+  ケーブルローイング: "/exercise-illustrations/back/cable-rowing.png",
+  ハイパーエクステンション:
+    "/exercise-illustrations/back/hyperextension.png",
+  シュラッグ: "/exercise-illustrations/back/shrug.png",
   フロントラットプルダウン:
     "/exercise-illustrations/back/front-lat-pulldown.png",
   ハーフデッドリフト:
@@ -67,6 +78,14 @@ const ILLUSTRATION_BY_NAME: Record<string, string> = {
     "/exercise-illustrations/legs/leg-extension.png",
   ブルガリアンスクワット:
     "/exercise-illustrations/legs/bulgarian-squat.png",
+  スプリットスクワット:
+    "/exercise-illustrations/legs/split-squat.png",
+  ランジ: "/exercise-illustrations/legs/lunge.png",
+  ステップアップ: "/exercise-illustrations/legs/step-up.png",
+  ルーマニアンデッドリフト:
+    "/exercise-illustrations/legs/romanian-deadlift.png",
+  ヒップスラスト: "/exercise-illustrations/legs/hip-thrust.png",
+  カーフレイズ: "/exercise-illustrations/legs/calf-raise.png",
   レッグカール: "/exercise-illustrations/legs/leg-curl.png",
   ハックスクワット: "/exercise-illustrations/legs/hack-squat.png",
 
@@ -77,6 +96,19 @@ const ILLUSTRATION_BY_NAME: Record<string, string> = {
     "/exercise-illustrations/shoulders/rear-delt-fly.png",
   ショルダープレス:
     "/exercise-illustrations/shoulders/shoulder-press-machine.png",
+  ミリタリープレス:
+    "/exercise-illustrations/shoulders/military-press.png",
+  アーノルドプレス:
+    "/exercise-illustrations/shoulders/arnold-press.png",
+  フロントレイズ: "/exercise-illustrations/shoulders/front-raise.png",
+  バーベルフロントレイズ:
+    "/exercise-illustrations/shoulders/barbell-front-raise.png",
+  ケーブルラテラルレイズ:
+    "/exercise-illustrations/shoulders/cable-lateral-raise.png",
+  アップライトロウ:
+    "/exercise-illustrations/shoulders/upright-row.png",
+  リバースペックフライ:
+    "/exercise-illustrations/shoulders/reverse-pec-fly.png",
   ケーブルリアデルトフライ:
     "/exercise-illustrations/shoulders/cable-rear-delt-fly.png",
   フェイスプル: "/exercise-illustrations/shoulders/face-pull.png",
@@ -97,8 +129,17 @@ const ILLUSTRATION_BY_NAME: Record<string, string> = {
   ダンベルハンマーカール:
     "/exercise-illustrations/arms/dumbbell-hammer-curl.png",
   ケーブルカール: "/exercise-illustrations/arms/cable-curl.png",
+  プリーチャーカール:
+    "/exercise-illustrations/arms/preacher-curl.png",
+  コンセントレーションカール:
+    "/exercise-illustrations/arms/concentration-curl.png",
+  リバースカール: "/exercise-illustrations/arms/reverse-curl.png",
   トライセプスプッシュダウン:
     "/exercise-illustrations/arms/triceps-push-down.png",
+  ケーブルキックバック:
+    "/exercise-illustrations/arms/cable-kickback.png",
+  オーバーヘッドエクステンション:
+    "/exercise-illustrations/arms/overhead-extension.png",
   スカルクラッシャー:
     "/exercise-illustrations/arms/skull-crusher.png",
   ナローベンチプレス:
@@ -111,10 +152,26 @@ const ILLUSTRATION_BY_NAME: Record<string, string> = {
   ケーブルアームカール:
     "/exercise-illustrations/arms/cable-arm-curl.png",
   ナロープレス: "/exercise-illustrations/arms/narrow-press.png",
+  クローズグリッププッシュアップ:
+    "/exercise-illustrations/arms/close-grip-push-up.png",
   ケーブルハンマーカール:
     "/exercise-illustrations/arms/cable-hammer-curl.png",
 
   レッグレイズ: "/exercise-illustrations/core/leg-raise.png",
+  クランチ: "/exercise-illustrations/core/crunch.png",
+  シットアップベンチ:
+    "/exercise-illustrations/core/sit-up-bench.png",
+  マウンテンクライマー:
+    "/exercise-illustrations/core/mountain-climber.png",
+  ハンギングレッグレイズ:
+    "/exercise-illustrations/core/hanging-leg-raise.png",
+  シットアップ: "/exercise-illustrations/core/sit-up.png",
+  アブローラー: "/exercise-illustrations/core/ab-roller.png",
+  サイドプランク: "/exercise-illustrations/core/side-plank.png",
+  ロシアンツイスト:
+    "/exercise-illustrations/core/russian-twist.png",
+  バイシクルクランチ:
+    "/exercise-illustrations/core/bicycle-crunch.png",
   アブドミナルクランチ:
     "/exercise-illustrations/core/abdominal-crunch.png",
   プランク: "/exercise-illustrations/core/plank.png",
@@ -124,6 +181,16 @@ const ILLUSTRATION_BY_NAME: Record<string, string> = {
     "/exercise-illustrations/core/side-bend-back-extension-bench.png",
   バックエクステンションベンチサイドベント:
     "/exercise-illustrations/core/side-bend-back-extension-bench.png",
+
+  ランニング: "/exercise-illustrations/other/running.png",
+  エアロバイク: "/exercise-illustrations/other/exercise-bike.png",
+  ローイングマシン:
+    "/exercise-illustrations/other/rowing-machine.png",
+  ステアクライマー:
+    "/exercise-illustrations/other/stair-climber.png",
+  クロストレーナー:
+    "/exercise-illustrations/other/cross-trainer.png",
+  スピンバイク: "/exercise-illustrations/other/spin-bike.png",
 };
 
 function normalizeExerciseName(name: string): string {

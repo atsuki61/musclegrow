@@ -265,8 +265,9 @@ describe("BodyPartCard", () => {
       );
 
       // Then: 編集モード用の赤い境界スタイルが適用される
-      const exerciseButtons = container.querySelectorAll("button");
-      expect(exerciseButtons[0].className).toContain("border-red-500/40");
+      expect(
+        container.querySelector(".border-red-500\\/40")
+      ).toBeInTheDocument();
     });
   });
 

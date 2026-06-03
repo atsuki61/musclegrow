@@ -76,7 +76,7 @@ describe("resolveExerciseIllustration", () => {
     });
   });
 
-  it("個別線画がない複合種目名は複合フォールバックを返す", () => {
+  it("seed由来で専用線画を追加した複合種目は個別線画を返す", () => {
     const illustration = resolveExerciseIllustration({
       name: "クローズグリッププッシュアップ",
       bodyPart: "arms",
@@ -84,10 +84,35 @@ describe("resolveExerciseIllustration", () => {
     });
 
     expect(illustration).toMatchObject({
-      src: "/exercise-illustrations/fallback/upper-front/chest-triceps.png",
-      isFallback: true,
-      fallbackKind: "compound",
+      src: "/exercise-illustrations/arms/close-grip-push-up.png",
+      isFallback: false,
     });
+  });
+
+  it("seedに含まれる初期リスト種目は専用線画へ解決できる", () => {
+    const seedSource = fs.readFileSync(
+      path.join(process.cwd(), "db/seed.ts"),
+      "utf8"
+    );
+    const seedExerciseNames = [
+      ...seedSource.matchAll(/name:\s*"([^"]+)"/g),
+    ].map(([, name]) => name);
+
+    expect(seedExerciseNames).toHaveLength(82);
+
+    for (const name of seedExerciseNames) {
+      const illustration = resolveExerciseIllustration({
+        name,
+        bodyPart: "chest",
+      });
+
+      expect(illustration.isFallback, name).toBe(false);
+      expect(illustration.src, name).toMatch(/^\/exercise-illustrations\//);
+      expect(
+        fs.existsSync(path.join(process.cwd(), "public", illustration.src!)),
+        name
+      ).toBe(true);
+    }
   });
 
   it("カスタム種目はbodyPartとmuscleSubGroupから単独対象筋フォールバックを返す", () => {

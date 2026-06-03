@@ -1,11 +1,224 @@
 import { nanoid } from "nanoid";
 import { db } from "./index";
 import { exercises } from "./schemas/app";
+import { MUSCLE_SUB_GROUPS } from "../src/constants/body-parts";
 import {
   NAME_EN_MAP,
   getEquipmentType,
   resolveSubGroupForBodyPart,
 } from "../src/lib/exercise-mappings";
+import type { MuscleSubGroup } from "../src/types/workout";
+
+const createExerciseTargetKey = (bodyPart: string, name: string) =>
+  `${bodyPart}:${name}`;
+
+const TARGET_MUSCLE_GROUPS_BY_EXERCISE: Record<string, MuscleSubGroup[]> = {
+  // 胸
+  [createExerciseTargetKey("chest", "ベンチプレス")]: [
+    MUSCLE_SUB_GROUPS.CHEST_OVERALL,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+  [createExerciseTargetKey("chest", "ダンベルプレス")]: [
+    MUSCLE_SUB_GROUPS.CHEST_OVERALL,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+  [createExerciseTargetKey("chest", "チェストプレス")]: [
+    MUSCLE_SUB_GROUPS.CHEST_OVERALL,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+  [createExerciseTargetKey("chest", "インクラインダンベルプレス")]: [
+    MUSCLE_SUB_GROUPS.CHEST_UPPER,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+  [createExerciseTargetKey("chest", "インクラインベンチプレス")]: [
+    MUSCLE_SUB_GROUPS.CHEST_UPPER,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+  [createExerciseTargetKey("chest", "デクラインプレス")]: [
+    MUSCLE_SUB_GROUPS.CHEST_LOWER,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+  [createExerciseTargetKey("chest", "デクラインベンチプレス")]: [
+    MUSCLE_SUB_GROUPS.CHEST_LOWER,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+  [createExerciseTargetKey("chest", "ディップス")]: [
+    MUSCLE_SUB_GROUPS.CHEST_LOWER,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+  [createExerciseTargetKey("chest", "プッシュアップ")]: [
+    MUSCLE_SUB_GROUPS.CHEST_OUTER,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+
+  // 背中
+  [createExerciseTargetKey("back", "デッドリフト")]: [
+    MUSCLE_SUB_GROUPS.BACK_ERECTORS,
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+    MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS,
+  ],
+  [createExerciseTargetKey("back", "懸垂")]: [
+    MUSCLE_SUB_GROUPS.BACK_WIDTH,
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+  ],
+  [createExerciseTargetKey("back", "ラットプルダウン")]: [
+    MUSCLE_SUB_GROUPS.BACK_WIDTH,
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+  ],
+  [createExerciseTargetKey("back", "リバースグリップラットプルダウン")]: [
+    MUSCLE_SUB_GROUPS.BACK_WIDTH,
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+  ],
+  [createExerciseTargetKey("back", "ワイドグリップチンニング")]: [
+    MUSCLE_SUB_GROUPS.BACK_WIDTH,
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+  ],
+  [createExerciseTargetKey("back", "バーベルローイング")]: [
+    MUSCLE_SUB_GROUPS.BACK_THICKNESS,
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+  ],
+  [createExerciseTargetKey("back", "シーテッドロー")]: [
+    MUSCLE_SUB_GROUPS.BACK_THICKNESS,
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+  ],
+  [createExerciseTargetKey("back", "ワンハンドローイング")]: [
+    MUSCLE_SUB_GROUPS.BACK_THICKNESS,
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+  ],
+  [createExerciseTargetKey("back", "T バーローイング")]: [
+    MUSCLE_SUB_GROUPS.BACK_THICKNESS,
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+  ],
+  [createExerciseTargetKey("back", "ケーブルローイング")]: [
+    MUSCLE_SUB_GROUPS.BACK_THICKNESS,
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+  ],
+  [createExerciseTargetKey("back", "ハイパーエクステンション")]: [
+    MUSCLE_SUB_GROUPS.BACK_ERECTORS,
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+    MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS,
+  ],
+  [createExerciseTargetKey("back", "シュラッグ")]: [
+    MUSCLE_SUB_GROUPS.BACK_TRAPS,
+  ],
+  [createExerciseTargetKey("back", "フェイスプル")]: [
+    MUSCLE_SUB_GROUPS.BACK_TRAPS,
+    MUSCLE_SUB_GROUPS.SHOULDERS_REAR,
+  ],
+
+  // 脚
+  [createExerciseTargetKey("legs", "スクワット")]: [
+    MUSCLE_SUB_GROUPS.LEGS_QUADS,
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+  ],
+  [createExerciseTargetKey("legs", "レッグプレス")]: [
+    MUSCLE_SUB_GROUPS.LEGS_QUADS,
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+  ],
+  [createExerciseTargetKey("legs", "ブルガリアンスクワット")]: [
+    MUSCLE_SUB_GROUPS.LEGS_QUADS,
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+  ],
+  [createExerciseTargetKey("legs", "スプリットスクワット")]: [
+    MUSCLE_SUB_GROUPS.LEGS_QUADS,
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+  ],
+  [createExerciseTargetKey("legs", "ランジ")]: [
+    MUSCLE_SUB_GROUPS.LEGS_QUADS,
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+  ],
+  [createExerciseTargetKey("legs", "ステップアップ")]: [
+    MUSCLE_SUB_GROUPS.LEGS_QUADS,
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+  ],
+  [createExerciseTargetKey("legs", "ルーマニアンデッドリフト")]: [
+    MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS,
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+    MUSCLE_SUB_GROUPS.BACK_ERECTORS,
+  ],
+  [createExerciseTargetKey("legs", "ヒップスラスト")]: [
+    MUSCLE_SUB_GROUPS.LEGS_GLUTES,
+    MUSCLE_SUB_GROUPS.LEGS_HAMSTRINGS,
+  ],
+
+  // 肩
+  [createExerciseTargetKey("shoulders", "ダンベルショルダープレス")]: [
+    MUSCLE_SUB_GROUPS.SHOULDERS_OVERALL,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+  [createExerciseTargetKey("shoulders", "ショルダープレス")]: [
+    MUSCLE_SUB_GROUPS.SHOULDERS_OVERALL,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+  [createExerciseTargetKey("shoulders", "ミリタリープレス")]: [
+    MUSCLE_SUB_GROUPS.SHOULDERS_OVERALL,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+  [createExerciseTargetKey("shoulders", "アーノルドプレス")]: [
+    MUSCLE_SUB_GROUPS.SHOULDERS_OVERALL,
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+  ],
+  [createExerciseTargetKey("shoulders", "フェイスプル")]: [
+    MUSCLE_SUB_GROUPS.SHOULDERS_REAR,
+    MUSCLE_SUB_GROUPS.BACK_TRAPS,
+  ],
+
+  // 腕
+  [createExerciseTargetKey("arms", "ダンベルハンマーカール")]: [
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+    MUSCLE_SUB_GROUPS.ARMS_FOREARMS,
+  ],
+  [createExerciseTargetKey("arms", "リバースカール")]: [
+    MUSCLE_SUB_GROUPS.ARMS_BICEPS,
+    MUSCLE_SUB_GROUPS.ARMS_FOREARMS,
+  ],
+  [createExerciseTargetKey("arms", "ナローベンチプレス")]: [
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+    MUSCLE_SUB_GROUPS.CHEST_OVERALL,
+  ],
+  [createExerciseTargetKey("arms", "クローズグリッププッシュアップ")]: [
+    MUSCLE_SUB_GROUPS.ARMS_TRICEPS,
+    MUSCLE_SUB_GROUPS.CHEST_OVERALL,
+  ],
+
+  // 腹筋
+  [createExerciseTargetKey("core", "レッグレイズ")]: [
+    MUSCLE_SUB_GROUPS.CORE_RECTUS,
+    MUSCLE_SUB_GROUPS.CORE_HIP_FLEXORS,
+  ],
+  [createExerciseTargetKey("core", "ハンギングレッグレイズ")]: [
+    MUSCLE_SUB_GROUPS.CORE_RECTUS,
+    MUSCLE_SUB_GROUPS.CORE_HIP_FLEXORS,
+  ],
+  [createExerciseTargetKey("core", "マウンテンクライマー")]: [
+    MUSCLE_SUB_GROUPS.CORE_RECTUS,
+    MUSCLE_SUB_GROUPS.CORE_HIP_FLEXORS,
+  ],
+  [createExerciseTargetKey("core", "プランク")]: [
+    MUSCLE_SUB_GROUPS.CORE_TRANSVERSE,
+    MUSCLE_SUB_GROUPS.CORE_RECTUS,
+  ],
+  [createExerciseTargetKey("core", "アブローラー")]: [
+    MUSCLE_SUB_GROUPS.CORE_TRANSVERSE,
+    MUSCLE_SUB_GROUPS.CORE_RECTUS,
+  ],
+};
+
+function getTargetMuscleGroupsForSeedExercise(
+  exercise: { bodyPart: string; name: string },
+  primarySubGroup: MuscleSubGroup | null
+): MuscleSubGroup[] | null {
+  if (exercise.bodyPart === "other") return [];
+
+  const targetMuscleGroups =
+    TARGET_MUSCLE_GROUPS_BY_EXERCISE[
+      createExerciseTargetKey(exercise.bodyPart, exercise.name)
+    ];
+
+  if (targetMuscleGroups) return targetMuscleGroups;
+  if (primarySubGroup) return [primarySubGroup];
+  return null;
+}
 
 // 種目データの定義（種目.mdから抽出）
 const seedExercises = [
@@ -635,6 +848,10 @@ const seedExercisesData = seedExercises.map((exercise) => {
     nameEn: NAME_EN_MAP[exercise.name] || null,
     bodyPart: exercise.bodyPart,
     muscleSubGroup: subGroup,
+    targetMuscleGroups: getTargetMuscleGroupsForSeedExercise(
+      exercise,
+      subGroup
+    ),
     primaryEquipment: equipment,
     tier: exercise.tier,
     isBig3: exercise.isBig3,

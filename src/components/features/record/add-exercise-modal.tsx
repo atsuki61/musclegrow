@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -26,6 +26,9 @@ interface AddExerciseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddExercise: (exercise: Exercise) => void;
+  onDeleteCustomExercise?: (exercise: Exercise) => void | Promise<void>;
+  onRenameCustomExercise?: (exercise: Exercise) => void;
+  isCustomExercise?: (exercise: Exercise) => boolean;
   allExercises: Exercise[];
   initialBodyPart?: Exclude<BodyPart, "all">;
 }
@@ -35,6 +38,9 @@ export function AddExerciseModal({
   isOpen,
   onClose,
   onAddExercise,
+  onDeleteCustomExercise,
+  onRenameCustomExercise,
+  isCustomExercise,
   allExercises,
   initialBodyPart,
 }: AddExerciseModalProps) {
@@ -160,10 +166,11 @@ export function AddExerciseModal({
                       const targetMuscleLabels =
                         getExerciseTargetMuscleLabels(exercise);
                       const fallbackLabel = targetMuscleLabels[0] ?? "全体";
+                      const canDeleteCustomExercise =
+                        isCustomExercise?.(exercise) ?? false;
                       return (
-                        <button
+                        <div
                           key={exercise.id}
-                          onClick={() => handleSelectExercise(exercise)}
                           className={cn(
                             "group relative aspect-[1/1.08] min-h-[128px] min-w-0 overflow-hidden rounded-[1.15rem] border text-left",
                             "border-[var(--mg-border)] bg-[var(--mg-surface)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
@@ -172,26 +179,53 @@ export function AddExerciseModal({
                           )}
                         >
                           <div className="absolute inset-0 bg-linear-to-br from-white/[0.045] via-transparent to-primary/[0.035] opacity-80" />
-                          <span className="absolute right-1.5 top-1.5 z-20 flex size-6 items-center justify-center rounded-md border border-primary/35 bg-[var(--mg-surface)]/90 text-primary shadow-sm backdrop-blur-md">
-                            <Plus className="size-4 stroke-[3]" />
-                          </span>
+                          {canDeleteCustomExercise ? (
+                            <>
+                              <button
+                                type="button"
+                                aria-label={`${exercise.name}の名前を変更`}
+                                onClick={() => onRenameCustomExercise?.(exercise)}
+                                className="absolute right-8 top-1.5 z-20 flex size-6 items-center justify-center rounded-md border border-primary/35 bg-[var(--mg-surface)]/90 text-primary shadow-sm backdrop-blur-md transition-colors hover:border-primary/60 hover:bg-primary/10"
+                              >
+                                <Pencil className="size-3.5 stroke-[3]" />
+                              </button>
+                              <button
+                                type="button"
+                                aria-label={`${exercise.name}を完全に削除`}
+                                onClick={() => {
+                                  void onDeleteCustomExercise?.(exercise);
+                                }}
+                                className="absolute right-1.5 top-1.5 z-20 flex size-6 items-center justify-center rounded-md border border-red-500/40 bg-[var(--mg-surface)]/90 text-red-400 shadow-sm backdrop-blur-md transition-colors hover:border-red-400 hover:bg-red-500/15"
+                              >
+                                <Trash2 className="size-3.5 stroke-[3]" />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="absolute right-1.5 top-1.5 z-20 flex size-6 items-center justify-center rounded-md border border-primary/35 bg-[var(--mg-surface)]/90 text-primary shadow-sm backdrop-blur-md">
+                              <Plus className="size-4 stroke-[3]" />
+                            </span>
+                          )}
                           <span className="absolute left-1.5 top-1.5 z-20 max-w-[64%] rounded-md border border-border/50 bg-[var(--mg-surface)]/90 px-1.5 py-0.5 text-[8px] font-black leading-none text-muted-foreground backdrop-blur-md">
                             {fallbackLabel}
                           </span>
 
-                          <div className="relative z-10 flex h-full flex-col px-2 pb-2.5 pt-2.5">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectExercise(exercise)}
+                            className="relative z-10 flex h-full w-full flex-col px-2 pb-2.5 pt-2.5 text-left"
+                          >
                             <div className="relative min-h-0 flex-1 overflow-visible pt-5">
-                              <div className="absolute inset-x-0 bottom-0 top-2">
+                              <div className="absolute inset-x-0 bottom-0 top-6">
                                 <ExerciseIllustrationVisual
                                   exercise={exercise}
                                   fallbackLabel={fallbackLabel}
-                                  imageClassName="max-h-[104px]"
+                                  imageClassName="max-h-[96px]"
                                 />
                               </div>
                             </div>
                             <ExerciseName name={exercise.name} />
-                          </div>
-                        </button>
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
