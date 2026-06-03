@@ -150,16 +150,28 @@ src/
   hooks/             カスタムフック
   lib/
     actions/         Server Actions
+    supabase/        Supabase JS クライアント（将来用。現状の DB アクセスは Drizzle）
     utils/           計算、整形などのユーティリティ
-  supabase/          Supabase クライアント
   types/             型定義
 
 db/
   schemas/           Drizzle スキーマ
   seed.ts            初期種目データ投入
 
+supabase/            Supabase CLI 用（`pnpm supabase:start` など。ルート直下のみ）
+drizzle/             SQL マイグレーション
+docs/                UI 仕様・種目リファレンスなど
+
 scripts/             マイグレーション補助スクリプト
 ```
+
+### Supabase 関連ディレクトリの使い分け
+
+| パス | 役割 |
+|------|------|
+| `supabase/`（リポジトリルート） | Supabase CLI の設定。ローカル Postgres 起動・リモート連携 |
+| `src/lib/supabase/` | `@supabase/supabase-js` / `@supabase/ssr` のクライアント定義（現状コードからは未 import。認証は Better Auth、DB は Drizzle） |
+| `db/` + `drizzle/` | アプリが実際に使うスキーマとマイグレーション |
 
 ---
 

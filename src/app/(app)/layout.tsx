@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { getAuthSession } from "@/lib/auth-session-server";
 import { AuthSessionProvider } from "@/lib/auth-session-context";
 import { GuestDataMigrator } from "@/components/features/guest-data-migrator";
-import { LoginPromptBanner } from "@/components/features/auth/login-prompt-banner";
+import { LoginPromptBanner } from "@/components/features/login-prompt/login-prompt-banner";
 
 interface AppLayoutProps {
   children: ReactNode;
