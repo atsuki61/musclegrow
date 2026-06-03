@@ -98,3 +98,90 @@ export function saveGuestCustomExercise(exercise: Exercise): void {
     console.error("カスタム種目の保存に失敗しました:", error);
   }
 }
+
+/**
+ * ゲストユーザーのカスタム種目かどうかを判定する
+ */
+export function isGuestCustomExercise(exerciseId: string): boolean {
+  if (typeof window === "undefined") return false;
+
+  try {
+    const customRaw = localStorage.getItem(GUEST_CUSTOM_EXERCISES_KEY);
+    const customExercises: Exercise[] = customRaw ? JSON.parse(customRaw) : [];
+    return customExercises.some((exercise) => exercise.id === exerciseId);
+  } catch (error) {
+    console.error("カスタム種目の確認に失敗しました:", error);
+    return false;
+  }
+}
+
+/**
+ * ゲストユーザーのカスタム種目を完全に削除する
+ * @returns 削除対象のカスタム種目が存在したか
+ */
+export function deleteGuestCustomExercise(exerciseId: string): boolean {
+  if (typeof window === "undefined") return false;
+
+  try {
+    const customRaw = localStorage.getItem(GUEST_CUSTOM_EXERCISES_KEY);
+    const customExercises: Exercise[] = customRaw ? JSON.parse(customRaw) : [];
+    const nextCustomExercises = customExercises.filter(
+      (exercise) => exercise.id !== exerciseId
+    );
+
+    if (nextCustomExercises.length === customExercises.length) {
+      return false;
+    }
+
+    localStorage.setItem(
+      GUEST_CUSTOM_EXERCISES_KEY,
+      JSON.stringify(nextCustomExercises)
+    );
+
+    const settingsRaw = localStorage.getItem(GUEST_SETTINGS_KEY);
+    const settings: GuestSettings = settingsRaw ? JSON.parse(settingsRaw) : {};
+    delete settings[exerciseId];
+    localStorage.setItem(GUEST_SETTINGS_KEY, JSON.stringify(settings));
+
+    return true;
+  } catch (error) {
+    console.error("カスタム種目の削除に失敗しました:", error);
+    return false;
+  }
+}
+
+/**
+ * ゲストユーザーのカスタム種目名を変更する
+ */
+export function renameGuestCustomExercise(
+  exerciseId: string,
+  name: string
+): Exercise | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const trimmedName = name.trim();
+    if (!trimmedName) return null;
+
+    const customRaw = localStorage.getItem(GUEST_CUSTOM_EXERCISES_KEY);
+    const customExercises: Exercise[] = customRaw ? JSON.parse(customRaw) : [];
+    let renamedExercise: Exercise | null = null;
+    const nextCustomExercises = customExercises.map((exercise) => {
+      if (exercise.id !== exerciseId) return exercise;
+      renamedExercise = { ...exercise, name: trimmedName };
+      return renamedExercise;
+    });
+
+    if (!renamedExercise) return null;
+
+    localStorage.setItem(
+      GUEST_CUSTOM_EXERCISES_KEY,
+      JSON.stringify(nextCustomExercises)
+    );
+
+    return renamedExercise;
+  } catch (error) {
+    console.error("カスタム種目名の変更に失敗しました:", error);
+    return null;
+  }
+}

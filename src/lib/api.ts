@@ -4,6 +4,8 @@
 import {
   saveExercise as saveExerciseAction,
   getExercises as getExercisesAction,
+  deleteCustomExercise as deleteCustomExerciseAction,
+  renameCustomExercise as renameCustomExerciseAction,
 } from "./actions/exercises";
 import {
   saveWorkoutSession as saveWorkoutSessionAction,
@@ -48,6 +50,34 @@ export async function saveExercise(
   data?: Exercise;
 }> {
   return await saveExerciseAction(userId, exercise);
+}
+
+/**
+ * ユーザー自身が作成したカスタム種目を削除する
+ */
+export async function deleteCustomExercise(
+  userId: string,
+  exerciseId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  return await deleteCustomExerciseAction(userId, exerciseId);
+}
+
+/**
+ * ユーザー自身が作成したカスタム種目名を変更する
+ */
+export async function renameCustomExercise(
+  userId: string,
+  exerciseId: string,
+  name: string
+): Promise<{
+  success: boolean;
+  error?: string;
+  data?: Exercise;
+}> {
+  return await renameCustomExerciseAction(userId, exerciseId, name);
 }
 
 /**
