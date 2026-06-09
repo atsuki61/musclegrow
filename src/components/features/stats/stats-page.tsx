@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useMemo, useTransition } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DateRangeSelector } from "./date-range-selector";
 import { BodyPartSelector } from "./body-part-selector";
 import { ExerciseSelector } from "./exercise-selector";
 import { HorizontalNav } from "./horizontal-nav";
 import { ChartLoading } from "./chart-loading";
-import { getExercisesWithDataFromStorage } from "@/lib/local-storage-exercise-progress";
 import { useTrainingStats } from "@/hooks/use-training-stats";
 import type {
   DateRangePreset,
@@ -35,6 +34,21 @@ const PROFILE_CHART_TYPES: { value: ProfileChartType; label: string }[] = [
   { value: "muscleMass", label: "筋肉量" },
   { value: "bmi", label: "BMI" },
 ];
+
+function getSelectableExercises({
+  exercises,
+  selectedBodyPart,
+  exercisesWithData,
+}: {
+  exercises: Exercise[];
+  selectedBodyPart: BodyPart;
+  exercisesWithData: Set<string>;
+}): Exercise[] {
+  return exercises.filter((exercise) => {
+    if (!exercisesWithData.has(exercise.id)) return false;
+    return selectedBodyPart === "all" || exercise.bodyPart === selectedBodyPart;
+  });
+}
 
 function EmptyStateMessage({
   title,
@@ -103,24 +117,45 @@ export function StatsPage({
     });
   };
 
-  // 初回マウント時の自動選択（変更なし）
+  const selectableExercises = useMemo(
+    () =>
+      getSelectableExercises({
+        exercises,
+        selectedBodyPart,
+        exercisesWithData,
+      }),
+    [exercises, exercisesWithData, selectedBodyPart]
+  );
+
+  // 選択種目は、現在の部位で表示できる候補に常に合わせる
   useEffect(() => {
-    if (selectedExerciseId) return;
-    const exercisesWithDataFromStorage = getExercisesWithDataFromStorage();
-    const firstExerciseWithLocalData = exercises.find((ex) =>
-      exercisesWithDataFromStorage.has(ex.id)
-    );
-    if (firstExerciseWithLocalData) {
-      setSelectedExerciseId(firstExerciseWithLocalData.id);
+    const nextExerciseId = selectableExercises[0]?.id ?? null;
+
+    if (selectedExerciseId === null) {
+      if (nextExerciseId !== null) {
+        setSelectedExerciseId(nextExerciseId);
+      }
       return;
     }
-    if (initialExercisesWithData.length > 0) {
-      const fallback = initialExercisesWithData.find((id) =>
-        exercises.some((ex) => ex.id === id)
-      );
-      if (fallback) setSelectedExerciseId(fallback);
+
+    const selectedExerciseExists = selectableExercises.some(
+      (exercise) => exercise.id === selectedExerciseId
+    );
+
+    if (!selectedExerciseExists) {
+      setSelectedExerciseId(nextExerciseId);
     }
-  }, [exercises, initialExercisesWithData, selectedExerciseId]);
+  }, [selectableExercises, selectedExerciseId]);
+
+  const allExercisesWithData = useMemo(
+    () =>
+      getSelectableExercises({
+        exercises,
+        selectedBodyPart: "all",
+        exercisesWithData,
+      }),
+    [exercises, exercisesWithData]
+  );
 
   const selectedExercise = exercises.find((ex) => ex.id === selectedExerciseId);
   const hasExerciseData = exerciseData.length > 0;
@@ -179,10 +214,8 @@ export function StatsPage({
           />
 
           <ExerciseSelector
-            exercises={exercises}
+            exercises={selectableExercises}
             selectedExerciseId={selectedExerciseId}
-            selectedBodyPart={selectedBodyPart}
-            exercisesWithData={exercisesWithData}
             onChange={setSelectedExerciseId}
           />
 
@@ -200,7 +233,11 @@ export function StatsPage({
             ) : !selectedExerciseId ? (
               <EmptyStateMessage
                 title="種目を選択してください"
-                description="記録がある種目から選択できます"
+                description={
+                  allExercisesWithData.length > 0
+                    ? "部位を切り替えると記録済みの種目を選択できます"
+                    : "記録がある種目から選択できます"
+                }
               />
             ) : (
               <EmptyStateMessage

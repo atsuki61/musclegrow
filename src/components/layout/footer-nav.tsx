@@ -31,13 +31,11 @@ export function FooterNav() {
       <nav
         className={cn(
           "pointer-events-auto relative w-full max-w-[380px]",
-          "bg-background/90 backdrop-blur-xl",
-          "border border-border/50",
+          "bg-[var(--mg-surface)] backdrop-blur-xl",
+          "border border-[var(--mg-border)]",
           "dark:border-primary/40",
-          "shadow-[0_8px_30px_rgb(0,0,0,0.12)]",
-          "dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)]",
-          "dark:shadow-primary/10",
-          "rounded-3xl px-2 py-3"
+          "shadow-[var(--mg-shadow)]",
+          "rounded-[2rem] px-2 py-3"
         )}
       >
         <ul className="flex justify-between items-end w-full px-2">
@@ -58,13 +56,13 @@ export function FooterNav() {
                   >
                     <div
                       className={cn(
-                        "absolute inset-0 rounded-full bg-primary/40 blur-xl transition-opacity duration-500",
+                        "absolute inset-0 rounded-full bg-primary/35 blur-xl transition-opacity duration-500",
                         isActive
                           ? "opacity-100"
                           : "opacity-40 group-hover:opacity-70"
                       )}
                     />
-                    <div className="relative flex items-center justify-center w-full h-full rounded-full bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/30 border-[4px] border-background group-hover:scale-105 transition-transform duration-200">
+                    <div className="relative flex items-center justify-center w-full h-full rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 border-[6px] border-background group-hover:scale-105 transition-transform duration-200">
                       <Plus
                         className={cn(
                           "w-8 h-8 stroke-[3px] transition-transform duration-300",

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DateSelector } from "@/components/features/record/date-selector";
-import { subDays, addDays, format } from "date-fns";
+import { subDays, format } from "date-fns";
 
 describe("DateSelector", () => {
   const mockToday = new Date(2024, 0, 15); // 2024-01-15 (月曜日)

@@ -5,6 +5,16 @@ import { useRef, useEffect } from "react";
 // - motion: アニメーション付きのHTML要素を作成
 // - layoutId でアニメーションの自動補間を実現
 import { motion } from "framer-motion";
+import {
+  Activity,
+  CircleDot,
+  Dumbbell,
+  Footprints,
+  MoreHorizontal,
+  Shield,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BODY_PART_LABELS } from "@/lib/utils";
 import type { BodyPart } from "@/types/workout";
@@ -42,6 +52,17 @@ const PART_TEXT_VARS: Record<string, string> = {
   arms: "#ffffff",
   core: "#ffffff",
   other: "var(--color-other-foreground)", // ライト/ダークで白黒反転
+};
+
+const PART_ICONS: Record<string, LucideIcon> = {
+  all: CircleDot,
+  chest: Dumbbell,
+  back: UserRound,
+  legs: Footprints,
+  shoulders: Shield,
+  arms: Activity,
+  core: CircleDot,
+  other: MoreHorizontal,
 };
 
 interface BodyPartNavigationProps {
@@ -93,6 +114,7 @@ export function BodyPartNavigation({
           const colorVar = PART_COLOR_VARS[part];
           // ▼ 追加: 選択時の文字色を取得
           const textVar = PART_TEXT_VARS[part];
+          const Icon = PART_ICONS[part] ?? CircleDot;
 
           return (
             // ① motion.button: タップ時とホバー時のアニメーションを追加
@@ -119,7 +141,7 @@ export function BodyPartNavigation({
                 ease: "easeInOut",
               }}
               className={cn(
-                "relative px-5 py-1.5 rounded-full text-sm font-bold border",
+                "relative inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-bold border",
                 "border-transparent"
               )}
               style={{
@@ -136,6 +158,7 @@ export function BodyPartNavigation({
                   : "none",
               }}
             >
+              <Icon className="size-4" />
               {BODY_PART_LABELS[part]}
 
               {/*

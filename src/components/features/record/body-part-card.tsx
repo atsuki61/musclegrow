@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, MinusCircle } from "lucide-react"; // アイコン追加
+import { useMemo, useState, useEffect } from "react";
+import { Plus, Minus, Pencil } from "lucide-react";
 import { cn, isCardioExercise } from "@/lib/utils";
-import { MUSCLE_SUB_GROUP_LABELS } from "@/lib/exercise-mappings";
-import type { Exercise, MuscleSubGroup } from "@/types/workout";
+import { getExerciseTargetMuscleLabels } from "@/lib/exercise-mappings";
+import {
+  ExerciseIllustrationVisual,
+  ExerciseName,
+} from "./exercise-card-primitives";
+import type { Exercise } from "@/types/workout";
 
 interface BodyPartCardProps {
   bodyPart: string;
@@ -12,7 +16,10 @@ interface BodyPartCardProps {
   maxWeights?: Record<string, number>;
   onExerciseSelect?: (exercise: Exercise) => void;
   onAddExerciseClick?: () => void;
+  onRenameCustomExercise?: (exercise: Exercise) => void;
+  isCustomExercise?: (exercise: Exercise) => boolean;
   isEditMode?: boolean;
+  selectedDate?: Date;
 }
 
 function filterInitialExercises(exercises: Exercise[]): Exercise[] {
@@ -24,9 +31,14 @@ export function BodyPartCard({
   maxWeights = {},
   onExerciseSelect,
   onAddExerciseClick,
+  onRenameCustomExercise,
+  isCustomExercise,
   isEditMode = false, // デフォルトfalse
 }: BodyPartCardProps) {
-  const initialExercises = filterInitialExercises(exercises);
+  const initialExercises = useMemo(
+    () => filterInitialExercises(exercises),
+    [exercises]
+  );
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -35,104 +47,109 @@ export function BodyPartCard({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
         {initialExercises.map((exercise) => {
           const maxWeight = isMounted ? maxWeights[exercise.id] : undefined;
           const isCardio = isCardioExercise(exercise);
-          const subGroupLabel = exercise.muscleSubGroup
-            ? MUSCLE_SUB_GROUP_LABELS[exercise.muscleSubGroup as MuscleSubGroup]
-            : "全体";
-
+          const targetMuscleLabels = getExerciseTargetMuscleLabels(exercise);
+          const fallbackLabel = targetMuscleLabels[0] ?? "全体";
+          const canRenameCustomExercise =
+            isEditMode && (isCustomExercise?.(exercise) ?? false);
           return (
-            <button
+            <div
               key={exercise.id}
-              onClick={() => onExerciseSelect?.(exercise)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onExerciseSelect?.(exercise);
-                }
-              }}
               className={cn(
-                "group relative flex flex-col items-center justify-between aspect-square rounded-2xl border border-border/60 bg-card p-2 shadow-sm transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1) cursor-pointer select-none overflow-hidden",
-                // 編集モード時の揺れアニメーションやスタイル変更
+                "group relative aspect-[1/1.08] min-h-[128px] min-w-0 overflow-hidden rounded-[1.15rem] border text-left",
+                "bg-[var(--mg-surface)] border-[var(--mg-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+                "transition-[transform,border-color,background-color,box-shadow] duration-200 cursor-pointer select-none",
                 isEditMode
-                  ? "animate-pulse-slow border-red-200 bg-red-50/10 hover:bg-red-100/20 hover:border-red-300"
-                  : "hover:scale-[1.03] hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/10 hover:border-primary/40 hover:bg-primary/5 active:scale-90 active:translate-y-0 active:shadow-none active:border-primary active:bg-primary/10"
+                  ? "border-red-500/40 bg-red-500/[0.035] hover:border-red-400/70"
+                  : "hover:-translate-y-0.5 hover:border-primary/45 hover:bg-primary/[0.035] active:scale-[0.985]"
               )}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute inset-0 bg-linear-to-br from-white/[0.045] via-transparent to-primary/[0.035] opacity-80" />
 
-              {/* ▼ 編集モード時の削除バッジ */}
               {isEditMode && (
-                <div className="absolute top-1 right-1 z-20">
-                  <MinusCircle className="w-6 h-6 text-red-500 fill-white dark:fill-background" />
+                <div className="absolute left-3 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-red-500 text-white shadow-sm shadow-red-950/30">
+                  <Minus className="size-5 stroke-[3]" />
                 </div>
               )}
 
-              {/* 通常時のMAX重量バッジ */}
-              {!isCardio && !isEditMode && (
-                <div className="relative z-10 w-full flex justify-end h-5">
-                  {isMounted && (
-                    <span
-                      className={cn(
-                        "inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-md shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:scale-105",
-                        maxWeight
-                          ? "bg-primary/10 text-primary border border-primary/20"
-                          : "bg-muted text-muted-foreground/60 border border-border"
-                      )}
-                    >
-                      {maxWeight ? `${maxWeight}kg` : "-"}
-                    </span>
-                  )}
-                  {!isMounted && (
-                    <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-muted text-transparent border border-border opacity-30">
-                      -
-                    </span>
-                  )}
-                </div>
+              {canRenameCustomExercise && (
+                <button
+                  type="button"
+                  aria-label={`${exercise.name}の名前を変更`}
+                  onClick={() => onRenameCustomExercise?.(exercise)}
+                  className="absolute right-1.5 top-1.5 z-30 flex size-7 items-center justify-center rounded-full border border-primary/35 bg-[var(--mg-surface)]/90 text-primary shadow-sm backdrop-blur-md transition-colors hover:border-primary/60 hover:bg-primary/10"
+                >
+                  <Pencil className="size-3.5 stroke-[3]" />
+                </button>
               )}
 
-              {!isCardio && !isEditMode ? null : <div className="h-4" />}
+              {!isCardio && !canRenameCustomExercise && (
+                <span
+                  className={cn(
+                    "absolute right-1.5 top-1.5 z-20 rounded-md border px-1.5 py-0.5 text-[9px] font-black leading-none tracking-normal shadow-sm backdrop-blur-md",
+                    maxWeight
+                      ? "border-primary/35 bg-[var(--mg-surface)]/90 text-primary"
+                      : "border-border/60 bg-[var(--mg-surface)]/90 text-muted-foreground"
+                  )}
+                >
+                  {maxWeight ? `MAX ${maxWeight}kg` : "MAX -"}
+                </span>
+              )}
 
-              <span className="relative z-10 text-xs font-bold text-center leading-tight line-clamp-2 px-1 w-full text-foreground group-hover:text-primary transition-colors duration-300">
-                {exercise.name}
-              </span>
-
-              <span className="relative z-10 mt-1 px-2 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted/50 rounded-full transition-colors duration-300 group-hover:bg-primary/10 group-hover:text-primary">
-                {" "}
-                {subGroupLabel || "全体"}
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => onExerciseSelect?.(exercise)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onExerciseSelect?.(exercise);
+                  }
+                }}
+                className="relative z-10 flex h-full w-full flex-col px-2 pb-2.5 pt-2.5 text-left"
+              >
+                <div className="relative min-h-0 flex-1 overflow-visible pt-5">
+                  <div className="absolute inset-x-0 bottom-0 top-2">
+                    <ExerciseIllustrationVisual
+                      exercise={exercise}
+                      fallbackLabel={fallbackLabel}
+                      imageClassName="max-h-[104px]"
+                    />
+                  </div>
+                </div>
+                <ExerciseName name={exercise.name} />
+              </button>
+            </div>
           );
         })}
 
-        {/* 追加カード (編集モード中は非表示または無効化) */}
-        {!isEditMode && (
-          <button
-            onClick={onAddExerciseClick}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onAddExerciseClick?.();
-              }
-            }}
-            className="group relative flex flex-col items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 text-primary
-              transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)
-              hover:scale-[1.03] hover:-translate-y-1 hover:bg-primary/10 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20
-              active:scale-90 active:translate-y-0 active:border-primary active:shadow-none
-              cursor-pointer select-none"
-          >
-            <div className="w-10 h-10 rounded-full bg-white/80 dark:bg-black/20 flex items-center justify-center mb-1 shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90">
-              <Plus className="w-5 h-5 text-primary" />
-            </div>
-            <span className="text-xs font-bold text-primary">追加</span>
-          </button>
-        )}
+        <button
+          onClick={isEditMode ? undefined : onAddExerciseClick}
+          onKeyDown={(e) => {
+            if (isEditMode) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onAddExerciseClick?.();
+            }
+          }}
+          aria-disabled={isEditMode}
+          className={cn(
+            "group relative flex aspect-[1/1.08] min-h-[128px] items-center justify-center gap-2 rounded-[1.15rem] border-2 border-dashed border-primary/35 bg-primary/[0.045] text-primary",
+            "transition-[transform,border-color,background-color,opacity] duration-200 active:scale-[0.985]",
+            isEditMode
+              ? "cursor-not-allowed opacity-45"
+              : "cursor-pointer hover:-translate-y-0.5 hover:border-primary/60 hover:bg-primary/10"
+          )}
+        >
+          <Plus className="size-5" />
+          <span className="text-xs font-black">種目を追加</span>
+        </button>
       </div>
 
       {initialExercises.length === 0 && (
-        <div className="col-span-3 py-12 text-center animate-in fade-in zoom-in duration-500">
+        <div className="py-12 text-center animate-in fade-in zoom-in duration-500">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/30 mb-3 animate-bounce">
             <Plus className="w-6 h-6 text-muted-foreground/30" />
           </div>

@@ -45,6 +45,11 @@ function mapExerciseRow(ex: ExerciseRow): Exercise {
     bodyPart: ex.bodyPart as Exercise["bodyPart"],
     muscleSubGroup:
       (ex.muscleSubGroup as Exercise["muscleSubGroup"] | null) ?? undefined,
+    targetMuscleGroups: ex.targetMuscleGroups?.length
+      ? (ex.targetMuscleGroups as Exercise["targetMuscleGroups"])
+      : ex.muscleSubGroup
+        ? [ex.muscleSubGroup as NonNullable<Exercise["muscleSubGroup"]>]
+        : undefined,
     primaryEquipment:
       (ex.primaryEquipment as Exercise["primaryEquipment"] | null) ?? undefined,
     tier: ex.tier as Exercise["tier"],
@@ -141,7 +146,9 @@ export async function saveExercise(
         name: exercise.name,
         nameEn: exercise.nameEn ?? null,
         bodyPart: exercise.bodyPart,
-        muscleSubGroup: exercise.muscleSubGroup ?? null,
+        muscleSubGroup:
+          exercise.targetMuscleGroups?.[0] ?? exercise.muscleSubGroup ?? null,
+        targetMuscleGroups: exercise.targetMuscleGroups ?? null,
         primaryEquipment: exercise.primaryEquipment ?? null,
         tier: exercise.tier,
         isBig3: exercise.isBig3,
@@ -175,6 +182,104 @@ export async function saveExercise(
     return {
       success: false,
       error: "種目の保存に失敗しました",
+    };
+  }
+}
+
+/**
+ * ユーザー自身が作成したカスタム種目を削除する
+ */
+export async function deleteCustomExercise(
+  userId: string,
+  exerciseId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
+    const deletedExercises = await db
+      .delete(exercises)
+      .where(and(eq(exercises.id, exerciseId), eq(exercises.userId, userId)))
+      .returning({ id: exercises.id });
+
+    if (deletedExercises.length === 0) {
+      return {
+        success: false,
+        error: "削除できるカスタム種目が見つかりません",
+      };
+    }
+
+    await revalidateTag("exercises");
+
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("カスタム種目削除エラー:", error);
+    return {
+      success: false,
+      error: "カスタム種目の削除に失敗しました",
+    };
+  }
+}
+
+/**
+ * ユーザー自身が作成したカスタム種目名を変更する
+ */
+export async function renameCustomExercise(
+  userId: string,
+  exerciseId: string,
+  name: string
+): Promise<{
+  success: boolean;
+  error?: string;
+  data?: Exercise;
+}> {
+  try {
+    if (!userId || userId === "") {
+      return {
+        success: false,
+        error: "ユーザーIDが無効です",
+      };
+    }
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return {
+        success: false,
+        error: "種目名を入力してください",
+      };
+    }
+
+    const [renamedExercise] = await db
+      .update(exercises)
+      .set({ name: trimmedName })
+      .where(and(eq(exercises.id, exerciseId), eq(exercises.userId, userId)))
+      .returning();
+
+    if (!renamedExercise) {
+      return {
+        success: false,
+        error: "名前変更できるカスタム種目が見つかりません",
+      };
+    }
+
+    await revalidateTag("exercises");
+
+    return {
+      success: true,
+      data: mapExerciseRow(renamedExercise),
+    };
+  } catch (error: unknown) {
+    console.error("カスタム種目名変更エラー:", error);
+    return {
+      success: false,
+      error: "カスタム種目名の変更に失敗しました",
     };
   }
 }

@@ -3,6 +3,10 @@
 import { Trophy, ChevronsLeft } from "lucide-react";
 import { BODY_PART_LABELS, calculate1RM, cn } from "@/lib/utils";
 import type { Exercise, SetRecord, CardioRecord } from "@/types/workout";
+import {
+  ExerciseIllustrationVisual,
+} from "@/components/features/record/exercise-card-primitives";
+import { getExerciseTargetMuscleLabels } from "@/lib/exercise-mappings";
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -22,20 +26,67 @@ export function ExerciseCard({
   showSwipeHint = false,
 }: ExerciseCardProps) {
   const maxWeight = maxWeights[exercise.id] || 0;
+  const bodyPartColor = `var(--color-${exercise.bodyPart})`;
+  const targetMuscleLabels = getExerciseTargetMuscleLabels(exercise);
+  const fallbackLabel = targetMuscleLabels[0] ?? "全体";
 
   return (
     <div
-      className="w-full p-3 bg-card rounded-xl border shadow-sm transition-all hover:shadow-md active:bg-muted/40 cursor-pointer"
+      className="group w-full cursor-pointer overflow-hidden rounded-2xl border border-[var(--mg-border)] bg-[var(--mg-surface)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-[transform,border-color,background-color,box-shadow] hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.025] active:scale-[0.99]"
       onClick={onClick}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground shrink-0">
-            {BODY_PART_LABELS[exercise.bodyPart]}
-          </span>
-          <span className="font-bold text-sm truncate text-foreground/90">
+      <div className="grid grid-cols-[98px_1fr_auto] items-stretch gap-3 p-3 pb-2">
+        <div
+          className="group relative h-[102px] overflow-hidden rounded-[1.15rem] border"
+          style={{
+            backgroundColor: `color-mix(in srgb, ${bodyPartColor} 12%, transparent)`,
+            borderColor: `color-mix(in srgb, ${bodyPartColor} 28%, transparent)`,
+          }}
+        >
+          <div className="absolute inset-0 bg-linear-to-br from-white/[0.045] via-transparent to-primary/[0.035] opacity-80" />
+          <div className="absolute inset-x-1 top-2 bottom-2">
+            <ExerciseIllustrationVisual
+              exercise={exercise}
+              fallbackLabel={fallbackLabel}
+              imageClassName="max-h-[88px]"
+            />
+          </div>
+        </div>
+
+        <div className="flex min-w-0 flex-col justify-center">
+          <div className="mb-1.5 flex flex-wrap gap-1.5">
+            <span
+              className="rounded-md px-1.5 py-0.5 text-[10px] font-black leading-none"
+              style={{
+                backgroundColor: `color-mix(in srgb, ${bodyPartColor} 16%, transparent)`,
+                color: bodyPartColor,
+              }}
+            >
+              {BODY_PART_LABELS[exercise.bodyPart]}
+            </span>
+            {targetMuscleLabels.length > 0 ? (
+              targetMuscleLabels.slice(0, 3).map((label) => (
+                <span
+                  key={label}
+                  className="rounded-md bg-muted/55 px-1.5 py-0.5 text-[10px] font-bold leading-none text-muted-foreground"
+                >
+                  {label}
+                </span>
+              ))
+            ) : (
+              <span className="rounded-md bg-muted/55 px-1.5 py-0.5 text-[10px] font-bold leading-none text-muted-foreground">
+                全体
+              </span>
+            )}
+          </div>
+          <h4 className="break-words text-base font-black leading-tight text-foreground">
             {exercise.name}
-          </span>
+          </h4>
+          {maxWeight > 0 && (
+            <p className="mt-1 w-fit rounded-md border border-primary/35 bg-primary/[0.08] px-1.5 py-0.5 text-[10px] font-black leading-none text-primary">
+              MAX {maxWeight}kg
+            </p>
+          )}
         </div>
 
         {showSwipeHint && (
@@ -45,7 +96,7 @@ export function ExerciseCard({
 
       {/* セット記録 */}
       {sets && sets.length > 0 && (
-        <div className="space-y-1">
+        <div className="space-y-1 border-t border-[var(--mg-border)] px-3 pb-3 pt-2">
           {sets.map((set, index) => {
             const weight = set.weight ?? 0;
             const isMaxWeight = maxWeight > 0 && weight >= maxWeight;
@@ -58,8 +109,7 @@ export function ExerciseCard({
               <div
                 key={set.id || index}
                 className={cn(
-                  "flex items-center justify-between text-sm py-1.5 px-2 rounded-lg transition-colors",
-                  //MAX記録時の背景色をprimary系に変更
+                  "flex items-center justify-between rounded-xl px-2.5 py-2 text-sm transition-colors",
                   isMaxWeight
                     ? "bg-primary/10 dark:bg-primary/20"
                     : "hover:bg-muted/30"
@@ -98,8 +148,8 @@ export function ExerciseCard({
                 <div className="flex items-center gap-2">
                   {/*MAXバッジの色とアイコンfillをprimaryに変更 */}
                   {isMaxWeight && (
-                    <span className="flex items-center gap-0.5 text-[9px] font-bold text-primary bg-primary/10 dark:bg-primary/30 px-1.5 py-0.5 rounded-full shadow-sm animate-in fade-in zoom-in duration-300">
-                      <Trophy className="w-2.5 h-2.5 fill-primary text-primary" />{" "}
+                    <span className="flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary shadow-sm animate-in fade-in zoom-in duration-300 dark:bg-primary/30">
+                      <Trophy className="w-2.5 h-2.5 fill-primary text-primary" />
                       MAX
                     </span>
                   )}
@@ -118,12 +168,12 @@ export function ExerciseCard({
 
       {/* 有酸素記録 */}
       {records && records.length > 0 && (
-        <div className="space-y-1">
+        <div className="space-y-1 border-t border-[var(--mg-border)] px-3 pb-3 pt-2">
           {records.map((record, index) => {
             return (
               <div
                 key={record.id || index}
-                className="flex items-center gap-3 text-sm py-1.5 px-2 rounded-lg hover:bg-muted/30"
+                className="flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm hover:bg-muted/30"
               >
                 <span className="text-xs text-muted-foreground/40 font-mono w-3 text-right">
                   {index + 1}

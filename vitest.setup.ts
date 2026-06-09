@@ -1,9 +1,6 @@
-import { expect, afterEach, vi } from "vitest";
+import "@testing-library/jest-dom/vitest";
+import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
-import * as matchers from "@testing-library/jest-dom/matchers";
-
-// Extend Vitest's expect with jest-dom matchers
-expect.extend(matchers);
 
 // Setup environment variables for tests
 vi.stubEnv("BETTER_AUTH_SECRET", "test-secret-key");

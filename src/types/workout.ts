@@ -43,6 +43,7 @@ export type Exercise = {
   nameEn?: string;
   bodyPart: Exclude<BodyPart, "all">; // データベース用の値（UI用の"all"は除外、"other"は含む）
   muscleSubGroup?: MuscleSubGroup;
+  targetMuscleGroups?: MuscleSubGroup[];
   primaryEquipment?: EquipmentType;
   tier: ExerciseTier;//不要かも？
   isBig3: boolean;

@@ -105,7 +105,7 @@ pnpm build
 src/
 ├── app/                          # Next.js App Router
 │   ├── (auth)/                  # 認証関連ページ
-│   ├── (protected)/             # 認証必須ページ
+│   ├── (app)/                   # メインアプリ（ゲスト可・ログイン時は DB 同期）
 │   ├── (static)/                # 静的ページ
 │   └── api/                     # API ルート
 ├── components/                   # React コンポーネント
@@ -114,10 +114,14 @@ src/
 │   └── ui/                      # shadcn/ui コンポーネント
 ├── lib/                         # ユーティリティ・ロジック
 │   ├── actions/                 # サーバーアクション
+│   ├── supabase/                # Supabase JS クライアント（将来用・DB は Drizzle）
 │   └── utils/                   # ユーティリティ関数
 ├── hooks/                       # カスタムフック
-├── types/                       # TypeScript型定義
-└── supabase/                    # Supabase設定
+└── types/                       # TypeScript型定義
+
+supabase/                        # リポジトリルート: Supabase CLI 用（src/lib/supabase とは別）
+db/ + drizzle/                   # スキーマ・マイグレーション（アプリの DB 本体）
+docs/                            # UI 仕様・種目リファレンス
 ```
 
 **ディレクトリ構造管理**: 同一関心のファイルが 3 件以上になった場合は専用ディレクトリを作成し階層化する
@@ -184,6 +188,10 @@ useEffect は外部世界との同期のためだけに使用すること。
 ---
 
 ## 💾 Git コミット規約
+
+### 言語
+
+- コミットメッセージは**日本語**で記述する
 
 ### 基本フォーマット
 
@@ -263,10 +271,12 @@ pnpm build
 
 ## 🔗 関連リソース
 
-- **要件定義**: `doc/要件定義.md`
 - **README**: `README.md`
+- **UI・画面仕様**: `docs/ui-redesign/README.md`（画面別: `docs/ui-redesign/screens/`）
+- **種目リファレンス**: `docs/トレーニング.md`
 - **認証設定**: `src/lib/auth.ts`
 - **データベーススキーマ**: `db/schemas/`
+- **Supabase CLI**: ルート `supabase/`（クライアント定義は `src/lib/supabase/`）
 
 ---
 
