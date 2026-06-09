@@ -1,211 +1,116 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+/**
+ * 記録画面（ページ全体の組み立て専用）
+ *
+ * 責務: 日付・部位・検索などの UI state を持ち、各 hook の結果を JSX に渡すだけ
+ * ロジックの置き場:
+ *   - 種目 CRUD / guest-login 分岐 → hooks/use-record-exercises.ts
+ *   - 前回記録キャッシュ       → hooks/use-previous-record-cache.ts
+ *   - スワイプ操作             → hooks/use-body-part-swipe.ts
+ *   - セット保存               → hooks/use-workout-session.ts（モーダル内）
+ */
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { parse } from "date-fns";
 import { Search, Pencil, Check, ChevronLeft, ChevronRight } from "lucide-react";
-import { motion, AnimatePresence, type PanInfo } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { DateSelector } from "./date-selector";
 import { BodyPartNavigation } from "./body-part-navigation";
 import { BodyPartCard } from "./body-part-card";
 import ExerciseRecordModal from "./exercise-record-modal";
 import { AddExerciseModal } from "./add-exercise-modal";
+import { RenameCustomExerciseDialog } from "./rename-custom-exercise-dialog";
+import { useBodyPartSwipe } from "./hooks/use-body-part-swipe";
+import { usePreviousRecordCache } from "./hooks/use-previous-record-cache";
+import { useRecordExercises } from "./hooks/use-record-exercises";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  deleteCustomExercise,
-  renameCustomExercise,
-  saveExercise,
-} from "@/lib/api";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useMaxWeights } from "@/hooks/use-max-weights";
 import { useLastTrainedDates } from "@/hooks/use-last-trained";
-import {
-  fetchPreviousRecord,
-  type PreviousRecordData,
-} from "@/hooks/use-previous-record";
 import { useAuthSession } from "@/lib/auth-session-context";
 import type { BodyPart, Exercise } from "@/types/workout";
-import { toast } from "sonner";
-import {
-  toggleExerciseVisibility,
-} from "@/lib/actions/user-exercises";
-import {
-  getGuestExercises,
-  toggleGuestExerciseVisibility,
-  saveGuestCustomExercise,
-  deleteGuestCustomExercise,
-  isGuestCustomExercise,
-  renameGuestCustomExercise,
-} from "@/lib/local-storage-guest";
 import { getExerciseTargetMuscleLabels } from "@/lib/exercise-mappings";
-import { formatDateToYYYYMMDD } from "@/lib/utils";
-
-interface PreviousRecordCacheEntry {
-  record: PreviousRecordData;
-  isLoading: boolean;
-}
-
-const getPreviousRecordCacheKey = (date: Date, exerciseId: string): string => {
-  return `${formatDateToYYYYMMDD(date)}_${exerciseId}`;
-};
-
-/**
- * スワイプ可能な部位の順番リスト
- * この順番で左右スワイプ時に切り替わる
- */
-const BODY_PARTS_ORDER: Exclude<BodyPart, "all">[] = [// 定数定義
-
-  "chest",     // 胸
-  "back",      // 背中
-  "legs",      // 脚
-  "shoulders", // 肩
-  "arms",      // 腕
-  "core",      // 腹筋
-  "other",     // その他
-];
-
-/**
- * スワイプを認識するための最小移動距離（ピクセル）
- * この値より小さい移動は誤操作として無視される
- */
-const SWIPE_THRESHOLD = 50;
-
-/**
- * スワイプヒントの表示状態を管理するlocalStorageキー
- * 一度表示したら再表示しない
- */
-const SWIPE_HINT_SHOWN_KEY = "record_swipe_hint_shown";
 
 interface RecordPageProps {
   initialExercises?: Exercise[];
 }
 
+/** URL の ?date=yyyy-MM-dd を読む。無効なら今日の日付。マウント時に1回だけ使う。 */
+const parseDateFromSearchParams = (searchParams: URLSearchParams): Date => {
+  const dateParam = searchParams.get("date");
+  if (dateParam) {
+    try {
+      const parsedDate = parse(dateParam, "yyyy-MM-dd", new Date());
+      if (!isNaN(parsedDate.getTime())) return parsedDate;
+    } catch (error) {
+      console.warn("無効な日付パラメータ:", dateParam, error);
+    }
+  }
+  return new Date();
+};
+
 export default function RecordPage({ initialExercises = [] }: RecordPageProps) {
   const searchParams = useSearchParams();
   const { userId } = useAuthSession();
 
-  // --- データ取得ロジック ---
-  const getInitialDate = (): Date => {
-    const dateParam = searchParams.get("date");
-    if (dateParam) {
-      try {
-        const parsedDate = parse(dateParam, "yyyy-MM-dd", new Date());
-        if (!isNaN(parsedDate.getTime())) return parsedDate;
-      } catch (error) {
-        console.warn("無効な日付パラメータ:", dateParam, error);
-      }
-    }
-    return new Date();
-  };
-
-  const [selectedDate, setSelectedDate] = useState<Date>(getInitialDate());
+  // --- 画面の基本 state（日付・部位・検索・編集モード） ---
+  const [selectedDate, setSelectedDate] = useState<Date>(() =>
+    parseDateFromSearchParams(searchParams)
+  );
   const [selectedPart, setSelectedPart] =
     useState<Exclude<BodyPart, "all">>("chest");
-  const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
   const [searchQuery, setSearchQuery] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // ========================================
-  // スワイプアニメーション用のState
-  // ========================================
-
-  /**
-   * スワイプ方向を追跡するState
-   * - 正の値（1）: 右から左へスワイプ → 次の部位へ
-   * - 負の値（-1）: 左から右へスワイプ → 前の部位へ
-   * - 0: 初期状態（アニメーションなし）
-   */
-  const [swipeDirection, setSwipeDirection] = useState(0);
-
-//スワイプが可能であることを示す
-  const [showSwipeHint, setShowSwipeHint] = useState(false);
-
-  // Modals & Selection
+  // --- モーダル開閉 state（記録入力 / 種目追加） ---
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
     null
-  );
+  ); // 記録モーダルで編集中の種目
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
   const [addExerciseBodyPart, setAddExerciseBodyPart] =
-    useState<Exclude<BodyPart, "all">>("chest");
-  const [renamingExercise, setRenamingExercise] = useState<Exercise | null>(
-    null
-  );
-  const [renameExerciseName, setRenameExerciseName] = useState("");
-  const [renameExerciseError, setRenameExerciseError] = useState<string | null>(
-    null
-  );
-  const [previousRecordCache, setPreviousRecordCache] = useState<
-    Record<string, PreviousRecordCacheEntry>
-  >({});
-  const previousRecordRequestKeysRef = useRef<Set<string>>(new Set());
+    useState<Exclude<BodyPart, "all">>("chest"); // 追加モーダルの初期タブ
 
+  // --- 種目カードに表示する MAX 重量・最終トレ日 ---
   const { maxWeights, recalculateMaxWeights } = useMaxWeights();
   const { refresh: refreshLastTrained } = useLastTrainedDates();
-
-  const selectedPreviousRecordKey = selectedExercise
-    ? getPreviousRecordCacheKey(selectedDate, selectedExercise.id)
-    : null;
-  const selectedPreviousRecordEntry = selectedPreviousRecordKey
-    ? previousRecordCache[selectedPreviousRecordKey]
-    : undefined;
-
-  //データ読み込みロジック (ゲスト対応)
-useEffect(() => {
-  // ログインユーザーの場合、サーバーから既に設定反映済みなので再取得不要
-  if (userId) {
-    return;
-  }
-  
-  // ゲストユーザーのみ: ローカルストレージとマージ
-  const guestExercises = getGuestExercises(initialExercises);
-  setExercises(guestExercises);
-}, [userId, initialExercises]);
 
   const recalculateStats = useCallback(() => {
     recalculateMaxWeights();
     refreshLastTrained();
   }, [recalculateMaxWeights, refreshLastTrained]);
 
+  // 最大重量と最終トレーニング日の集計状態を記録画面の表示と同期する。
   useEffect(() => {
     recalculateStats();
   }, [recalculateStats]);
 
-  // ② swipeDirection の初期化
-  // アニメーション完了後にリセット（AnimatePresence の onExitComplete を使用）
-  // これにより、アニメーション中に swipeDirection が 0 にリセットされることを防ぐ
-
-  // ③ スワイプヒントの初回表示
-  useEffect(() => {
-    // SSR時はスキップ（localStorageにアクセスできない）
-    if (typeof window === "undefined") return;
-    // 既に表示済みならスキップ
-    const hasSeenHint = localStorage.getItem(SWIPE_HINT_SHOWN_KEY);
-    if (hasSeenHint) return;
-    setShowSwipeHint(true);// 初回表示
-    // 3秒後に自動で閉じて、表示済みフラグを保存
-    const timer = setTimeout(() => {
-      setShowSwipeHint(false);
-      localStorage.setItem(SWIPE_HINT_SHOWN_KEY, "true");
-    }, 3000);
-
-    // クリーンアップ（コンポーネントがアンマウントされた場合）
-    return () => clearTimeout(timer);
-  }, []);
+  // --- 種目リスト CRUD（guest/login 分岐は hook 内） ---
+  const {
+    exercises, // 記録画面に表示する種目一覧
+    handleAddExercise, // 種目追加モーダルから呼ぶ
+    handleCloseRenameCustomExercise,
+    handleDeleteCustomExercise,
+    handleOpenRenameCustomExercise,
+    handleRemoveExercise, // 編集モードでタップ → 非表示 or カスタム削除
+    handleRenameCustomExercise,
+    handleRenameExerciseNameChange,
+    isCustomExerciseOwnedByCurrentUser, // リネーム・削除ボタンの表示判定
+    renameExerciseError,
+    renameExerciseName,
+    renamingExercise, // null なら RenameDialog は閉じている
+  } = useRecordExercises({
+    initialExercises,
+    onExerciseListChanged: recalculateStats,
+    userId,
+  });
 
   const filteredExercises = useMemo(() => {
-    // 選択中の部位でフィルタ
+    // 表示対象の部位に絞ったあと、種目名・対象筋・補助分類で検索する。
     let result = exercises.filter((e) => e.bodyPart === selectedPart);
 
-    // 検索クエリが入力されている場合、名前または対象筋に部分一致
     if (searchQuery.trim()) {
       const lowerQuery = searchQuery.toLowerCase();
       result = result.filter(
@@ -223,291 +128,67 @@ useEffect(() => {
 
   const handleDateChange = (date: Date) => setSelectedDate(date);
 
-  /**
-   * 部位変更ハンドラ（ボタンタップ時）
-   * 検索クエリと編集モードをリセットする
-   */
-  const handlePartChange = (part: BodyPart) => {
+  const handlePartChange = useCallback((part: BodyPart) => {
     if (part === "all") return;
+    // 部位を変えたら、前の部位で使っていた検索と編集状態は持ち越さない。
     setSelectedPart(part);
     setSearchQuery("");
     setIsEditMode(false);
-  };
+  }, []);
 
-  const loadPreviousRecordForExercise = useCallback(
-    async (exercise: Exercise) => {
-      const cacheKey = getPreviousRecordCacheKey(selectedDate, exercise.id);
-      const hasCachedRecord = Boolean(previousRecordCache[cacheKey]);
-      const isRequesting =
-        previousRecordRequestKeysRef.current.has(cacheKey);
+  // --- 左右スワイプで部位切替 ---
+  const {
+    handleDragEnd,
+    resetSwipeDirection, // AnimatePresence の exit 完了後に方向を 0 に戻す
+    showSwipeHint, // 初回のみ「スワイプで部位切替」バナー
+    swipeDirection, // 1=左へ / -1=右へ / 0=タブ操作（アニメ方向用）
+  } = useBodyPartSwipe({
+    selectedPart,
+    onPartChange: handlePartChange,
+  });
 
-      if (hasCachedRecord || isRequesting) return;
+  // --- 記録モーダルに渡す前回記録 ---
+  const {
+    clearPreviousRecordLoadingForExercise, // 種目タップ時: 前回 stuck した loading を掃除
+    clearSelectedPreviousRecordLoading, // モーダル閉じ時: 進行中 loading を掃除
+    isPreviousRecordLoading, // 「前回記録を読み込み中...」表示用
+    loadPreviousRecordForExercise, // 種目タップ時に1回呼ぶ
+    previousRecord, // null = 前回記録なし
+  } = usePreviousRecordCache({
+    selectedDate,
+    selectedExercise,
+    userId,
+  });
 
-      previousRecordRequestKeysRef.current.add(cacheKey);
-      setPreviousRecordCache((prev) => ({
-        ...prev,
-        [cacheKey]: { record: null, isLoading: true },
-      }));
-
-      try {
-        const record = await fetchPreviousRecord(
-          selectedDate,
-          exercise,
-          userId
-        );
-        setPreviousRecordCache((prev) => ({
-          ...prev,
-          [cacheKey]: { record, isLoading: false },
-        }));
-      } catch (error) {
-        console.error("前回記録取得エラー", error);
-        setPreviousRecordCache((prev) => ({
-          ...prev,
-          [cacheKey]: { record: null, isLoading: false },
-        }));
-      } finally {
-        previousRecordRequestKeysRef.current.delete(cacheKey);
-      }
-    },
-    [previousRecordCache, selectedDate, userId]
-  );
-
-
-  /**
-   * スワイプ終了時のハンドラ
-   *
-   * @param _event - マウス/タッチイベント（今回は使用しない）
-   * @param info - ドラッグ情報（移動量、速度などを含む）
-   *
-   * 【処理の流れ】
-   * 1. 水平方向の移動量（offset.x）を取得
-   * 2. 移動量が閾値を超えているかチェック
-   * 3. 超えていれば、次or前の部位に切り替え
-   */
-  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    // offset.x: ドラッグ開始位置からの水平移動量
-    // 負の値 = 左方向へドラッグ、正の値 = 右方向へドラッグ
-    const offsetX = info.offset.x;
-
-    // 現在選択中の部位のインデックスを取得
-    const currentIndex = BODY_PARTS_ORDER.indexOf(selectedPart);
-
-    if (offsetX < -SWIPE_THRESHOLD) {
-      // 左スワイプ → 次の部位へ移動
-      const nextIndex = currentIndex + 1;
-
-      // 配列の範囲外にならないようにチェック
-      if (nextIndex < BODY_PARTS_ORDER.length) {
-        setSwipeDirection(1); // 右から左へのアニメーション
-        handlePartChange(BODY_PARTS_ORDER[nextIndex]);
-      }
-    } else if (offsetX > SWIPE_THRESHOLD) {
-      // 右スワイプ → 前の部位へ移動
-      const prevIndex = currentIndex - 1;// 例: 背中(1) → 胸(0)
-      // 配列の範囲外にならないようにチェック
-      if (prevIndex >= 0) {
-        setSwipeDirection(-1); // 左から右へのアニメーション
-        handlePartChange(BODY_PARTS_ORDER[prevIndex]);
-      }
-    }
-    // 閾値未満の場合は何もしない（誤操作防止）
-  };
-  // 種目選択ハンドラ
+  // --- ユーザー操作ハンドラ ---
   const handleExerciseSelect = (exercise: Exercise) => {
-    if (isEditMode) {//もし編集モードが有効なら
-      handleRemoveExercise(exercise);//種目を削除
+    if (isEditMode) {
+      // 編集モード中のタップは記録入力ではなく、リスト整理操作として扱う。
+      void handleRemoveExercise(exercise);
       return;
     }
-    setSelectedExercise(exercise);//種目を選択
-    setIsModalOpen(true);//モーダルを開く
+    clearPreviousRecordLoadingForExercise(exercise);
+    setSelectedExercise(exercise);
+    setIsModalOpen(true);
     void loadPreviousRecordForExercise(exercise);
   };
-  // モーダルを閉じるハンドラ
+
   const handleModalClose = () => {
-    setIsModalOpen(false);//モーダルを閉じる
-    setSelectedExercise(null);//種目を選択解除
-    recalculateStats();//統計を再計算
+    clearSelectedPreviousRecordLoading();
+    setIsModalOpen(false);
+    setSelectedExercise(null);
+    recalculateStats();
   };
-//
-  // 種目追加ボタンクリックハンドラ
+
   const handleAddExerciseClick = () => {
-    setAddExerciseBodyPart(selectedPart);//部位を選択
-    setIsAddExerciseModalOpen(true);//モーダルを開く
-    setIsEditMode(false);//編集モードを無効化
-  };
-
-  // ゲスト対応
-  const handleAddExercise = async (exercise: Exercise) => {
-    let exerciseToAdd = exercise;
-
-    if (userId) {// ログイン時
-      // カスタム種目の場合は、まずexercisesテーブルに保存する
-      if (exercise.tier === "custom") {
-        const result = await saveExercise(userId, exercise);
-        if (!result.success) {
-          console.error("種目保存エラー:", result.error);
-          toast.error("種目の保存に失敗しました");
-          return; // エラー時は処理を中断
-        }
-        exerciseToAdd = result.data ?? exercise;
-      }
-      //種目が存在することを確認してから、表示設定を保存
-      await toggleExerciseVisibility(userId, exerciseToAdd.id, true);
-    } else {
-      // ゲスト時
-      toggleGuestExerciseVisibility(exerciseToAdd.id, true);
-      if (exercise.tier === "custom") {
-        saveGuestCustomExercise(exerciseToAdd);
-      }
-    }
-    //新しい種目を作成
-    const newExercise = { ...exerciseToAdd, tier: "initial" as const };
-    setExercises((prev) => {//種目リストを更新
-      const exists = prev.some((e) => e.id === exerciseToAdd.id);
-      if (exists) {//もし種目が存在する場合
-        return prev.map((e) => (e.id === exerciseToAdd.id ? newExercise : e));
-      }
-      return [...prev, newExercise];//種目リストに新しい種目を追加
-    });
-
-    recalculateStats();//統計を再計算
-    toast.success("種目をリストに追加しました");
-  };
-
-  const isCustomExerciseOwnedByCurrentUser = useCallback(
-    (exercise: Exercise) => {
-      if (userId) return exercise.userId === userId;
-      return isGuestCustomExercise(exercise.id);
-    },
-    [userId]
-  );
-
-  const handleDeleteCustomExercise = useCallback(
-    async (exercise: Exercise) => {
-      if (userId) {
-        const result = await deleteCustomExercise(userId, exercise.id);
-        if (!result.success) {
-          toast.error(result.error ?? "カスタム種目の削除に失敗しました");
-          return;
-        }
-      } else if (!deleteGuestCustomExercise(exercise.id)) {
-        toast.error("削除できるカスタム種目が見つかりません");
-        return;
-      }
-
-      setExercises((prev) => prev.filter((e) => e.id !== exercise.id));
-      toast.success("カスタム種目を削除しました");
-    },
-    [userId]
-  );
-
-  const handleOpenRenameCustomExercise = useCallback((exercise: Exercise) => {
-    setRenamingExercise(exercise);
-    setRenameExerciseName(exercise.name);
-    setRenameExerciseError(null);
-  }, []);
-
-  const handleCloseRenameCustomExercise = useCallback(() => {
-    setRenamingExercise(null);
-    setRenameExerciseName("");
-    setRenameExerciseError(null);
-  }, []);
-
-  const handleRenameCustomExercise = useCallback(async () => {
-    if (!renamingExercise) return;
-
-    const nextName = renameExerciseName.trim();
-    if (!nextName) {
-      setRenameExerciseError("種目名を入力してください");
-      return;
-    }
-
-    if (nextName === renamingExercise.name) {
-      handleCloseRenameCustomExercise();
-      return;
-    }
-
-    if (userId) {
-      const result = await renameCustomExercise(
-        userId,
-        renamingExercise.id,
-        nextName
-      );
-      if (!result.success || !result.data) {
-        setRenameExerciseError(
-          result.error ?? "カスタム種目名の変更に失敗しました"
-        );
-        return;
-      }
-
-      setExercises((prev) =>
-        prev.map((exercise) =>
-          exercise.id === renamingExercise.id
-            ? { ...exercise, ...result.data, tier: exercise.tier }
-            : exercise
-        )
-      );
-    } else {
-      const renamedExercise = renameGuestCustomExercise(
-        renamingExercise.id,
-        nextName
-      );
-      if (!renamedExercise) {
-        setRenameExerciseError("カスタム種目名の変更に失敗しました");
-        return;
-      }
-
-      setExercises((prev) =>
-        prev.map((exercise) =>
-          exercise.id === renamingExercise.id
-            ? { ...exercise, name: renamedExercise.name }
-            : exercise
-        )
-      );
-    }
-
-    toast.success("カスタム種目名を変更しました");
-    handleCloseRenameCustomExercise();
-  }, [
-    handleCloseRenameCustomExercise,
-    renameExerciseName,
-    renamingExercise,
-    userId,
-  ]);
-
-  // 削除ロジック (ゲスト対応)
-  const handleRemoveExercise = async (exercise: Exercise) => {
-    if (isCustomExerciseOwnedByCurrentUser(exercise)) {
-      await handleDeleteCustomExercise(exercise);
-      return;
-    }
-
-    if (userId) {
-      // ログイン時
-      await toggleExerciseVisibility(userId, exercise.id, false);
-    } else {
-      const deletedCustomExercise = deleteGuestCustomExercise(exercise.id);
-      if (deletedCustomExercise) {
-        setExercises((prev) => prev.filter((e) => e.id !== exercise.id));
-        toast.success("カスタム種目を削除しました");
-        return;
-      }
-
-      // ▼ ゲスト時
-      toggleGuestExerciseVisibility(exercise.id, false);
-    }
-
-    setExercises((prev) =>
-      prev.map((e) => (e.id === exercise.id ? { ...e, tier: "selectable" } : e))
-    );
-    toast.success("リストから削除しました", {
-      description: "種目追加画面からいつでも元に戻せます",
-    });
+    setAddExerciseBodyPart(selectedPart);
+    setIsAddExerciseModalOpen(true);
+    setIsEditMode(false);
   };
 
   return (
     <div className="flex flex-col min-h-screen pb-20 bg-background">
-      {/* Header */}
+      {/* 日付と部位ナビゲーションは、スクロールしても操作しやすいよう固定表示する。 */}
       <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b">
         <div className="flex h-14 items-center justify-center px-4">
           <DateSelector date={selectedDate} onDateChange={handleDateChange} />
@@ -519,7 +200,6 @@ useEffect(() => {
           />
         </div>
 
-        {/* ③ スワイプヒント（初回のみ表示） */}
         <AnimatePresence>
           {showSwipeHint && (
             <motion.div
@@ -537,9 +217,8 @@ useEffect(() => {
         </AnimatePresence>
       </header>
 
-      {/* Main Content - スワイプ対応エリア */}
+      {/* 検索と編集操作はスワイプ対象外にして、種目一覧だけを左右切り替えする。 */}
       <main className="flex-1 flex w-full max-w-[430px] flex-col mx-auto px-4 py-4 gap-4 overflow-hidden">
-        {/* 検索バーと編集ボタン（スワイプ対象外） */}
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -577,64 +256,27 @@ useEffect(() => {
           </div>
         )}
 
-        {/*
-          ========================================
-          スワイプ対応の種目リストエリア
-          ========================================
-
-          【AnimatePresence】
-          - 子要素が切り替わる時にアニメーションを適用する
-          - mode="wait": 現在の要素が完全に消えてから次の要素を表示
-          - custom={swipeDirection}: アニメーションに方向を渡す
-
-          【motion.div】
-          - スワイプ（ドラッグ）操作を検知する
-          - drag="x": 水平方向のみドラッグ可能
-          - dragConstraints: ドラッグ可能な範囲を制限
-          - onDragEnd: ドラッグ終了時の処理
-
-          【key={selectedPart}】
-          - 部位が変わるとコンポーネントが再マウントされる
-          - これによりアニメーションがトリガーされる
-
-          【variants】
-          - アニメーションの各状態（初期・表示中・退出）を定義
-          - custom値（swipeDirection）を使って動的に方向を変える
-        */}
         <AnimatePresence
           mode="wait"
           custom={swipeDirection}
-          // アニメーション完了後に swipeDirection をリセット
-          // これにより、次のアニメーションが正しく動作する
-          onExitComplete={() => {
-            setSwipeDirection(0);
-          }}
+          onExitComplete={resetSwipeDirection}
         >
           <motion.div
             key={selectedPart}
             custom={swipeDirection}
-            // ドラッグ設定
             drag="x"
-            dragConstraints={{ left: 0, right: 0 }} // ドラッグ後は元の位置に戻る
-            dragElastic={0.2} // ドラッグの弾力性（0-1、小さいほど硬い）
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
             onDragEnd={handleDragEnd}
-            // アニメーション設定（variants を使用）
             variants={{
-              // 初期状態: 画面外から登場
-              // direction > 0: 次の部位へ（右から左へスワイプ）→ 右から登場（x: 200）
-              // direction < 0: 前の部位へ（左から右へスワイプ）→ 左から登場（x: -200）
               initial: (direction: number) => ({
                 x: direction > 0 ? 200 : direction < 0 ? -200 : 0,
                 opacity: 0,
               }),
-              // 表示中: 中央に配置
               animate: {
                 x: 0,
                 opacity: 1,
               },
-              // 退出時: 画面外へ移動
-              // direction > 0: 次の部位へ → 現在の画面は左へ消える（x: -200）
-              // direction < 0: 前の部位へ → 現在の画面は右へ消える（x: 200）
               exit: (direction: number) => ({
                 x: direction > 0 ? -200 : direction < 0 ? 200 : 0,
                 opacity: 0,
@@ -644,15 +286,12 @@ useEffect(() => {
             animate="animate"
             exit="exit"
             transition={{
-              // アニメーションの動き方
-              type: "spring",  // バネのような自然な動き
-              stiffness: 600,  // バネの硬さ（大きいほど速い）-
-              damping: 35,     // 減衰（大きいほど揺れが少ない）-
+              type: "spring",
+              stiffness: 600,
+              damping: 35,
             }}
-            // スタイル: 画面全体でスワイプ可能にするため、flex-1とmin-h-0を追加
             className="touch-pan-y flex-1 min-h-0"
           >
-            {/* 部位カード */}
             <BodyPartCard
               bodyPart={selectedPart}
               exercises={filteredExercises}
@@ -668,16 +307,15 @@ useEffect(() => {
         </AnimatePresence>
       </main>
 
-      {/* 種目詳細モーダル */}
+      {/* --- モーダル群 --- */}
       <ExerciseRecordModal
         exercise={selectedExercise}
         isOpen={isModalOpen}
         onClose={handleModalClose}
         date={selectedDate}
-        previousRecord={selectedPreviousRecordEntry?.record ?? null}
-        isPreviousRecordLoading={selectedPreviousRecordEntry?.isLoading ?? false}
+        previousRecord={previousRecord}
+        isPreviousRecordLoading={isPreviousRecordLoading}
       />
-      {/* 種目追加モーダル */}
       <AddExerciseModal
         isOpen={isAddExerciseModalOpen}
         onClose={() => setIsAddExerciseModalOpen(false)}
@@ -688,55 +326,14 @@ useEffect(() => {
         allExercises={exercises}
         initialBodyPart={addExerciseBodyPart}
       />
-      <Dialog
-        open={renamingExercise !== null}
-        onOpenChange={(open) => {
-          if (!open) handleCloseRenameCustomExercise();
-        }}
-      >
-        <DialogContent className="border-[var(--mg-border)] bg-[var(--mg-bg)] text-foreground sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>種目名を変更</DialogTitle>
-            <DialogDescription>
-              カスタム作成した種目だけ名前を変更できます。
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Input
-              aria-label="新しい種目名"
-              value={renameExerciseName}
-              onChange={(event) => {
-                setRenameExerciseName(event.target.value);
-                setRenameExerciseError(null);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void handleRenameCustomExercise();
-                }
-              }}
-              className="h-11 rounded-xl border-[var(--mg-border)] bg-[var(--mg-surface)] text-sm font-bold"
-            />
-            {renameExerciseError && (
-              <p className="text-sm font-bold text-red-500">
-                {renameExerciseError}
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCloseRenameCustomExercise}
-            >
-              キャンセル
-            </Button>
-            <Button type="button" onClick={() => void handleRenameCustomExercise()}>
-              変更する
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RenameCustomExerciseDialog
+        error={renameExerciseError}
+        exercise={renamingExercise}
+        name={renameExerciseName}
+        onClose={handleCloseRenameCustomExercise}
+        onNameChange={handleRenameExerciseNameChange}
+        onSubmit={() => void handleRenameCustomExercise()}
+      />
     </div>
   );
 }
