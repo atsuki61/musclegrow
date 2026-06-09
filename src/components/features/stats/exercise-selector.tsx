@@ -1,38 +1,31 @@
 "use client";
 
-import { HorizontalNav } from "./horizontal-nav";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Exercise } from "@/types/workout";
-import type { BodyPart } from "@/types/workout";
 
 /**
- * 種目選択コンポーネント（横スクロール可能なナビゲーション）
+ * 種目選択コンポーネント
  */
 export function ExerciseSelector({
   exercises,
   selectedExerciseId,
-  selectedBodyPart,
-  exercisesWithData,
   onChange,
 }: {
   exercises: Exercise[];
   selectedExerciseId: string | null;
-  selectedBodyPart: BodyPart;
-  exercisesWithData: Set<string>;
   onChange: (exerciseId: string) => void;
 }) {
-  // 部位でフィルタリング & データがある種目のみ
-  const filteredExercises =
-    selectedBodyPart === "all"
-      ? exercises.filter((ex) => exercisesWithData.has(ex.id))
-      : exercises.filter(
-          (ex) =>
-            ex.bodyPart === selectedBodyPart && exercisesWithData.has(ex.id)
-        );
-
-  const exerciseItems = filteredExercises.map((exercise) => ({
+  const exerciseItems = exercises.map((exercise) => ({
     value: exercise.id,
     label: exercise.name,
-    className: exercise.isBig3 ? "border-2 font-semibold" : undefined,
+    isBig3: exercise.isBig3,
   }));
 
   if (exerciseItems.length === 0) {
@@ -40,10 +33,32 @@ export function ExerciseSelector({
   }
 
   return (
-    <HorizontalNav
-      items={exerciseItems}
-      value={selectedExerciseId || exerciseItems[0]?.value || ""}
-      onChange={(id) => onChange(id)}
-    />
+    <div className="flex flex-col gap-2">
+      <p className="px-1 text-xs font-medium text-muted-foreground">種目</p>
+      <Select
+        value={selectedExerciseId ?? ""}
+        onValueChange={(id) => onChange(id)}
+      >
+        <SelectTrigger
+          aria-label="種目を選択"
+          className="h-11 w-full rounded-xl bg-card px-4 shadow-sm"
+        >
+          <SelectValue placeholder="種目を選択" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {exerciseItems.map((exercise) => (
+              <SelectItem
+                key={exercise.value}
+                value={exercise.value}
+                className={exercise.isBig3 ? "font-semibold" : undefined}
+              >
+                {exercise.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
