@@ -52,9 +52,12 @@ next-env.d.ts
 /docx
 # ローカル用ドキュメント（リポジトリでは追跡しない）
 /doc
+!/doc/
+/doc/*
+!/doc/学習/
+!/doc/学習/**
 /.cursor/plans
 /.specstory
-X
 # AI tools
 .claude/
 .cursor/
@@ -64,3 +67,4 @@ CLAUDE.md
 # Misc
 *.report.html
 vscode-extensions.txt
+/doc
