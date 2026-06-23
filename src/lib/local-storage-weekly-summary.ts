@@ -51,6 +51,7 @@ export function getWeeklySummaryFromStorage(range: WeekRange): WeeklySummary {
       let dayVolume = 0;
       let dayCount = 0;
       for (const set of sets) {
+        // isWarmup が undefined/falsy の場合は通常セット扱い（DB の isWarmup = false DEFAULT と等価）
         if (set.isWarmup) continue;
         const weight =
           typeof set.weight === "number" ? set.weight : Number(set.weight);
