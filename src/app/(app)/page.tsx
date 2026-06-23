@@ -2,6 +2,8 @@ import { HomePage } from "@/components/features/home";
 import { getBig3MaxWeights } from "@/lib/actions/big3-progress";
 import { getBig3TargetValues } from "@/lib/actions/profile";
 import { getTotalWorkoutDays } from "@/lib/actions/stats";
+import { getWeeklySummary } from "@/lib/actions/weekly-summary";
+import { getWeekRange, emptyWeeklySummary } from "@/lib/utils/weekly-summary";
 import { getAuthSession } from "@/lib/auth-session-server";
 import { identifyBig3Exercises } from "@/lib/utils/stats";
 import { getExercises } from "@/lib/api";
@@ -11,12 +13,15 @@ export default async function Home() {
   const userId = session?.user?.id ?? null;
 
   // 並列でデータを取得
-  const [big3Result, targetsResult, totalDays, exercisesResult] =
+  const [big3Result, targetsResult, totalDays, exercisesResult, weeklySummary] =
     await Promise.all([
       getBig3MaxWeights(userId),
       getBig3TargetValues(userId),
       userId ? getTotalWorkoutDays(userId) : Promise.resolve(0),
       getExercises(userId),
+      userId
+        ? getWeeklySummary(userId)
+        : Promise.resolve(emptyWeeklySummary(getWeekRange())),
     ]);
 
   // Big3種目のIDを特定
@@ -50,6 +55,7 @@ export default async function Home() {
       totalDays={totalDays}
       isLoggedIn={!!userId}
       userName={session?.user?.name}
+      weeklySummary={weeklySummary}
     />
   );
 }

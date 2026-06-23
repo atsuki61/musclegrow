@@ -6,6 +6,7 @@ import { TotalDaysBadge } from "./total-days-badge";
 import { Big3Progress } from "./big3-progress";
 import { RecordButton } from "./record-button";
 import { LoginStatusBadge } from "./login-status-badge";
+import { WeeklySummaryCard } from "./weekly-summary-card";
 
 import {
   createBig3Data,
@@ -13,6 +14,7 @@ import {
   type Big3Targets,
   type Big3Weights,
 } from "@/lib/big3";
+import type { WeeklySummary } from "@/lib/utils/weekly-summary";
 
 function getLocalMaxWeight(
   exerciseId: string | undefined,
@@ -33,6 +35,7 @@ interface HomePageProps {
   totalDays: number;
   isLoggedIn: boolean;
   userName?: string | null;
+  weeklySummary: WeeklySummary;
 }
 
 export function HomePage({
@@ -42,6 +45,7 @@ export function HomePage({
   totalDays,
   isLoggedIn,
   userName,
+  weeklySummary,
 }: HomePageProps) {
   const [big3Data, setBig3Data] = useState<Big3ProgressData>(() =>
     createBig3Data(dbWeights, targets)
@@ -111,6 +115,7 @@ export function HomePage({
         squat={big3Data.squat}
         deadlift={big3Data.deadlift}
       />
+      <WeeklySummaryCard initial={weeklySummary} />
       <RecordButton />
     </div>
   );
