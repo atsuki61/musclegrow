@@ -94,6 +94,8 @@ describe("buildWeeklySummary", () => {
       range2024w3
     );
     expect(s.trainedDays.every((d) => d === false)).toBe(true);
+    expect(s.totalVolume).toBe(0);
+    expect(s.totalSets).toBe(0);
   });
 });
 

@@ -83,11 +83,11 @@ export function buildWeeklySummary(
   const start = parseISO(range.weekStart);
 
   for (const day of weekDays) {
-    totalVolume += day.volume;
-    totalSets += day.setCount;
     const idx = differenceInCalendarDays(parseISO(day.date), start);
     if (idx >= 0 && idx < 7) {
       trainedDays[idx] = true;
+      totalVolume += day.volume;
+      totalSets += day.setCount;
     }
   }
 
