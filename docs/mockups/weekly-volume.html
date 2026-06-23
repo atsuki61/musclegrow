@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>週間ボリューム カード モック</title>
+<style>
+  /* === MuscleGrow テーマ変数（globals.css から抜粋・実色） === */
+  :root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.45 0 0);
+    --border: oklch(0.922 0 0);
+    --primary: oklch(0.705 0.213 47.604);     /* オレンジ */
+    --primary-foreground: oklch(0.985 0 0);
+    --green: oklch(0.62 0.17 150);
+    --red: oklch(0.62 0.21 25);
+    --radius: 1rem;
+    --shadow: 0 4px 20px rgba(0,0,0,0.05);
+  }
+  .dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.75 0 0);
+    --border: oklch(1 0 0 / 12%);
+    --primary: oklch(0.792 0.196 60.017);
+    --primary-foreground: oklch(0.205 0 0);
+    --shadow: none;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    padding: 24px 16px 80px;
+    transition: background .3s, color .3s;
+  }
+  .toolbar {
+    max-width: 1100px; margin: 0 auto 28px;
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  }
+  .toolbar h1 { font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
+  .toolbar p { font-size: 13px; color: var(--muted-foreground); }
+  .btn {
+    margin-left: auto; cursor: pointer; border: 1px solid var(--border);
+    background: var(--card); color: var(--foreground);
+    border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 700;
+  }
+
+  /* スマホ幅（max-w-md 相当）にカードを並べる */
+  .grid {
+    max-width: 1100px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 32px; align-items: start;
+  }
+  .phone {
+    width: 100%; max-width: 400px; margin: 0 auto;
+  }
+  .label {
+    font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted-foreground); display: flex; align-items: center; gap: 6px;
+    margin: 0 4px 10px;
+  }
+  .label .dot { color: var(--primary); }
+  .variant-name {
+    font-size: 12px; font-weight: 700; color: var(--primary);
+    text-align: center; margin-bottom: 10px;
+    background: color-mix(in oklab, var(--primary) 12%, transparent);
+    border-radius: 999px; padding: 4px 0; max-width: 240px; margin-inline: auto;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 16px; position: relative; overflow: hidden;
+  }
+  .card::before { /* primary のぼかし光彩 */
+    content: ""; position: absolute; top: -60px; right: -60px;
+    width: 140px; height: 140px; border-radius: 999px;
+    background: color-mix(in oklab, var(--primary) 8%, transparent);
+    filter: blur(40px); z-index: 0;
+  }
+  .card > * { position: relative; z-index: 1; }
+  .num { font-variant-numeric: tabular-nums; font-weight: 900; letter-spacing: -.02em; }
+  .delta { font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 2px; padding: 2px 7px; border-radius: 999px; }
+  .delta.up   { color: var(--green); background: color-mix(in oklab, var(--green) 14%, transparent); }
+  .delta.down { color: var(--red);   background: color-mix(in oklab, var(--red) 14%, transparent); }
+  .muted { color: var(--muted-foreground); }
+
+  /* ===== Pattern A : 2x2 スタットグリッド ===== */
+  .a-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .a-cell { background: color-mix(in oklab, var(--muted) 60%, transparent); border-radius: 14px; padding: 12px 14px; }
+  .a-cell .ico { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-size: 15px; margin-bottom: 8px; background: color-mix(in oklab, var(--primary) 12%, transparent); }
+  .a-cell .v { font-size: 22px; line-height: 1; }
+  .a-cell .u { font-size: 11px; }
+  .a-cell .k { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+
+  /* ===== Pattern B : ヒーロー総ボリューム + サブ ===== */
+  .b-hero { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .b-hero .v { font-size: 40px; line-height: .9; }
+  .b-hero .u { font-size: 14px; font-weight: 700; }
+  .b-sub { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .b-sub .v { font-size: 18px; }
+  .b-sub .k { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; }
+
+  /* ===== Pattern C : 週カレンダー + スタット統合 ===== */
+  .c-days { display: flex; justify-content: space-between; margin-bottom: 14px; }
+  .c-day { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .c-day .d { font-size: 10px; font-weight: 800; text-transform: uppercase; color: color-mix(in oklab, var(--muted-foreground) 70%, transparent); }
+  .c-day .d.today { color: var(--primary); }
+  .c-dot { width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: color-mix(in oklab, var(--muted) 70%, transparent); color: color-mix(in oklab, var(--muted-foreground) 40%, transparent); }
+  .c-dot.done { background: linear-gradient(135deg, var(--primary), oklch(0.62 0.2 35)); color: #fff; box-shadow: 0 4px 12px color-mix(in oklab, var(--primary) 35%, transparent); transform: scale(1.06); }
+  .c-dot.today { outline: 2px solid var(--primary); outline-offset: 2px; }
+  .c-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .c-stats .v { font-size: 17px; }
+  .c-stats .k { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; }
+
+  /* ===== Pattern D : 横並びコンパクトストリップ ===== */
+  .d-strip { display: flex; align-items: stretch; }
+  .d-item { flex: 1; padding: 4px 10px; text-align: center; }
+  .d-item + .d-item { border-left: 1px solid var(--border); }
+  .d-item .v { font-size: 20px; }
+  .d-item .k { font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; }
+  .d-item .ico { font-size: 14px; margin-bottom: 2px; }
+
+  /* ホーム文脈プレビュー用のダミー */
+  .ctx { opacity: .5; pointer-events: none; }
+  .ctx .bar { height: 56px; border-radius: 16px; background: var(--muted); margin-bottom: 10px; }
+  .ctx .rec { height: 52px; border-radius: 14px; background: linear-gradient(135deg, var(--primary), oklch(0.62 0.2 35)); margin-top: 16px; }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <div>
+      <h1>週間ボリューム カード — モック比較</h1>
+      <p>同じデータ（今週: ジム3回 / 12,500kg / 48セット / 先週比 +8%）を4パターンで表示。右ボタンでライト⇄ダーク。</p>
+    </div>
+    <button class="btn" onclick="document.documentElement.classList.toggle('dark')">🌓 テーマ切替</button>
+  </div>
+
+  <div class="grid">
+
+    <!-- ===== Pattern A ===== -->
+    <div class="phone">
+      <div class="variant-name">Pattern A — スタットグリッド (2×2)</div>
+      <div class="label"><span class="dot">▲</span> THIS WEEK</div>
+      <div class="card">
+        <div class="a-grid">
+          <div class="a-cell">
+            <div class="ico">🏋️</div>
+            <div><span class="num v">3</span> <span class="u muted">回</span></div>
+            <div class="k muted">ジム回数</div>
+          </div>
+          <div class="a-cell">
+            <div class="ico">💪</div>
+            <div><span class="num v">12,500</span> <span class="u muted">kg</span></div>
+            <div class="k muted">総ボリューム</div>
+          </div>
+          <div class="a-cell">
+            <div class="ico">🔁</div>
+            <div><span class="num v">48</span> <span class="u muted">セット</span></div>
+            <div class="k muted">総セット</div>
+          </div>
+          <div class="a-cell">
+            <div class="ico">📈</div>
+            <div><span class="delta up">▲ 8%</span></div>
+            <div class="k muted">先週比 (ボリューム)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Pattern B ===== -->
+    <div class="phone">
+      <div class="variant-name">Pattern B — ヒーロー総ボリューム</div>
+      <div class="label"><span class="dot">▲</span> WEEKLY VOLUME</div>
+      <div class="card">
+        <div class="b-hero">
+          <div>
+            <div class="k muted" style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">今週 持ち上げた総重量</div>
+            <div><span class="num v">12,500</span><span class="u muted"> kg</span></div>
+          </div>
+          <span class="delta up" style="font-size:13px;">▲ 8%</span>
+        </div>
+        <div class="b-sub">
+          <div><div class="num v">3</div><div class="k muted">ジム回数</div></div>
+          <div><div class="num v">48</div><div class="k muted">総セット</div></div>
+          <div><div class="num v">+930</div><div class="k muted">先週差 kg</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Pattern C ===== -->
+    <div class="phone">
+      <div class="variant-name">Pattern C — 週カレンダー統合（streak融合）</div>
+      <div class="label"><span class="dot">🔥</span> THIS WEEK</div>
+      <div class="card">
+        <div class="c-days">
+          <div class="c-day"><span class="d">月</span><span class="c-dot done">✓</span></div>
+          <div class="c-day"><span class="d">火</span><span class="c-dot"></span></div>
+          <div class="c-day"><span class="d">水</span><span class="c-dot done">✓</span></div>
+          <div class="c-day"><span class="d">木</span><span class="c-dot"></span></div>
+          <div class="c-day"><span class="d today">金</span><span class="c-dot done today">✓</span></div>
+          <div class="c-day"><span class="d">土</span><span class="c-dot"></span></div>
+          <div class="c-day"><span class="d">日</span><span class="c-dot"></span></div>
+        </div>
+        <div class="c-stats">
+          <div><div class="num v">12,500<span class="muted" style="font-size:11px;font-weight:700;">kg</span></div><div class="k muted">総ボリューム</div></div>
+          <div><div class="num v">48</div><div class="k muted">総セット</div></div>
+          <div><div class="delta up" style="font-size:12px;">▲ 8%</div><div class="k muted" style="margin-top:3px;">先週比</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Pattern D ===== -->
+    <div class="phone">
+      <div class="variant-name">Pattern D — コンパクト横ストリップ</div>
+      <div class="label"><span class="dot">▲</span> THIS WEEK</div>
+      <div class="card" style="padding:14px 8px;">
+        <div class="d-strip">
+          <div class="d-item"><div class="ico">🏋️</div><div class="num v">3</div><div class="k muted">回</div></div>
+          <div class="d-item"><div class="ico">💪</div><div class="num v">12.5k</div><div class="k muted">kg</div></div>
+          <div class="d-item"><div class="ico">🔁</div><div class="num v">48</div><div class="k muted">セット</div></div>
+          <div class="d-item"><div class="ico">📈</div><div class="num v" style="color:var(--green)">+8%</div><div class="k muted">先週比</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ホーム文脈プレビュー（Pattern C を配置した例） ===== -->
+    <div class="phone">
+      <div class="variant-name">ホーム配置イメージ（例: Pattern C）</div>
+      <div class="ctx">
+        <div class="bar"></div>
+      </div>
+      <div class="label" style="margin-top:14px;"><span class="dot">🔥</span> THIS WEEK</div>
+      <div class="card">
+        <div class="c-days">
+          <div class="c-day"><span class="d">月</span><span class="c-dot done">✓</span></div>
+          <div class="c-day"><span class="d">火</span><span class="c-dot"></span></div>
+          <div class="c-day"><span class="d">水</span><span class="c-dot done">✓</span></div>
+          <div class="c-day"><span class="d">木</span><span class="c-dot"></span></div>
+          <div class="c-day"><span class="d today">金</span><span class="c-dot done today">✓</span></div>
+          <div class="c-day"><span class="d">土</span><span class="c-dot"></span></div>
+          <div class="c-day"><span class="d">日</span><span class="c-dot"></span></div>
+        </div>
+        <div class="c-stats">
+          <div><div class="num v">12,500<span class="muted" style="font-size:11px;font-weight:700;">kg</span></div><div class="k muted">総ボリューム</div></div>
+          <div><div class="num v">48</div><div class="k muted">総セット</div></div>
+          <div><div class="delta up" style="font-size:12px;">▲ 8%</div><div class="k muted" style="margin-top:3px;">先週比</div></div>
+        </div>
+      </div>
+      <div class="ctx"><div class="rec"></div></div>
+    </div>
+
+  </div>
+</body>
+</html>
