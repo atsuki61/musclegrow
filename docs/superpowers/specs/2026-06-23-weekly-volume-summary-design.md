@@ -48,6 +48,18 @@
 
 **採用＝案1。** 既存 `stats.ts` の規約一致・転送量・速度の3点で案1が明確に優位。「集計はデータの近くで行う」という原則にも合致する。ゲストはデータがブラウザの localStorage にしか存在しないため、ゲスト側のみ必然的にJS集計（4.2 と独立した判断）。
 
+**型キャストの明記（レビュー反映）**: `sets.weight` は Drizzle 上 `numeric` 型で、生のままだと JS 側に `string` で返り `number | string` のブレを生む。既存 `stats.ts` が `MAX(${sets.weight}::numeric)::float` としているのに倣い、本集計でも明示的に float へキャストする:
+
+```sql
+SUM((${sets.weight}::numeric) * ${sets.reps})::float   -- 総ボリューム
+COUNT(*) FILTER (WHERE NOT ${sets.isWarmup} AND ${sets.weight} > 0 AND ${sets.reps} > 0)  -- 総セット
+COUNT(DISTINCT ${workoutSessions.date}) FILTER (WHERE 同条件)  -- ジム回数
+```
+
+### 4.1.1 キャッシュ方針 — **本集計は `unstable_cache` を使わない（即時性優先）**
+
+既存 `stats.ts` は成長グラフ用に `unstable_cache` を使うが、週間サマリーは「記録直後にホームへ戻って数値が増えている」体験が重要。キャッシュすると記録の追加/更新/削除のたびに `revalidateTag` 連携が必要になり複雑化する。**ホーム表示の即時性を優先し本集計はキャッシュしない**方針とする（軽い集計クエリ1本のため許容範囲）。将来負荷が問題化したらタグ付きキャッシュ＋記録CRUD時 revalidate を検討。
+
 ### 4.2 ゲストデータの集計 — **localStorageキー走査（既存パターン踏襲）**
 
 ゲストは `workout_YYYY-MM-DD_exerciseId` キーで記録を持つ（`local-storage-history.ts` 参照）。選択肢は実質1つだが、**既存の `getBodyPartsByDateRangeFromStorage` と同じキー走査パターン**を踏襲する。
@@ -72,7 +84,27 @@
 | 案2: 全てクライアントで `useEffect` fetch | サーバー側変更が小さい | ・初期表示が空→チラつき<br>・ログインユーザーでも往復が増える |
 | 案3: 全てサーバー計算（ゲストも含む） | 実装が1系統 | ・ゲストのデータはサーバーに無く**実現不可** |
 
-**採用＝案1。** `shouldUseDbOnly(userId)` で「ログイン=DB初期値をそのまま採用 / ゲスト=localStorage集計」を分岐。既存 `big3-progress.tsx` と同じく、ゲスト集計は `requestIdleCallback`/effect で反映しチラつきを抑える。
+**採用＝案1。** 既存 `big3-progress.tsx` と同じく、ゲスト集計は `requestIdleCallback`/effect で反映しチラつきを抑える。
+
+#### `shouldUseDbOnly` の正確なセマンティクスとマージ方針（レビュー反映）
+
+`shouldUseDbOnly(userId)`（`src/lib/data-source.ts`）は「ログイン**かつ移行完了**」のときだけ true を返す。判定の正確な分岐は次の通り（**「ログイン済みか」ではなく「移行完了済みか」で決まる**点に注意）:
+
+| 状態 | `shouldUseDbOnly` | 集計の扱い |
+|---|---|---|
+| 未ログイン（ゲスト） | false | localStorage 集計のみ（DB初期値は無し=0） |
+| ログイン + 移行完了 | true | **DB集計のみ**（初期 prop をそのまま採用） |
+| ログイン + 移行未完了 | false | **DB集計 ＋ localStorage 集計をマージ** |
+| SSR時（サーバー） | true（window無し） | サーバーは常にDB集計を初期 prop として算出 |
+
+**移行未完了時のマージが安全な理由**: 移行は完了時に `guest_data_migrated` フラグを立て、それ以降 `shouldUseDbOnly=true` になる。つまり「移行未完了」の間は、ログイン後にDBへ記録したセットと、未移行のゲスト localStorage 記録は**互いに素**（同一記録の二重計上は起きない）。よって以下のフィールド別マージで正しい:
+
+- `totalVolume` / `totalSets`: **加算**（disjoint なので二重計上なし）
+- `trainedDays`（曜日ドット）: 曜日ごとに **論理OR**
+- `gymCount`: マージ後の `trainedDays` の true 数を**再計算**（単純加算しない＝同日重複を防ぐ）
+- `prevWeekVolume`: 同様に加算
+
+`WeeklySummaryCard` は初期 prop（サーバーDB値）で描画し、`shouldUseDbOnly()=false` のときのみ effect 内で localStorage 集計を上記ルールでマージして再 setState する。Big3 と同じ `requestIdleCallback` + `visibilitychange` 再計算パターンを踏襲する。
 
 ### 4.5 集計アクションの配置 — **新規ファイル `lib/actions/weekly-summary.ts`**
 
@@ -83,6 +115,7 @@
 
 - `weekly-streak.tsx` は仮データの曜日ドット表示で、現在ホームに**未配置**（`home-page.tsx` から呼ばれていない）。
 - 本カードがその役割（曜日ドット）を実データで内包するため、**新カードへ統合し `weekly-streak.tsx` と `weekly-streak.test.tsx` は削除**する（重複・デッドコード回避）。新カードに相当のコンポーネントテストを用意する。
+- 検証済み: `weekly-streak` は `src/components/features/home/index.ts` から **export されていない**（公開APIは `HomePage` と `LoginStatusBadge` のみ）。よって削除は当該コンポーネントとそのテストのみで完結し、index.ts の整理は不要。
 
 ---
 
@@ -96,8 +129,9 @@
               ↓
 HomePage [Client]
    └─ <WeeklySummaryCard initial={initialSummary} exercises={...} />
-         ├─ shouldUseDbOnly(userId)=true（ログイン）: initial をそのまま表示
-         └─ false（ゲスト）: getWeeklySummaryFromStorage() で集計し setState
+         ├─ shouldUseDbOnly()=true（ログイン＋移行完了）: initial をそのまま表示
+         └─ false（ゲスト or ログイン＋移行未完了）:
+              getWeeklySummaryFromStorage() を初期DB値に 4.4 のルールでマージ
 ```
 
 ### 配置
@@ -119,16 +153,35 @@ export interface WeeklySummary {
 
 // 先週比: prevWeekVolume が 0 のとき null（=「NEW」表示）
 export function calcVolumeDelta(current: number, prev: number): number | null;
-export function getWeekRange(now: Date): { weekStart: Date; weekEnd: Date; prevWeekStart: Date; prevWeekEnd: Date };
+
+// 週範囲は Asia/Tokyo 基準・月曜起点。yyyy-MM-dd 文字列で返す（7.1 参照）
+export function getWeekRange(now: Date): {
+  weekStart: string; weekEnd: string; prevWeekStart: string; prevWeekEnd: string;
+};
+
+// DB集計 + localStorage集計のマージ（4.4: 移行未完了時のみ使用）
+// volume/sets は加算、trainedDays は曜日ごとOR、gymCount は再計算
+export function mergeWeeklySummary(db: WeeklySummary, local: WeeklySummary): WeeklySummary;
 ```
 
 ## 7. 集計の定義（厳密化）
 
-- **総ボリューム** = `Σ(weight × reps)`。`isWarmup = true` のセットは除外。`weight <= 0` または `reps <= 0` は除外。
-- **総セット数** = ウォームアップを除く有効セットの件数（`weight>0` かつ `reps>0`）。
-- **ジム回数** = 週内で有効な記録が1件以上ある distinct な日付数。
-- **trainedDays** = 月〜日の各曜日にトレーニング日があるか。
+**全指標で同一の「有効セット条件」を使う（レビュー反映）**: `NOT isWarmup AND weight > 0 AND reps > 0`。DB（SQLのWHERE/FILTER）と localStorage（JS フィルタ）で**完全に同じ条件**を適用し、二系統の差分を防ぐ。
+
+- **総ボリューム** = 有効セットの `Σ(weight × reps)`（kg）。
+- **総セット数** = 有効セットの件数。
+- **ジム回数** = **有効セットが1件以上ある日**の distinct な日付数。空セッションや有酸素のみの日は「筋トレボリューム主体」の方針に従い**含めない**（`workout_sessions` を単純に数えず、有効セットのある日で数える）。
+- **trainedDays** = 月〜日の各曜日に「有効セットのある日」が存在するか。
 - **先週比** = `(totalVolume - prevWeekVolume) / prevWeekVolume * 100`。`prevWeekVolume = 0` のとき `null`（UIは「NEW」）。
+
+### 7.1 週境界とタイムゾーン（レビュー反映）
+
+「今週（月〜日）」はユーザーの体感（日本時間）で区切る必要がある。サーバー実行環境（Vercel/Node）のTZがUTCだと、日曜深夜などに週がズレる。対策:
+
+- 週範囲は**アプリ基準TZ = `Asia/Tokyo`** で算出する。`getWeekRange()` は「現在時刻をJSTの暦日へ変換 → `startOfWeek(weekStartsOn:1)` / `endOfWeek`」とし、結果を `yyyy-MM-dd` 文字列で返す。
+- DB集計は `workout_sessions.date`（date型）を、この `yyyy-MM-dd` 文字列レンジと比較。
+- localStorage集計は既存どおり `yyyy-MM-dd` 文字列比較（`local-storage-history.ts` と同方針）。
+- これにより DB・ゲスト両系統で**同一の週境界**になる。
 
 ## 8. エッジケース / エラー処理
 
@@ -141,7 +194,7 @@ export function getWeekRange(now: Date): { weekStart: Date; weekEnd: Date; prevW
 ## 9. テスト方針（`src/__tests__` 構成に準拠）
 
 - `__tests__/lib/utils/weekly-summary.test.ts`: `getWeekRange`（月曜起点・先週範囲）、総ボリューム（ウォームアップ/無効値除外）、総セット、ジム日数distinct、`calcVolumeDelta`（通常・ゼロ除算）。
-- `__tests__/lib/weekly-summary-storage.test.ts`: localStorage集計（範囲判定・破損データskip）。
+- `__tests__/lib/weekly-summary-storage.test.ts`: localStorage集計。範囲判定・破損JSON skip に加え、実データのブレを想定して**非配列JSON・weightが数値文字列・NaNになる文字列・`isWarmup`未定義・同日複数exerciseキー・マージ（trainedDaysのOR / gymCount再計算）**をカバー。
 - `__tests__/lib/actions/weekly-summary.test.ts`: DBアクション（`stats.test.ts` を踏襲）。
 - `__tests__/components/home/weekly-summary-card.test.tsx`: カード描画（`weekly-streak.test.tsx` を踏襲）。
 
