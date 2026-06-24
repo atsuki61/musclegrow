@@ -32,7 +32,7 @@ interface SetRowProps {
   onSetChange: (
     setId: string,
     field: keyof SetRecord,
-    value: number | string | boolean
+    value: number | string | boolean,
   ) => void;
   onCopyPrevious: (index: number) => void;
   onDelete: (setId: string) => void;
@@ -50,13 +50,14 @@ function SetRow({
   onDelete,
   setRowRef,
 }: SetRowProps) {
-  const needsWeight = requiresWeightInput(exercise);//重量入力が必要かどうか
-  const isTimeBased = isTimeBasedExercise(exercise);//時間制の種目かどうか
-  const isBodyweight = isBodyweightExercise(exercise);//自重種目かどうか
+  const needsWeight = requiresWeightInput(exercise); //重量入力が必要かどうか
+  const isTimeBased = isTimeBasedExercise(exercise); //時間制の種目かどうか
+  const isBodyweight = isBodyweightExercise(exercise); //自重種目かどうか
   const oneRM =
-    set.weight && set.weight > 0 ? calculate1RM(set.weight, set.reps) : null;//1RMを計算
+    set.weight && set.weight > 0 ? calculate1RM(set.weight, set.reps) : null; //1RMを計算
 
-  return (//セット行を返す
+  return (
+    //セット行を返す
     <div
       ref={setRowRef}
       className="group relative animate-in fade-in slide-in-from-bottom-2 duration-300"
@@ -106,7 +107,7 @@ function SetRow({
                 onSetChange(
                   set.id,
                   isTimeBased ? "duration" : "reps",
-                  parseFloat(e.target.value)
+                  parseFloat(e.target.value),
                 )
               }
               // h-12 -> h-10, text-lg -> text-base でコンパクト化
@@ -172,17 +173,20 @@ export function SetRecordForm({
   //入力とコピーの両方で同じ挙動にするために関数化
   const maybeAppendNextEmptySet = (
     updatedSets: SetRecord[],
-    changedSetId: string
+    changedSetId: string,
   ): SetRecord[] => {
     if (updatedSets.length >= MAX_SETS) return updatedSets;
 
-    const changedIndex = updatedSets.findIndex((set) => set.id === changedSetId);
+    const changedIndex = updatedSets.findIndex(
+      (set) => set.id === changedSetId,
+    );
     if (changedIndex === -1) return updatedSets;
 
     const isLastRow = changedIndex === updatedSets.length - 1;
     if (!isLastRow) return updatedSets;
 
-    if (!hasAnyPositiveInputValue(updatedSets[changedIndex])) return updatedSets;
+    if (!hasAnyPositiveInputValue(updatedSets[changedIndex]))
+      return updatedSets;
 
     return [...updatedSets, createNewSet(updatedSets.length + 1)];
   };
@@ -215,10 +219,10 @@ export function SetRecordForm({
   const handleSetChange = (
     setId: string,
     field: keyof SetRecord,
-    value: number | string | boolean
+    value: number | string | boolean,
   ) => {
     const updatedSets = sets.map((set) =>
-      set.id === setId ? { ...set, [field]: value } : set
+      set.id === setId ? { ...set, [field]: value } : set;
     );
 
     // 数値入力（重量/回数/時間）のときだけ「次セットの自動追加」を判定する
@@ -229,27 +233,30 @@ export function SetRecordForm({
 
     onSetsChange(nextSets);
   };
-//前回記録をコピー
+  //前回記録をコピー
   const handleCopyPreviousSet = (index: number) => {
     if (index === 0) return;
     const previousSet = sets[index - 1];
     const currentSet = sets[index];
-    const isTimeBased = isTimeBasedExercise(exercise);//時間制の種目かどうか
+    const isTimeBased = isTimeBasedExercise(exercise); //時間制の種目かどうか
     //セットを更新
     const updatedSets = sets.map((set) => {
-      if (set.id === currentSet.id) {//もしセットidが一致したら
-        const updated: SetRecord = { ...set };//セットを更新
-        if (isTimeBased) {//時間制の種目なら
-          updated.duration = previousSet.duration;//時間を更新
-        } else {//重量制の種目なら
-          updated.weight = previousSet.weight;//重量を更新
-          updated.reps = previousSet.reps;//回数を更新
+      if (set.id === currentSet.id) {
+        //もしセットidが一致したら
+        const updated: SetRecord = { ...set }; //セットを更新
+        if (isTimeBased) {
+          //時間制の種目なら
+          updated.duration = previousSet.duration; //時間を更新
+        } else {
+          //重量制の種目なら
+          updated.weight = previousSet.weight; //重量を更新
+          updated.reps = previousSet.reps; //回数を更新
         }
-        return updated;//更新したセットを返す
+        return updated; //更新したセットを返す
       }
-      return set;//セットを返す
+      return set; //セットを返す
     });
-    onSetsChange(maybeAppendNextEmptySet(updatedSets, currentSet.id));//セットを更新
+    onSetsChange(maybeAppendNextEmptySet(updatedSets, currentSet.id)); //セットを更新
   };
 
   return (
