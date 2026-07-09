@@ -79,8 +79,8 @@ describe("sets", () => {
         // Then: 保存成功
         expect(result.success).toBe(true);
         expect(result.data?.count).toBe(2);
-        expect(revalidateTag).toHaveBeenCalledWith("stats:exercise");
-        expect(revalidateTag).toHaveBeenCalledWith("stats:big3");
+        expect(revalidateTag).toHaveBeenCalledWith("stats:exercise", "max");
+        expect(revalidateTag).toHaveBeenCalledWith("stats:big3", "max");
       });
 
       it("空配列の場合、既存削除のみ実行", async () => {
