@@ -233,7 +233,7 @@ export async function updateProfile(data: unknown): Promise<{
       }
     }
 
-    revalidateTag("profile:history");
+    revalidateTag("profile:history", 'max');
 
     return {
       success: true,

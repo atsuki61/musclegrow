@@ -128,8 +128,8 @@ export async function saveSets(
     });
 
     await Promise.all([
-      revalidateTag("stats:exercise"),
-      revalidateTag("stats:big3"),
+      revalidateTag("stats:exercise", 'max'),
+      revalidateTag("stats:big3", 'max'),
     ]);
 
     return {

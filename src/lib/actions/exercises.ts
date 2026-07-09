@@ -161,7 +161,7 @@ export async function saveExercise(
       data: mapExerciseRow(savedExercise),
     };
 
-    await revalidateTag("exercises");
+    await revalidateTag("exercises", 'max');
 
     return response;
   } catch (error: unknown) {
@@ -216,7 +216,7 @@ export async function deleteCustomExercise(
       };
     }
 
-    await revalidateTag("exercises");
+    await revalidateTag("exercises", 'max');
 
     return { success: true };
   } catch (error: unknown) {
@@ -269,7 +269,7 @@ export async function renameCustomExercise(
       };
     }
 
-    await revalidateTag("exercises");
+    await revalidateTag("exercises", 'max');
 
     return {
       success: true,

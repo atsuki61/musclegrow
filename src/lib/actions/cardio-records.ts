@@ -283,9 +283,9 @@ export async function saveSessionWithCardioRecords(
       return { sessionId, isNewSession };
     });
 
-    revalidateTag(`workout-session:${userId}:${date}`);
+    revalidateTag(`workout-session:${userId}:${date}`, 'max');
     if (result.isNewSession) {
-      revalidateTag(`stats:total-days:${userId}`);
+      revalidateTag(`stats:total-days:${userId}`, 'max');
     }
 
     return {
