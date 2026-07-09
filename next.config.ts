@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // React Compiler: コンポーネントの再レンダリングを自動最適化
+  reactCompiler: true,
   // 開発サーバーのエントリーポイント管理を最適化
   onDemandEntries: {
     maxInactiveAge: 60 * 1000,
