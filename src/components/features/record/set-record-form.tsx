@@ -222,7 +222,7 @@ export function SetRecordForm({
     value: number | string | boolean,
   ) => {
     const updatedSets = sets.map((set) =>
-      set.id === setId ? { ...set, [field]: value } : set;
+      set.id === setId ? { ...set, [field]: value } : set,
     );
 
     // 数値入力（重量/回数/時間）のときだけ「次セットの自動追加」を判定する
