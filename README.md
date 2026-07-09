@@ -40,8 +40,8 @@ MuscleGrow OGP
 
 | 領域      | 技術                                             |
 | ------- | ---------------------------------------------- |
-| フレームワーク | Next.js 15 App Router                          |
-| 言語      | TypeScript 5.9                                 |
+| フレームワーク | Next.js 16 App Router                          |
+| 言語      | TypeScript 7                                   |
 | UI      | Tailwind CSS 4、shadcn/ui、Radix UI、lucide-react |
 | 認証      | Better Auth、Google OAuth、メール/パスワード認証           |
 | DB      | Supabase PostgreSQL                            |
