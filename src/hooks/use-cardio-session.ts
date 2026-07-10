@@ -122,6 +122,9 @@ export function useCardioSession({
   );
 
   const loadRecords = useCallback(async () => {
+    // effect から呼ぶとき、同期 setState を effect 本体から切り離す
+    await Promise.resolve();
+
     if (!exerciseId || !isOpen) {
       setRecords([]);
       return;
@@ -272,15 +275,35 @@ export function useCardioSession({
     previousExerciseIdRef.current = exerciseId;
   }, [date, exerciseId, isOpen, userId]);
 
+  const sessionKey =
+    isOpen && exerciseId ? `${dateStr}:${exerciseId}` : null;
+  const [loadedSessionKey, setLoadedSessionKey] = useState<string | null>(null);
+
+  // モーダルを閉じたら記録 state をリセット
+  if (sessionKey === null && loadedSessionKey !== null) {
+    setLoadedSessionKey(null);
+    setRecords([]);
+    setIsLoaded(false);
+    setIsLoading(false);
+  }
+
+  // 日付・種目・オープン状態が変わったら非同期で記録を読み込む
   useEffect(() => {
-    if (isOpen && exerciseId) {
-      loadRecords();
-    } else if (!isOpen) {
-      setRecords([]);
-      setIsLoaded(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, exerciseId, dateStr]);
+    if (!sessionKey) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      await loadRecords();
+      if (!cancelled) {
+        setLoadedSessionKey(sessionKey);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionKey, loadRecords]);
 
   return {
     records,

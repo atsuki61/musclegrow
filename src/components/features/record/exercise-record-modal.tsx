@@ -86,6 +86,13 @@ export default function ExerciseRecordModal({
   const isCardio = exercise ? isCardioExercise(exercise) : false;//exerciseがnullの場合はfalseを返す
   const [activeTab, setActiveTab] = useState("record");//タブをrecordに設定
   const [updateMaxRecord, setUpdateMaxRecord] = useState(false); // MAX重量更新フラグ
+  const [prevDate, setPrevDate] = useState(date);
+
+  // 日付が変わったら MAX 重量更新フラグをリセット
+  if (date.getTime() !== prevDate.getTime()) {
+    setPrevDate(date);
+    setUpdateMaxRecord(false);
+  }
 
   const isLoading = isPreviousRecordLoading && !previousRecord;//前回記録を取得中かどうか
   const bodyPartColor = exercise
@@ -157,11 +164,6 @@ export default function ExerciseRecordModal({
       previousExerciseIdRef.current = exercise?.id || null;
     }
   }, [isOpen, isLoaded, sets.length, exercise?.id]);
-
-  // 日付が変わったらMAX重量更新フラグをリセット
-  useEffect(() => {
-    setUpdateMaxRecord(false);
-  }, [date]);
 
   // モーダルを閉じる
   const handleClose = () => {

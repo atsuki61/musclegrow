@@ -1,6 +1,9 @@
 // src/app/(app)/stats/loading.tsx
 import { Skeleton } from "@/components/ui/skeleton";
 
+/** ローディング用スケルトンの棒グラフ高さ（固定値で render を純粋に保つ） */
+const CHART_BAR_HEIGHTS = [45, 72, 38, 65, 55, 80, 42] as const;
+
 export default function Loading() {
   return (
     <div className="container mx-auto px-4 py-4 space-y-4 pb-20">
@@ -28,11 +31,11 @@ export default function Loading() {
       <div className="space-y-2">
         <div className="h-[300px] w-full rounded-xl border bg-card p-4 flex items-end gap-2">
           {/* Fake Chart Bars */}
-          {[...Array(7)].map((_, i) => (
+          {CHART_BAR_HEIGHTS.map((height, i) => (
             <Skeleton
               key={i}
               className="w-full rounded-t-sm"
-              style={{ height: `${Math.random() * 60 + 20}%` }}
+              style={{ height: `${height}%` }}
             />
           ))}
         </div>

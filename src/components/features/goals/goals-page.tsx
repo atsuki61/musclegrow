@@ -1,49 +1,71 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { getProfile, updateProfile } from "@/lib/actions/profile";
+import { updateProfile } from "@/lib/actions/profile";
+import { getGuestProfile } from "@/lib/local-storage-profile";
 
-export function GoalsPage() {
+export type Big3TargetFormValues = {
+  benchPress: string;
+  squat: string;
+  deadlift: string;
+};
+
+interface GoalsPageProps {
+  /** ログインユーザー向け: サーバーで取得済みの BIG3 目標 */
+  initialTargets: Big3TargetFormValues | null;
+  userId: string | null;
+}
+
+function getGuestBig3Targets(): Big3TargetFormValues | null {
+  const guestProfile = getGuestProfile();
+  if (!guestProfile) return null;
+
+  return {
+    benchPress: guestProfile.big3TargetBenchPress?.toString() ?? "",
+    squat: guestProfile.big3TargetSquat?.toString() ?? "",
+    deadlift: guestProfile.big3TargetDeadlift?.toString() ?? "",
+  };
+}
+
+export function GoalsPage({ initialTargets, userId }: GoalsPageProps) {
   const router = useRouter();
 
-  const [benchPress, setBenchPress] = useState<string>("");//ベンチプレスの目標重量
-  const [squat, setSquat] = useState<string>("");//スクワットの目標重量
-  const [deadlift, setDeadlift] = useState<string>("");//デッドリフトの目標重量
-  const [isLoading, setIsLoading] = useState(true);//ロード中のフラグ
-  const [isSaving, setIsSaving] = useState(false);//保存中のフラグ
+  const guestBig3Targets = useSyncExternalStore(
+    () => () => {},
+    getGuestBig3Targets,
+    () => null
+  );
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
+  const baseTargets = initialTargets ?? (!userId ? guestBig3Targets : null);
 
-  const fetchProfile = async () => {
-    try {
-      setIsLoading(true);
-      const result = await getProfile();
+  const [benchPress, setBenchPress] = useState(
+    baseTargets?.benchPress ?? ""
+  );
+  const [squat, setSquat] = useState(baseTargets?.squat ?? "");
+  const [deadlift, setDeadlift] = useState(baseTargets?.deadlift ?? "");
+  const [hydratedTargetsKey, setHydratedTargetsKey] = useState<string | null>(
+    null
+  );
+  const [isSaving, setIsSaving] = useState(false);
 
-      if (result.success && result.data) {
-        setBenchPress(result.data.big3TargetBenchPress?.toString() ?? "");
-        setSquat(result.data.big3TargetSquat?.toString() ?? "");
-        setDeadlift(result.data.big3TargetDeadlift?.toString() ?? "");
-      } else {
-        toast.error(result.error ?? "プロフィールの取得に失敗しました");
-      }
-    } catch (err) {
-      toast.error("目標データの取得に失敗しました");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const targetsKey = baseTargets
+    ? `${baseTargets.benchPress}|${baseTargets.squat}|${baseTargets.deadlift}`
+    : null;
+
+  if (targetsKey !== null && targetsKey !== hydratedTargetsKey) {
+    setHydratedTargetsKey(targetsKey);
+    setBenchPress(baseTargets?.benchPress ?? "");
+    setSquat(baseTargets?.squat ?? "");
+    setDeadlift(baseTargets?.deadlift ?? "");
+  }
 
   const handleSave = async () => {
     try {
@@ -57,18 +79,16 @@ export function GoalsPage() {
 
       const result = await updateProfile(requestData);
 
-      // const data = await response.json(); // 削除
-
       if (result.success) {
         toast.success("目標を保存しました！");
         setTimeout(() => {
           router.push("/");
-        }, 1000); // 遷移を少し早める
+        }, 1000);
       } else {
         toast.error(result.error ?? "更新に失敗しました");
       }
     } catch (err) {
-      toast.error("目標の保存に失敗しました"); // toast.errorに変更
+      toast.error("目標の保存に失敗しました");
       console.error(err);
     } finally {
       setIsSaving(false);
@@ -109,15 +129,6 @@ export function GoalsPage() {
     </div>
   );
 
-  if (isLoading) {
-    return (
-      <div className="p-4 space-y-4 pb-20">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-40 w-full" />
-      </div>
-    );
-  }
-
   return (
     <div className="p-4 bg-background min-h-screen pb-20">
       <div className="mb-6">
@@ -135,8 +146,6 @@ export function GoalsPage() {
           長期的な目標重量を設定して、モチベーションを維持しましょう
         </p>
       </div>
-
-      {/* 独自メッセージ表示エリアを削除 (Toastが代わりに出るため) */}
 
       <Card className="p-5 mb-4">
         <h3 className="text-base font-semibold mb-4">目標重量</h3>

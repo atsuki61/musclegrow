@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { format, addDays, subDays, isAfter, startOfDay } from "date-fns";
 import { ja } from "date-fns/locale";
 import {
@@ -36,15 +36,15 @@ function isDateValid(date: Date): boolean {
 
 // 日付セレクターのコンポーネント
 export function DateSelector({ date, onDateChange }: DateSelectorProps) {
-  const [selectedDate, setSelectedDate] = useState<Date>(date || new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(date ?? new Date());
+  const [prevDate, setPrevDate] = useState<Date | undefined>(date);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  // 日付が変更された場合、選択された日付を更新
-  useEffect(() => {
-    if (date) {
-      setSelectedDate(date);
-    }
-  }, [date]);
+  // 親から渡された date が変わったら選択日付を同期
+  if (date && date.getTime() !== prevDate?.getTime()) {
+    setPrevDate(date);
+    setSelectedDate(date);
+  }
 
   // 日付を更新
   const updateDate = (newDate: Date) => {

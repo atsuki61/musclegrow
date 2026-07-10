@@ -109,6 +109,8 @@ export function useWorkoutSession({
   );
 
   const loadSets = useCallback(async () => {
+    await Promise.resolve();
+
     if (!exerciseId || !isOpen) {
       setSets([]);
       return;
@@ -261,15 +263,33 @@ export function useWorkoutSession({
     previousExerciseIdRef.current = exerciseId;
   }, [date, exerciseId, isOpen, userId]);
 
+  const sessionKey =
+    isOpen && exerciseId ? `${dateStr}:${exerciseId}` : null;
+  const [loadedSessionKey, setLoadedSessionKey] = useState<string | null>(null);
+
+  if (sessionKey === null && loadedSessionKey !== null) {
+    setLoadedSessionKey(null);
+    setSets([]);
+    setIsLoaded(false);
+    setIsLoading(false);
+  }
+
   useEffect(() => {
-    if (isOpen && exerciseId) {
-      loadSets();
-    } else if (!isOpen) {
-      setSets([]);
-      setIsLoaded(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, exerciseId, dateStr]);
+    if (!sessionKey) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      await loadSets();
+      if (!cancelled) {
+        setLoadedSessionKey(sessionKey);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionKey, loadSets]);
 
   return {
     sets,

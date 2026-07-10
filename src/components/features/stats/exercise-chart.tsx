@@ -86,6 +86,7 @@ export function ExerciseChart({
    * 初回レンダリング時は100ms待ってからアニメーションを開始
    */
   const [enableAnimation, setEnableAnimation] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(0);
 
   // ==================== テーマカラー（CSS変数） ====================
   /**
@@ -108,6 +109,18 @@ export function ExerciseChart({
   useEffect(() => {
     const timer = setTimeout(() => setEnableAnimation(true), 100);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const updateContainerWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+
+    updateContainerWidth();
+    window.addEventListener("resize", updateContainerWidth);
+    return () => window.removeEventListener("resize", updateContainerWidth);
   }, []);
 
   // ==================== データ変換 ====================
@@ -417,7 +430,7 @@ export function ExerciseChart({
               date={selectedData.fullDate}
               value={selectedData.value}
               unit={WEIGHT_UNIT}
-              containerWidth={containerRef.current?.offsetWidth || 0}
+              containerWidth={containerWidth}
               color={primaryColor}
             />
           )}

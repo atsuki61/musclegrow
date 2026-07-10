@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { Plus, Minus, Pencil } from "lucide-react";
 import { cn, isCardioExercise } from "@/lib/utils";
 import { getExerciseTargetMuscleLabels } from "@/lib/exercise-mappings";
@@ -39,11 +39,13 @@ export function BodyPartCard({
     () => filterInitialExercises(exercises),
     [exercises]
   );
-  const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  // SSR では false、クライアント hydration 後は true（maxWeights の hydration ずれ防止）
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   return (
     <div className="space-y-4">

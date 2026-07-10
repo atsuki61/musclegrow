@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useSyncExternalStore } from "react";
 import { toPng } from "html-to-image";
 import download from "downloadjs";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -21,6 +21,14 @@ import { useTheme } from "next-themes";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+
+function getWebShareSupported(): boolean {
+  return (
+    typeof navigator !== "undefined" &&
+    "share" in navigator &&
+    "canShare" in navigator
+  );
+}
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -51,20 +59,18 @@ export function ShareModal({
 
   const imageRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [canShare, setCanShare] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // ブラウザ API の有無を読む（SSR では false、クライアントで判定）
+  const canShare = useSyncExternalStore(
+    () => () => {},
+    getWebShareSupported,
+    () => false
+  );
 
   const formattedDate = format(date, "yyyy/MM/dd(E)", { locale: ja });
   const appUrl = "https://musclegrow.vercel.app/";
   const shareText = ` ${formattedDate} のトレーニング記録\n\n\n#MuscleGrow `;
-
-  useEffect(() => {
-    if (typeof navigator !== "undefined") {
-      if ("share" in navigator && "canShare" in navigator) {
-        setCanShare(true);
-      }
-    }
-  }, []);
 
   const generateBlob = async () => {
     if (!imageRef.current) return null;
