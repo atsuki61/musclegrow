@@ -68,15 +68,26 @@ export function useTrainingStats({
 
   // マウント時にローカルストレージから記録がある種目IDを読み込んでマージ
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    let cancelled = false;
+
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled || typeof window === "undefined") return;
+
       const localIds = getExercisesWithDataFromStorage();
       if (localIds.size > 0) {
         updateExercisesWithData(Array.from(localIds));
       }
-    }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [updateExercisesWithData]);
 
   const fetchBig3Data = useCallback(async () => {
+    await Promise.resolve();
+
     if (exercises.length === 0) return;
 
     setLoading(true);
@@ -148,6 +159,8 @@ export function useTrainingStats({
   }, [trainingDateRange, exercises, updateExercisesWithData, userId]);
 
   const fetchExerciseData = useCallback(async () => {
+    await Promise.resolve();
+
     if (!selectedExerciseId) {
       setExerciseData([]);
       return;
@@ -202,13 +215,31 @@ export function useTrainingStats({
   }, [exercises.length, fetchBig3Data, fetchExerciseData, selectedExerciseId]);
 
   useEffect(() => {
-    if (exercises.length > 0) {
-      fetchBig3Data();
-    }
+    if (exercises.length === 0) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      await fetchBig3Data();
+      if (cancelled) return;
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [fetchBig3Data, exercises.length]);
 
   useEffect(() => {
-    fetchExerciseData();
+    let cancelled = false;
+
+    void (async () => {
+      await fetchExerciseData();
+      if (cancelled) return;
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [fetchExerciseData]);
 
   const refreshDataRef = useRef(refreshData);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { LogIn, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,24 @@ import { cn } from "@/lib/utils";
 export const LS_HAS_LOGGED_IN = "mg_has_logged_in";
 export const LS_HIDE_LOGIN_PROMPT = "mg_hide_login_prompt";
 
+const loginPromptListeners = new Set<() => void>();
+
+function subscribeLoginPrompt(onStoreChange: () => void) {
+  loginPromptListeners.add(onStoreChange);
+  return () => {
+    loginPromptListeners.delete(onStoreChange);
+  };
+}
+
+function notifyLoginPromptChange() {
+  loginPromptListeners.forEach((listener) => listener());
+}
+
+function readHideLoginPrompt(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(LS_HIDE_LOGIN_PROMPT) === "true";
+}
+
 /**
  * 未ログイン状態を知らせるバナー
  * - 過去にログインしたことがある場合は必ず表示
@@ -20,31 +38,32 @@ export const LS_HIDE_LOGIN_PROMPT = "mg_hide_login_prompt";
  */
 export function LoginPromptBanner() {
   const { userId } = useAuthSession();
-  const [visible, setVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const [neverShow, setNeverShow] = useState(false);
 
+  const hidePermanently = useSyncExternalStore(
+    subscribeLoginPrompt,
+    readHideLoginPrompt,
+    () => false
+  );
+
+  // 外部ストア（localStorage）へログイン済みフラグを同期
   useEffect(() => {
-    // ログイン済みの場合: フラグを更新してバナー非表示
-    if (userId) {
-      localStorage.setItem(LS_HAS_LOGGED_IN, "true");
-      return;
-    }
-
-    // 未ログイン: 非表示設定を確認
-    const hidden = localStorage.getItem(LS_HIDE_LOGIN_PROMPT) === "true";
-    if (hidden) return;
-
-    setVisible(true);
+    if (!userId) return;
+    localStorage.setItem(LS_HAS_LOGGED_IN, "true");
   }, [userId]);
+
+  const visible = !userId && !hidePermanently && !dismissed;
 
   const handleClose = () => {
     if (neverShow) {
       localStorage.setItem(LS_HIDE_LOGIN_PROMPT, "true");
+      notifyLoginPromptChange();
     }
-    setVisible(false);
+    setDismissed(true);
   };
 
-  if (!visible || !!userId) return null;
+  if (!visible) return null;
 
   return (
     <div

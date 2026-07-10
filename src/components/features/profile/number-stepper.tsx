@@ -3,17 +3,17 @@
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface NumberStepperProps {
-  label: string;
-  value: number;
-  unit: string;
-  step?: number;
-  min?: number;
-  max?: number;
-  onChange: (value: number) => void;
-  className?: string;
+  label: string; // ラベル
+  value: number; // 現在の値
+  unit: string; // 単位
+  step?: number; // ステップ
+  min?: number; // 最小値
+  max?: number; // 最大値
+  onChange: (value: number) => void; // 値が変更された時のコールバック
+  className?: string; // クラス名
 }
 
 export function NumberStepper({
@@ -27,13 +27,20 @@ export function NumberStepper({
   className,
 }: NumberStepperProps) {
   // 入力中の値を管理するローカルステート（"72." などの途中入力を許容するため）
-  const [inputValue, setInputValue] = useState(value.toString());
+  const [inputValue, setInputValue] = useState(() => value.toString()); // 入力値
+  const [prevValue, setPrevValue] = useState(value); // 前の値
+  const [isFocused, setIsFocused] = useState(false); // フォーカスされているかどうか
 
-  // 親から渡された value が変わったらローカルステートも同期
-  useEffect(() => {
-    setInputValue(value.toString());
-  }, [value]);
+  // 親から渡された value が変わったらローカルステートも同期（入力中は除く）
+  if (value !== prevValue) {
+    setPrevValue(value);
+    if (!isFocused) {
+      // フォーカスされていない場合は、入力値を更新して親コンポーネントに通知
+      setInputValue(value.toString());
+    }
+  }
 
+  // ボタンがクリックされた時の処理
   const handleButtonChange = (increment: boolean) => {
     const delta = increment ? step : -step;
     const nextValue = Math.round((value + delta) * 10) / 10;
@@ -42,14 +49,16 @@ export function NumberStepper({
     }
   };
 
+  // 入力フィールドの値が変更された時の処理
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValueStr = e.target.value;
     setInputValue(newValueStr);
 
+    // 入力値をパースして、数値に変換
     const newValue = parseFloat(newValueStr);
     if (!isNaN(newValue)) {
-      // 入力中は範囲制限を緩くして、完了時(onBlur)に厳密にするのが一般的ですが、
-      // ここでは即時反映させつつ、極端な値だけガードします
+      // 入力中は範囲制限を緩くして、完了時(onBlur)に厳密にするのが一般的
+      // ここでは即時反映させつつ、極端な値だけガード
       onChange(newValue);
     }
   };
@@ -65,13 +74,14 @@ export function NumberStepper({
       // stepに合わせて丸める（必要なら）
       // newValue = Math.round(newValue / step) * step;
       // 小数点第1位まで
-      newValue = Math.round(newValue * 10) / 10;
+      newValue = Math.round(newValue * 10) / 10; // 小数点第1位まで
     }
-    setInputValue(newValue.toString());
-    onChange(newValue);
+    setInputValue(newValue.toString()); // 入力値を更新
+    onChange(newValue); // 値が変更された時のコールバック
   };
 
   return (
+    // 数値ステッパーを返す
     <div className={cn("space-y-1.5", className)}>
       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
         {label}
@@ -86,14 +96,20 @@ export function NumberStepper({
         >
           <Minus className="w-3.5 h-3.5" />
         </Button>
-        
+
         <div className="flex-1 flex items-baseline justify-center gap-1 relative">
           {/* 入力フィールド */}
           <input
             type="number"
             value={inputValue}
             onChange={handleInputChange}
-            onBlur={handleBlur}
+            onFocus={() => {
+              setIsFocused(true);
+            }}
+            onBlur={() => {
+              setIsFocused(false);
+              handleBlur();
+            }}
             step={step}
             min={min}
             max={max}

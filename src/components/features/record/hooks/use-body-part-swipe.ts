@@ -7,7 +7,7 @@
  * 出力: swipeDirection / handleDragEnd / showSwipeHint / resetSwipeDirection
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import type { PanInfo } from "framer-motion";
 import type { BodyPart } from "@/types/workout";
 
@@ -25,6 +25,24 @@ const BODY_PARTS_ORDER: Exclude<BodyPart, "all">[] = [
 const SWIPE_THRESHOLD = 50;
 const SWIPE_HINT_SHOWN_KEY = "record_swipe_hint_shown";
 
+const swipeHintListeners = new Set<() => void>();
+
+function subscribeSwipeHint(onStoreChange: () => void) {
+  swipeHintListeners.add(onStoreChange);
+  return () => {
+    swipeHintListeners.delete(onStoreChange);
+  };
+}
+
+function notifySwipeHintChange() {
+  swipeHintListeners.forEach((listener) => listener());
+}
+
+function readHasSeenSwipeHint(): boolean {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem(SWIPE_HINT_SHOWN_KEY) === "true";
+}
+
 interface UseBodyPartSwipeParams {
   selectedPart: Exclude<BodyPart, "all">;
   onPartChange: (part: Exclude<BodyPart, "all">) => void;
@@ -36,24 +54,27 @@ export function useBodyPartSwipe({
 }: UseBodyPartSwipeParams) {
   // swipeDirection: 1=左スワイプ(次の部位), -1=右スワイプ(前の部位), 0=タブ操作
   const [swipeDirection, setSwipeDirection] = useState(0);
-  const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const [hintDismissedByTimer, setHintDismissedByTimer] = useState(false);
 
-  // localStorage の表示済みフラグと同期して初回だけスワイプヒントを出す。
+  const hasSeenSwipeHint = useSyncExternalStore(
+    subscribeSwipeHint,
+    readHasSeenSwipeHint,
+    () => true,
+  );
+
+  const showSwipeHint = !hasSeenSwipeHint && !hintDismissedByTimer;
+
+  // 外部タイマー: 初回ヒントを 3 秒後に非表示にして localStorage へ記録
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const hasSeenHint = localStorage.getItem(SWIPE_HINT_SHOWN_KEY);
-    if (hasSeenHint) return;
-
-    setShowSwipeHint(true);
-
+    if (!showSwipeHint) return;
     const timer = setTimeout(() => {
-      setShowSwipeHint(false);
       localStorage.setItem(SWIPE_HINT_SHOWN_KEY, "true");
+      notifySwipeHintChange();
+      setHintDismissedByTimer(true);
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [showSwipeHint]);
 
   const handleDragEnd = useCallback(
     (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
@@ -78,7 +99,7 @@ export function useBodyPartSwipe({
         }
       }
     },
-    [onPartChange, selectedPart]
+    [onPartChange, selectedPart],
   );
 
   const resetSwipeDirection = useCallback(() => {

@@ -10,7 +10,7 @@
  * 入力: initialExercises（サーバーから渡される）, userId, onExerciseListChanged
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import {
   deleteCustomExercise,
   renameCustomExercise,
@@ -19,10 +19,11 @@ import {
 import { toggleExerciseVisibility } from "@/lib/actions/user-exercises";
 import {
   deleteGuestCustomExercise,
-  getGuestExercises,
+  getGuestExercisesSnapshot,
   isGuestCustomExercise,
   renameGuestCustomExercise,
   saveGuestCustomExercise,
+  subscribeGuestExercises,
   toggleGuestExerciseVisibility,
 } from "@/lib/local-storage-guest";
 import type { Exercise } from "@/types/workout";
@@ -34,13 +35,47 @@ interface UseRecordExercisesParams {
   userId: string | null | undefined;
 }
 
+function getExerciseListKey(exerciseList: Exercise[]): string {
+  return exerciseList.map((exercise) => `${exercise.id}:${exercise.tier}`).join("|");
+}
+
 export function useRecordExercises({
   initialExercises,
   onExerciseListChanged,
   userId,
 }: UseRecordExercisesParams) {
-  // --- 種目一覧 state ---
-  const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
+  const guestBaseExercises = useSyncExternalStore(
+    subscribeGuestExercises,
+    () =>
+      userId
+        ? initialExercises
+        : getGuestExercisesSnapshot(initialExercises),
+    () => initialExercises
+  );
+
+  const baseExercises = userId ? initialExercises : guestBaseExercises;
+  const baseKey = getExerciseListKey(baseExercises);
+
+  // --- 種目一覧 state（CRUD 後のローカル更新。base 変更時は base に戻す） ---
+  const [localExercises, setLocalExercises] = useState<Exercise[] | null>(null);
+  const [appliedBaseKey, setAppliedBaseKey] = useState(baseKey);
+
+  if (baseKey !== appliedBaseKey) {
+    setAppliedBaseKey(baseKey);
+    setLocalExercises(null);
+  }
+
+  const exercises = localExercises ?? baseExercises;
+
+  const setExercises = useCallback(
+    (updater: Exercise[] | ((prev: Exercise[]) => Exercise[])) => {
+      setLocalExercises((prevLocal) => {
+        const current = prevLocal ?? baseExercises;
+        return typeof updater === "function" ? updater(current) : updater;
+      });
+    },
+    [baseExercises]
+  );
 
   // --- リネーム Dialog の入力 state（renamingExercise が null なら Dialog 閉） ---
   const [renamingExercise, setRenamingExercise] = useState<Exercise | null>(
@@ -50,15 +85,6 @@ export function useRecordExercises({
   const [renameExerciseError, setRenameExerciseError] = useState<string | null>(
     null,
   );
-
-  // --- ゲスト: サーバー種目 + localStorage の表示設定をマージ ---
-  // ログイン時は getExercisesWithUserPreferences で既に反映済みなので何もしない
-  useEffect(() => {
-    if (userId) return;
-
-    const guestExercises = getGuestExercises(initialExercises);
-    setExercises(guestExercises);
-  }, [userId, initialExercises]);
 
   const isCustomExerciseOwnedByCurrentUser = useCallback(
     (exercise: Exercise) => {

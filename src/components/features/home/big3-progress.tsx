@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Trophy, Target } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useSyncExternalStore } from "react";
 
 type Big3Exercise = {
   name: string;
@@ -63,10 +63,12 @@ export function Big3Progress({
   const totalTarget = exercises.reduce((sum, ex) => sum + ex.target, 0) || 1;
   const totalProgress = Math.round((totalCurrent / totalTarget) * 100);
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // SSR では false、クライアント hydration 後は true（effect 不要）
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   return (
     <section>

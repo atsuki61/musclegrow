@@ -74,40 +74,53 @@ export function usePreviousRecord(
   const { userId } = useAuthSession();
   const [record, setRecord] = useState<PreviousRecordData>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadedRequestKey, setLoadedRequestKey] = useState<string | null>(null);
+
+  const requestKey = exercise
+    ? `${currentDate.getTime()}:${exercise.id}:${userId ?? ""}`
+    : null;
+
+  if (requestKey === null && (record !== null || isLoading || loadedRequestKey)) {
+    setLoadedRequestKey(null);
+    setRecord(null);
+    setIsLoading(false);
+  }
 
   useEffect(() => {
-    if (!exercise) {
-      setRecord(null);
-      return;
-    }
+    if (!requestKey || !exercise) return;
 
-    let isMounted = true;
+    let cancelled = false;
 
-    const fetchRecord = async () => {
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+
       setIsLoading(true);
       setRecord(null);
 
       try {
-        if (!isMounted) return;
         const previousRecord = await fetchPreviousRecord(
           currentDate,
           exercise,
           userId
         );
-        if (isMounted) setRecord(previousRecord);
+        if (!cancelled) {
+          setRecord(previousRecord);
+          setLoadedRequestKey(requestKey);
+        }
       } catch (e) {
         console.error("前回記録取得エラー", e);
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
-    };
-
-    fetchRecord();
+    })();
 
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
-  }, [currentDate, exercise, userId]);
+  }, [requestKey, currentDate, exercise, userId]);
 
   return { record, isLoading };
 }

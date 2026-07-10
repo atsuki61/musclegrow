@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import type { ProfileResponse } from "@/types/profile";
 import { ProfileMenu, type ViewStateTarget } from "./profile-menu";
 import { BodyCompositionEditor } from "./body-composition-editor";
@@ -28,22 +28,35 @@ interface BodyCompositionData {
   muscleMass: number;
 }
 
+const guestProfileListeners = new Set<() => void>();
+
+function subscribeGuestProfile(onStoreChange: () => void) {
+  guestProfileListeners.add(onStoreChange);
+  return () => {
+    guestProfileListeners.delete(onStoreChange);
+  };
+}
+
+function notifyGuestProfileChange() {
+  guestProfileListeners.forEach((listener) => listener());
+}
+
 export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
   const [view, setView] = useState<ViewState>("menu");
-  const [profile, setProfile] = useState<ProfileResponse | null>(
-    initialProfile
+  const [savedProfile, setSavedProfile] = useState<ProfileResponse | null>(
+    null
   );
   const [isSaving, setIsSaving] = useState(false);
 
-  // 初期ロード時、ゲストならローカルストレージから読み込む
-  useEffect(() => {
-    if (!user && !initialProfile) {
-      const guestProfile = getGuestProfile();
-      if (guestProfile) {
-        setProfile(guestProfile);
-      }
-    }
-  }, [user, initialProfile]);
+  // ゲストのみ: localStorage からプロフィールを購読
+  const guestProfile = useSyncExternalStore(
+    subscribeGuestProfile,
+    getGuestProfile,
+    () => null
+  );
+
+  const profile =
+    savedProfile ?? initialProfile ?? (!user ? guestProfile : null);
 
   const handleSave = async (data: BodyCompositionData) => {
     setIsSaving(true);
@@ -53,7 +66,7 @@ export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
         const result = await updateProfile(data);
 
         if (result.success && result.data) {
-          setProfile(result.data);
+          setSavedProfile(result.data);
           setView("menu");
           toast.success("プロフィールを更新しました");
         } else {
@@ -63,7 +76,8 @@ export function ProfilePage({ initialProfile, user }: ProfilePageProps) {
       } else {
         // ゲスト時: ローカルストレージへ保存
         const updated = saveGuestProfile(data);
-        setProfile(updated);
+        setSavedProfile(updated);
+        notifyGuestProfileChange();
         setView("menu");
         toast.success("プロフィールを保存しました（ゲスト）");
       }

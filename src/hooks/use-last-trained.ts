@@ -12,6 +12,8 @@ export function useLastTrainedDates() {
   >({});
 
   const refresh = useCallback(async () => {
+    await Promise.resolve();
+
     // 1. ローカルストレージから取得
     const localDates = getLocalLastTrainedDates();
 
@@ -40,7 +42,16 @@ export function useLastTrainedDates() {
   }, [userId]);
 
   useEffect(() => {
-    refresh();
+    let cancelled = false;
+
+    void (async () => {
+      await refresh();
+      if (cancelled) return;
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [refresh]);
 
   return { lastTrainedDates, refresh };

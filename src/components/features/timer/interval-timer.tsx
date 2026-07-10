@@ -14,7 +14,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 /**
@@ -43,11 +43,12 @@ export function IntervalTimer() {
   const pathname = usePathname();
   const isAuthPage = pathname === "/login" || pathname === "/signup";
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  // createPortal(document.body) はクライアントのみ（SSR では false）
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   if ((timeLeft === 0 && !isActive) || isAuthPage || !mounted) return null;
 
