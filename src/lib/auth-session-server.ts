@@ -7,9 +7,9 @@ import { auth } from "@/lib/auth";
  * cache()を使用して、同一リクエスト内で複数回呼ばれても1回だけ実行される
  */
 export const getAuthSession = cache(async () => {
-  const h = await headers();
-  const session = await auth.api.getSession({
-    headers: h,
+  const h = await headers();//Headersオブジェクトを取得
+  const session = await auth.api.getSession({//認証セッションを取得
+    headers: h,//Headersオブジェクトを渡す
   });
   return session;
 });

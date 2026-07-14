@@ -25,6 +25,9 @@ export async function deleteUserAllData(userId: string): Promise<{
   error?: string;
 }> {
   try {
+    // SECURITY NOTE:
+    // 空文字チェックは入力検証であり、本人確認ではない。
+    // userIdはクライアント引数ではなく、サーバー側のセッションから取得する必要がある。
     if (!userId || userId === "") {
       return {
         success: false,
@@ -55,6 +58,9 @@ export async function deleteUserAccount(userId: string): Promise<{
   error?: string;
 }> {
   try {
+    // SECURITY NOTE:
+    // 退会は影響が大きいため、「指定されたIDが存在するか」だけでは不十分。
+    // ログイン中ユーザーのIDと削除対象が一致することをサーバー側で保証する。
     if (!userId || userId === "") {
       return {
         success: false,
@@ -62,6 +68,7 @@ export async function deleteUserAccount(userId: string): Promise<{
       };
     }
 
+    // 現状は引数のuserIdをそのまま削除条件にしているため、認可処理の見直し対象。
     await db.delete(users).where(eq(users.id, userId));
     return { success: true };
   } catch (error: unknown) {

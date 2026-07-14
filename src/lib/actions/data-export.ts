@@ -19,6 +19,10 @@ export async function exportAllData(userId: string): Promise<{
   error?: string;
 }> {
   try {
+    // SECURITY NOTE:
+    // "use server"でも引数はブラウザから送信されるため、このuserIdは本人確認済みではない。
+    // 本来は引数からuserIdを受け取らず、getAuthUserId()またはauthActionClientで
+    // 現在ログイン中のユーザーIDをサーバー側から取得する。
     if (!userId || userId === "") {
       return {
         success: false,
@@ -39,6 +43,7 @@ export async function exportAllData(userId: string): Promise<{
       .from(workoutSessions)
       .innerJoin(sets, eq(workoutSessions.id, sets.sessionId))
       .innerJoin(exercises, eq(sets.exerciseId, exercises.id))
+      // 絞り込み自体は正しいが、比較するuserIdの出所が安全かを別途確認する必要がある。
       .where(eq(workoutSessions.userId, userId))
       .orderBy(desc(workoutSessions.date), sets.setOrder);
 
