@@ -13,6 +13,10 @@ export const authClient = createAuthClient({
   plugins: [inferAdditionalFields<typeof auth>()],
 });
 
+// ここで扱うのはブラウザから認証APIを呼ぶためのクライアント。
+// ログイン後の本人確認は、Server Action側でCookieからセッションを再取得して行う。
+// Client Componentから渡されたuserIdは書き換え可能なので、認可には使用しない。
+
 /**
  * Better Auth クライアントの認証操作
  * - signIn: ログイン（メール/パスワード、Google OAuth）

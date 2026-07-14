@@ -27,6 +27,8 @@ const saveWorkoutSessionSchema = z.object({
 export const saveWorkoutSession = authActionClient
   .schema(saveWorkoutSessionSchema)
   .action(async ({ parsedInput, ctx: { userId } }) => {
+    // dateなどの操作対象はクライアント入力、userIdは認証ミドルウェア由来。
+    // クライアントからuserIdを受け取らないため、他人のIDへの書き換えを防げる。
     const { date, note, durationMinutes } = parsedInput;
 
     // 1. 「その日」のセッションが既に存在するかチェック
@@ -34,6 +36,7 @@ export const saveWorkoutSession = authActionClient
       .select()
       .from(workoutSessions)
       .where(
+        // 同じ日付だけでなく、認証済みuserIdも条件に含めて所有者を限定する。
         and(eq(workoutSessions.userId, userId), eq(workoutSessions.date, date))
       )
       .limit(1);
@@ -56,6 +59,7 @@ export const saveWorkoutSession = authActionClient
       const [newSession] = await db
         .insert(workoutSessions)
         .values({
+          // 新規レコードの所有者にも、認証済みuserIdだけを設定する。
           userId,
           date,
           note: note ?? null,

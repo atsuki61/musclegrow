@@ -513,6 +513,8 @@ export function DataSettings({ onBack, userId }: DataSettingsProps) {
       setIsExporting(true);
       toast.loading("データを準備中...", { id: "export" });
 
+      // このuserIdはClient Componentのpropsなので、ブラウザ上で書き換え可能。
+      // Server Action側では、この値を信用せずCookieのセッションから本人を確認する必要がある。
       const result = await exportAllData(userId);
 
       if (!result.success || !result.data) {
@@ -547,6 +549,8 @@ export function DataSettings({ onBack, userId }: DataSettingsProps) {
   const handleDeleteData = async () => {
     setIsDeleting(true);
     try {
+      // 削除のような重要操作ほど、クライアントから渡したuserIdではなく、
+      // Server Actionが取得したセッションのuserIdを使用する必要がある。
       const result = await deleteUserAllData(userId);
       if (result.success) {
         toast.success("すべての記録を削除しました");

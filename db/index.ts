@@ -42,6 +42,9 @@ function initializeDb() {
   }
 
   // PostgreSQLクライアントを初期化（Supabaseクラウド版ではSSL接続が必要）
+  // この経路はSupabase JS + ユーザーJWTではなく、DATABASE_URLによる直接接続。
+  // そのため、Server Action側でBetter Authのセッションを確認し、
+  // すべてのクエリを認証済みuserIdで制限することが重要になる。
   postgresClient = postgres(connectionString, {
     prepare: false, //vercelの場合はfalseにする(接続が切れる為)
     ssl: "require",

@@ -11,7 +11,7 @@ export default async function Home() {
   const userId = session?.user?.id ?? null;
 
   // 並列でデータを取得
-  const [big3Result, targetsResult, totalDays, exercisesResult] =
+  const [big3Result, targetsResult, totalDays, exercisesResult] =// 
     await Promise.all([
       getBig3MaxWeights(userId),
       getBig3TargetValues(userId),

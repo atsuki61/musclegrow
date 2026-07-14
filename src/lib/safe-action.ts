@@ -32,6 +32,8 @@ export const actionClient = createSafeActionClient({
  * ユーザーIDが取得できない場合はエラーを返すミドルウェアを追加
  */
 export const authActionClient = actionClient.use(async ({ next }) => {
+  // リクエストCookieを使ってサーバー側で本人を確定する。
+  // Actionの引数としてuserIdを受け取らないことが重要。
   const session = await getAuthSession();
   const userId = session?.user?.id;
 
@@ -39,6 +41,8 @@ export const authActionClient = actionClient.use(async ({ next }) => {
     throw new ActionError("ログインが必要です。");
   }
 
-  // 次の処理へユーザーIDを渡す
+  // ここで作ったctx.userIdはサーバー側で確認済みの値。
+  // ただし「ログイン済み」というだけなので、sessionIdなど個別データの
+  // 所有者確認は各Actionのクエリでも行う必要がある。
   return next({ ctx: { userId } });
 });

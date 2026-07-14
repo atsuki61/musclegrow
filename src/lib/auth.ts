@@ -15,12 +15,13 @@ import { env } from "./env-validation";
  * メール/パスワード認証とGoogle OAuth認証を有効化
  */
 export const auth = betterAuth({
-  baseURL: getBaseURL(),
-  //データベース接続
+  baseURL: getBaseURL(),//ベースURLを設定
+  // 認証データをPostgreSQLへ保存する設定
+  // Better Auth と Drizzle ORM を接続している
   database: drizzleAdapter(db, {
-    provider: "pg",
-    usePlural: true,
-    schema,
+    provider: "pg",//postgresSQL
+    usePlural: true,//複数形でテーブル名を使用する
+    schema,//データベーススキーマ
   }),
   // セッション暗号化用のシークレットキー
   secret: env.BETTER_AUTH_SECRET,
@@ -41,11 +42,13 @@ export const auth = betterAuth({
     },
   },
   // ID生成方法のカスタマイズ（nanoid(10)）
+  // 例: aB3f92XkLp のような10文字のIDになる
   advanced: {
     database: {
       generateId: () => nanoid(10),
     },
   },
   //Next.js Cookiesプラグイン
+  // Cookieを利用してブラウザのログイン状態を保持できる
   plugins: [nextCookies()],
 });

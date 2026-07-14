@@ -1,9 +1,9 @@
-"use client";
+"use client"; // クライアントコンポーネント（useState / イベントハンドラを使うため）
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signIn } from "@/lib/auth-client";
+import { signIn } from "@/lib/auth-client"; // Better Auth のクライアント側ログイン API
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,29 +18,43 @@ import {
   type LucideIcon,
   User,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"; // className を条件付きで結合するユーティリティ
 import { motion } from "framer-motion";
 
-// --- Components ---
+// --- サブコンポーネント ---
 
+/**
+ * 画面全体の背景ぼかし（装飾専用）
+ * -z-10 でフォームより後ろに置き、操作を邪魔しない
+ */
 const Background = () => (
   <div className="fixed inset-0 -z-10 overflow-hidden bg-gray-50 dark:bg-background">
+    {/* オレンジ・赤・黄のぼかし円でグラデーション風の雰囲気を出す */}
     <div className="absolute -top-[30%] -left-[10%] w-[70%] h-[70%] rounded-full bg-orange-200/30 dark:bg-orange-900/10 blur-3xl" />
     <div className="absolute top-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-red-200/30 dark:bg-red-900/10 blur-3xl" />
     <div className="absolute -bottom-[20%] left-[20%] w-[80%] h-[60%] rounded-full bg-yellow-200/30 dark:bg-yellow-900/10 blur-3xl" />
   </div>
 );
 
+/** ログイン用入力欄の props（shadcn Input + アイコン + エラー表示） */
 interface CustomInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   icon: LucideIcon;
   error?: string;
+  /** true のときパスワード表示トグルを出す */
   isPassword?: boolean;
 }
 
+/**
+ * ラベル・左アイコン・（任意）パスワード表示切替付きの入力コンポーネント
+ * forwardRef: 親から ref を Input に渡せるようにする（フォーム制御・フォーカス用）
+ */
 const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
   ({ label, icon: Icon, error, isPassword, className, ...props }, ref) => {
+    // パスワードの表示/非表示（目のアイコンで切り替え）
     const [showPassword, setShowPassword] = useState(false);
+
+    // isPassword なら showPassword に応じて type を切り替え、それ以外は props.type を使う
     const inputType = isPassword
       ? showPassword
         ? "text"
@@ -53,6 +67,7 @@ const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
           {label}
         </Label>
         <div className="relative group">
+          {/* 左端の装飾アイコン（フォーカス時に primary 色へ） */}
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
             <Icon className="w-4 h-4" />
           </div>
@@ -60,13 +75,15 @@ const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
             ref={ref}
             type={inputType}
             className={cn(
+              // pl-10: 左アイコン分の余白 / エラー時は赤枠
               "pl-10 h-11 bg-background/50 border-border/60 focus-visible:ring-primary/20 focus-visible:border-primary transition-all",
-              isPassword && "pr-10",
+              isPassword && "pr-10", // 右の目アイコン分の余白
               error && "border-red-500 focus-visible:border-red-500",
               className
             )}
             {...props}
           />
+          {/* パスワード欄のみ: 表示/非表示トグル（type="button" でフォーム送信を防ぐ） */}
           {isPassword && (
             <button
               type="button"
@@ -81,6 +98,7 @@ const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
             </button>
           )}
         </div>
+        {/* フィールド単位のバリデーションエラー（あれば表示） */}
         {error && (
           <p className="ml-1 text-[10px] text-red-500 font-medium animate-in slide-in-from-top-1 fade-in">
             {error}
@@ -90,8 +108,10 @@ const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
     );
   }
 );
+// DevTools / React DevTools で名前が分かるようにする（forwardRef 必須）
 CustomInput.displayName = "CustomInput";
 
+/** Google ブランドカラーの SVG アイコン（OAuth ボタン用） */
 const GoogleIcon = ({ className }: { className?: string }) => (
   <svg
     className={className}
@@ -119,47 +139,72 @@ const GoogleIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// --- Main Page ---
+// --- メインページ ---
 
+/**
+ * ログインページ
+ * - メール/パスワード（Better Auth）
+ * - Google OAuth
+ * - ゲスト利用（認証なしでホームへ。データは localStorage）
+ */
 export default function LoginPage() {
   const router = useRouter();
+
+  // フォーム入力値
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
+  // 送信中フラグ（二重送信防止・ボタン disabled 用）
+  const [isLoading, setIsLoading] = useState(false); // メールログイン / ゲスト
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false); // Google OAuth
+  const [error, setError] = useState<string | null>(null); // 画面上部に出すエラー文言
+
+  /**
+   * メール/パスワードログイン
+   * 成功 → ホームへ遷移 + refresh でサーバーセッションを再取得
+   * 失敗 → ユーザー向けメッセージを error state にセット
+   */
   const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+    e.preventDefault(); // ブラウザのデフォルト送信（ページリロード）を防ぐ
     setIsLoading(true);
     setError(null);
 
     try {
+      // Better Auth: メールログイン。成功時はセッション Cookie がセットされる
       const result = await signIn.email({ email, password });
       if (result.error) {
         const msg = result.error.message;
+        // ライブラリの英語メッセージを日本語に変換（認証失敗の典型パターン）
         if (msg && msg.includes("Invalid"))
           setError("メールアドレスまたはパスワードが違います");
         else setError("ログインに失敗しました");
       } else {
-        router.push("/");
-        router.refresh();
+        router.push("/"); // ホーム（アプリ本体）へ
+        router.refresh(); // RSC / サーバーセッションを最新化
       }
     } catch (err) {
+      // ネットワーク障害など、想定外の例外
       setError("予期せぬエラーが発生しました");
       console.error(err);
     } finally {
+      // 成功・失敗どちらでもローディングを解除
       setIsLoading(false);
     }
   };
 
+  /**
+   * Google OAuth ログイン
+   * signIn.social は外部プロバイダへリダイレクトするため、
+   * 成功時はこの関数の続きは実行されない（ページ遷移する）
+   * → 失敗時だけ isGoogleLoading を false に戻す
+   */
   const handleGoogleAuth = async () => {
     setIsGoogleLoading(true);
     setError(null);
     try {
       await signIn.social({
         provider: "google",
-        callbackURL: "/",
+        callbackURL: "/", // 認証完了後の戻り先
       });
     } catch (err) {
       setError("Google認証に失敗しました");
@@ -168,7 +213,10 @@ export default function LoginPage() {
     }
   };
 
-  //ゲストログイン
+  /**
+   * ゲスト利用開始
+   * 認証 API は呼ばず、そのままホームへ。記録は localStorage に保存される想定
+   */
   const handleGuestLogin = () => {
     setIsLoading(true);
     router.push("/");
@@ -178,9 +226,10 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center py-6 px-4 relative">
       <Background />
 
-      {/* ヘッダーエリア */}
+      {/* ブランドヘッダー（ロゴ・アプリ名・キャッチコピー） */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md mb-6 text-center z-10">
         <div className="flex justify-center mb-4">
+          {/* ブランドアイコン（少し傾けて立体感） */}
           <div className="h-14 w-14 bg-linear-to-br from-primary to-orange-600 rounded-xl flex items-center justify-center shadow-xl shadow-primary/30 transform -rotate-6 ring-4 ring-background">
             <Dumbbell className="w-7 h-7 text-white" />
           </div>
@@ -193,15 +242,17 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* カード本体 */}
+      {/* ログインカード本体 */}
       <div className="w-full max-w-[400px] flex flex-col z-10">
         <div className="bg-card/80 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none rounded-3xl overflow-hidden transition-all duration-300 flex flex-col">
           <div className="p-6 pb-2">
+            {/* 入場アニメーション（左からフェードイン） */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.2 }}
             >
+              {/* メール/パスワードフォーム */}
               <form onSubmit={handleEmailLogin} className="space-y-1">
                 <CustomInput
                   label="メールアドレス"
@@ -223,6 +274,7 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
+                  {/* 「お忘れですか？」— 現状は未実装のプレースホルダ */}
                   <div className="absolute top-0 right-0">
                     <button
                       type="button"
@@ -234,6 +286,7 @@ export default function LoginPage() {
                   </div>
                 </div>
 
+                {/* フォーム全体のエラー（認証失敗など） */}
                 {error && (
                   <div className="p-3 mb-3 text-xs font-medium text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg animate-in fade-in">
                     {error}
@@ -241,6 +294,7 @@ export default function LoginPage() {
                 )}
 
                 <div className="pt-4">
+                  {/* メールログイン送信。他方式の処理中は無効化して二重送信を防ぐ */}
                   <Button
                     type="submit"
                     disabled={isLoading || isGoogleLoading}
@@ -254,6 +308,7 @@ export default function LoginPage() {
                 </div>
               </form>
 
+              {/* 区切り線「または」 */}
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
                   <Separator className="bg-border/60" />
@@ -265,6 +320,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {/* Google OAuth */}
               <div>
                 <Button
                   variant="outline"
@@ -282,13 +338,15 @@ export default function LoginPage() {
                 </Button>
               </div>
 
+              {/* ゲスト: アカウントなしでアプリを試せる入口 */}
               <div className="mt-3">
                 <Button
                   variant="outline"
                   type="button"
                   className="w-full h-11 font-bold bg-card hover:bg-muted/50 border-border/60 text-muted-foreground hover:text-primary transition-all"
                   onClick={handleGuestLogin}
-                  disabled={isLoading || isGoogleLoading} //ゲストログインはログインボタンを押さなくても利用可能
+                  // 他のログイン処理中はゲスト開始も止める（遷移の競合防止）
+                  disabled={isLoading || isGoogleLoading}
                 >
                   <User className="w-4 h-4 mr-2" />
                   ゲストとして利用開始
@@ -297,6 +355,7 @@ export default function LoginPage() {
             </motion.div>
           </div>
 
+          {/* カード下部: 新規登録への導線 */}
           <div className="p-6 pt-2 border-t border-border/30 bg-muted/30 text-center mt-6">
             <p className="text-xs text-muted-foreground">
               初めてですか？{" "}
@@ -311,7 +370,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* 固定ページへのリンク */}
+      {/* 静的ページ（利用規約・プライバシー・お問い合わせ）へのリンク */}
       <div className="mt-8 flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-[10px] text-muted-foreground font-medium z-10">
         <Link href="/terms" className="hover:text-primary transition-colors">
           利用規約

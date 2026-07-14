@@ -52,6 +52,9 @@ const deleteExerciseSchema = z.object({
 export const deleteExerciseSets = authActionClient
   .schema(deleteExerciseSchema)
   .action(async ({ parsedInput: { sessionId, exerciseId }, ctx: { userId } }) => {
+    // authActionClientにより「誰がログインしているか」は確認済み。
+    // ただしsessionIdはクライアント入力なので、削除前にworkoutSessionsを参照し、
+    // session.userId === userIdを確認しなければ「このデータを消してよいか」は保証できない。
     await db
       .delete(sets)
       .where(
@@ -70,6 +73,8 @@ export const deleteExerciseSets = authActionClient
 export const deleteCardioRecords = authActionClient
   .schema(deleteExerciseSchema)
   .action(async ({ parsedInput: { sessionId, exerciseId }, ctx: { userId } }) => {
+    // 認証済みであることと、指定されたsessionIdの所有者であることは別の確認。
+    // この削除も、対象セッションの所有者確認を削除前に行う必要がある。
     await db
       .delete(cardioRecords)
       .where(
