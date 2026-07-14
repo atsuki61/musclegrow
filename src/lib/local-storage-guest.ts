@@ -8,6 +8,58 @@ const GUEST_CUSTOM_EXERCISES_KEY = "musclegrow_guest_custom_exercises"; //ゲス
 
 type GuestSettings = Record<string, boolean>; // exerciseId: isVisible ゲスト設定
 
+const guestExerciseListeners = new Set<() => void>();
+let cachedGuestExercises: Exercise[] | null = null;
+let cachedGuestExercisesKey: string | null = null;
+
+function getGuestExercisesCacheKey(baseExercises: Exercise[]): string {
+  if (typeof window === "undefined") {
+    return baseExercises.map((exercise) => `${exercise.id}:${exercise.tier}`).join("|");
+  }
+
+  const settingsRaw = localStorage.getItem(GUEST_SETTINGS_KEY) ?? "";
+  const customRaw = localStorage.getItem(GUEST_CUSTOM_EXERCISES_KEY) ?? "";
+  const baseKey = baseExercises
+    .map((exercise) => `${exercise.id}:${exercise.tier}`)
+    .join("|");
+
+  return `${baseKey}|${settingsRaw}|${customRaw}`;
+}
+
+function invalidateGuestExercisesCache(): void {
+  cachedGuestExercises = null;
+  cachedGuestExercisesKey = null;
+}
+
+export function subscribeGuestExercises(onStoreChange: () => void): () => void {
+  guestExerciseListeners.add(onStoreChange);
+  return () => {
+    guestExerciseListeners.delete(onStoreChange);
+  };
+}
+
+export function notifyGuestExercisesChange(): void {
+  invalidateGuestExercisesCache();
+  guestExerciseListeners.forEach((listener) => listener());
+}
+
+/**
+ * useSyncExternalStore 向け: 内容が同じなら同じ配列参照を返す
+ */
+export function getGuestExercisesSnapshot(baseExercises: Exercise[]): Exercise[] {
+  if (typeof window === "undefined") return baseExercises;
+
+  const cacheKey = getGuestExercisesCacheKey(baseExercises);
+  if (cachedGuestExercises && cachedGuestExercisesKey === cacheKey) {
+    return cachedGuestExercises;
+  }
+
+  const next = getGuestExercises(baseExercises);
+  cachedGuestExercises = next;
+  cachedGuestExercisesKey = cacheKey;
+  return next;
+}
+
 /**
  * ゲストユーザーの種目リストを取得する
  * (サーバーからの基本リスト + ローカルのカスタム種目 + ローカルの表示設定)
@@ -70,6 +122,7 @@ export function toggleGuestExerciseVisibility(
     settings[exerciseId] = isVisible;
 
     localStorage.setItem(GUEST_SETTINGS_KEY, JSON.stringify(settings));
+    notifyGuestExercisesChange();
   } catch (error) {
     console.error("ゲスト設定の保存に失敗しました:", error);
   }
@@ -93,6 +146,7 @@ export function saveGuestCustomExercise(exercise: Exercise): void {
         GUEST_CUSTOM_EXERCISES_KEY,
         JSON.stringify(customExercises)
       );
+      notifyGuestExercisesChange();
     }
   } catch (error) {
     console.error("カスタム種目の保存に失敗しました:", error);
@@ -143,6 +197,7 @@ export function deleteGuestCustomExercise(exerciseId: string): boolean {
     delete settings[exerciseId];
     localStorage.setItem(GUEST_SETTINGS_KEY, JSON.stringify(settings));
 
+    notifyGuestExercisesChange();
     return true;
   } catch (error) {
     console.error("カスタム種目の削除に失敗しました:", error);
@@ -179,6 +234,7 @@ export function renameGuestCustomExercise(
       JSON.stringify(nextCustomExercises)
     );
 
+    notifyGuestExercisesChange();
     return renamedExercise;
   } catch (error) {
     console.error("カスタム種目名の変更に失敗しました:", error);

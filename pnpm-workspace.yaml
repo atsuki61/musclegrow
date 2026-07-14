@@ -1,5 +1,9 @@
 # pnpm workspace configuration
-# minimumReleaseAge は .npmrc に設定してください
+# pnpm v11 以降: overrides 等の設定は package.json ではなくここに記述する
+
+overrides:
+  "@types/react": "19.2.17"
+  "@types/react-dom": "19.2.3"
 
 allowBuilds:
   esbuild: true

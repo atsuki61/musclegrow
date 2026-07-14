@@ -28,13 +28,20 @@ export function useDataPointCoordinates(
   const [dataPointCoordinates, setDataPointCoordinates] = useState<
     DataPointCoordinate[]
   >([]);
+  const [prevChartDataLength, setPrevChartDataLength] =
+    useState(chartDataLength);
   const coordinatesRef = useRef<Array<DataPointCoordinate | undefined>>([]);
   const updateScheduledRef = useRef(false);
 
-  // データが変更されたら座標をリセット
+  // データ件数が変わったら表示用座標をリセット
+  if (chartDataLength !== prevChartDataLength) {
+    setPrevChartDataLength(chartDataLength);
+    setDataPointCoordinates([]);
+  }
+
+  // ref のリセットはレンダー外（外部バッファの同期）
   useEffect(() => {
     coordinatesRef.current = [];
-    setDataPointCoordinates([]);
     updateScheduledRef.current = false;
   }, [chartDataLength]);
 

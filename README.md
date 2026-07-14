@@ -38,20 +38,20 @@ MuscleGrow OGP
 ## 技術スタック
 
 
-| 領域      | 技術                                                          |
-| ------- | ----------------------------------------------------------- |
-| フレームワーク | Next.js 15.5.16 App Router                                  |
-| 言語      | TypeScript 5.9.3                                            |
-| UI      | React 19.2.3、Tailwind CSS 4.1.16、shadcn/ui、Radix UI、lucide-react |
-| 認証      | Better Auth 1.3.34、Google OAuth、メール/パスワード認証                  |
-| DB      | Supabase PostgreSQL                                         |
-| ORM     | Drizzle ORM 0.44.7、Drizzle Kit                              |
-| バリデーション | Zod 4.1.12                                                  |
-| グラフ     | Recharts 3.4.1                                              |
-| アニメーション | framer-motion 12.23.24                                      |
-| テスト     | Vitest 4.0.18、Testing Library                               |
-| ホスティング  | Vercel                                                      |
-| パッケージ管理 | pnpm                                                        |
+| 領域      | 技術                                             |
+| ------- | ---------------------------------------------- |
+| フレームワーク | Next.js 16 App Router                          |
+| 言語      | TypeScript 7                                   |
+| UI      | Tailwind CSS 4、shadcn/ui、Radix UI、lucide-react |
+| 認証      | Better Auth、Google OAuth、メール/パスワード認証           |
+| DB      | Supabase PostgreSQL                            |
+| ORM     | Drizzle ORM、Drizzle Kit                        |
+| バリデーション | Zod                                            |
+| グラフ     | Recharts                                       |
+| アニメーション | framer-motion                                  |
+| テスト     | Vitest、Testing Library                         |
+| ホスティング  | Vercel                                         |
+| パッケージ管理 | pnpm                                           |
 
 
 ### 技術選定の理由

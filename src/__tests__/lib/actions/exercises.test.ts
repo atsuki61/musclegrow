@@ -179,7 +179,7 @@ describe("saveExercise", () => {
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
       expect(result.data?.id).toBe("custom-exercise");
-      expect(revalidateTag).toHaveBeenCalledWith("exercises");
+      expect(revalidateTag).toHaveBeenCalledWith("exercises", "max");
     });
   });
 
@@ -363,7 +363,7 @@ describe("deleteCustomExercise", () => {
       const result = await deleteCustomExercise("user1", "custom-exercise");
 
       expect(result.success).toBe(true);
-      expect(revalidateTag).toHaveBeenCalledWith("exercises");
+      expect(revalidateTag).toHaveBeenCalledWith("exercises", "max");
     });
   });
 
@@ -425,7 +425,7 @@ describe("renameCustomExercise", () => {
       expect(result.success).toBe(true);
       expect(result.data?.name).toBe("新しい種目名");
       expect(mockSet).toHaveBeenCalledWith({ name: "新しい種目名" });
-      expect(revalidateTag).toHaveBeenCalledWith("exercises");
+      expect(revalidateTag).toHaveBeenCalledWith("exercises", "max");
     });
   });
 

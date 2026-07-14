@@ -68,10 +68,10 @@ export const saveWorkoutSession = authActionClient
         .returning({ id: workoutSessions.id });
       sessionId = newSession.id;
 
-      revalidateTag(`stats:total-days:${userId}`);
+      revalidateTag(`stats:total-days:${userId}`, 'max');
     }
 
-    revalidateTag(`workout-session:${userId}:${date}`);
+    revalidateTag(`workout-session:${userId}:${date}`, 'max');
 
     return { id: sessionId, date };
   });
@@ -261,12 +261,12 @@ export async function saveSessionWithSets(
     });
 
     // キャッシュ無効化 (トランザクション外で実行)
-    revalidateTag(`workout-session:${userId}:${date}`);
+    revalidateTag(`workout-session:${userId}:${date}`, 'max');
     if (result.isNewSession) {
-      revalidateTag(`stats:total-days:${userId}`);
+      revalidateTag(`stats:total-days:${userId}`, 'max');
     }
-    revalidateTag("stats:exercise");
-    revalidateTag("stats:big3");
+    revalidateTag("stats:exercise", 'max');
+    revalidateTag("stats:big3", 'max');
 
     return {
       success: true,

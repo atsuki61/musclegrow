@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Search, Plus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -48,14 +48,22 @@ export function AddExerciseModal({
   const [selectedBodyPart, setSelectedBodyPart] = useState<
     Exclude<BodyPart, "all">
   >(initialBodyPart || "chest");
+  const [appliedOpenKey, setAppliedOpenKey] = useState<string | null>(null);
 
-  // 初期ボディーパートが変更された場合、選択されたボディーパートを更新
-  useEffect(() => {
-    if (isOpen && initialBodyPart) {
+  const openKey = isOpen ? `open-${initialBodyPart ?? ""}` : null;
+
+  // モーダルを開くたびに部位と検索を初期化
+  if (openKey !== null && openKey !== appliedOpenKey) {
+    setAppliedOpenKey(openKey);
+    if (initialBodyPart) {
       setSelectedBodyPart(initialBodyPart);
-      setSearchQuery("");
     }
-  }, [initialBodyPart, isOpen]);
+    setSearchQuery("");
+  }
+
+  if (!isOpen && appliedOpenKey !== null) {
+    setAppliedOpenKey(null);
+  }
 
   // 選択可能な種目を取得
   const selectableExercises = useMemo(() => {

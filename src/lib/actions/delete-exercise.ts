@@ -29,12 +29,12 @@ async function deleteSessionIfEmpty(userId: string, sessionId: string) {
     await db.delete(workoutSessions).where(eq(workoutSessions.id, sessionId));
 
     // 合計日数が減るのでキャッシュを更新
-    revalidateTag(`stats:total-days:${userId}`);
+    revalidateTag(`stats:total-days:${userId}`, 'max');
   }
 
   // カレンダーの色分けやセッション詳細のキャッシュも更新
-  revalidateTag("history-bodyparts");
-  revalidateTag(`history-session`);
+  revalidateTag("history-bodyparts", 'max');
+  revalidateTag(`history-session`, 'max');
 }
 
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DateRangeSelector } from "./date-range-selector";
 import { BodyPartSelector } from "./body-part-selector";
@@ -128,24 +128,17 @@ export function StatsPage({
   );
 
   // 選択種目は、現在の部位で表示できる候補に常に合わせる
-  useEffect(() => {
-    const nextExerciseId = selectableExercises[0]?.id ?? null;
+  const nextExerciseId = selectableExercises[0]?.id ?? null;
 
-    if (selectedExerciseId === null) {
-      if (nextExerciseId !== null) {
-        setSelectedExerciseId(nextExerciseId);
-      }
-      return;
-    }
-
-    const selectedExerciseExists = selectableExercises.some(
-      (exercise) => exercise.id === selectedExerciseId
-    );
-
-    if (!selectedExerciseExists) {
+  if (selectedExerciseId === null) {
+    if (nextExerciseId !== null) {
       setSelectedExerciseId(nextExerciseId);
     }
-  }, [selectableExercises, selectedExerciseId]);
+  } else if (
+    !selectableExercises.some((exercise) => exercise.id === selectedExerciseId)
+  ) {
+    setSelectedExerciseId(nextExerciseId);
+  }
 
   const allExercisesWithData = useMemo(
     () =>

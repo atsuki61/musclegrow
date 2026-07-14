@@ -586,7 +586,7 @@ export function ProfileChart({
               date={selectedData.fullDate}
               value={selectedData.value}
               unit={CHART_UNITS[chartType]}
-              containerWidth={containerRef.current?.offsetWidth || 0}
+              containerWidth={containerWidth}
               color={primaryColor}
             />
           )}

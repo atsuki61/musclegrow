@@ -33,8 +33,8 @@
 
 ## ⚙️ 技術スタック（バージョン変更禁止）
 
-- **フレームワーク**: Next.js 15.5.7 (App Router)
-- **言語**: TypeScript 5.9.3
+- **フレームワーク**: Next.js 16.2.10 (App Router)
+- **言語**: TypeScript 7.0.2（`@typescript/native`、ESLint 用に 6.0 alias 併用）
 - **UI**: Tailwind CSS 4.1.16 + shadcn/ui (Radix UI ベース)
 - **データベース**: Supabase (PostgreSQL)
 - **認証**: Better Auth 1.3.34（メール/パスワード + Google OAuth）
