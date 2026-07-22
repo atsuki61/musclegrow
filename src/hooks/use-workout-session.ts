@@ -167,10 +167,6 @@ export function useWorkoutSession({
    * 優先順位: DB（ログイン時）→ localStorage → createInitialSet / 空配列
    */
   const loadSets = useCallback(async () => {
-    // React Compiler / hooks lint 向けに、同期的な setState 前に microtask を挟む
-    await Promise.resolve();
-
-    // 種目未選択 or UI 閉 → セットをクリアして終了
     if (!exerciseId || !isOpen) {
       setSets([]);
       return;
@@ -348,13 +344,10 @@ export function useWorkoutSession({
     previousExerciseIdRef.current = exerciseId;
   }, [date, exerciseId, isOpen, userId]);
 
-  // 開いているセッションを一意に識別（閉じたら null）
-  // loadSets を依存に含めつつ、レースコンディションを cancelled フラグで防ぐ
   const sessionKey =
     isOpen && exerciseId ? `${dateStr}:${exerciseId}` : null;
   const [loadedSessionKey, setLoadedSessionKey] = useState<string | null>(null);
 
-  // UI を閉じたとき: レンダー中に状態をリセット（次回オープン時に古いデータが一瞬出ないように）
   if (sessionKey === null && loadedSessionKey !== null) {
     setLoadedSessionKey(null);
     setSets([]);
@@ -363,22 +356,16 @@ export function useWorkoutSession({
   }
 
   // UI が開いているとき、種目や日付が変わったらセットを再読み込み
+  // 閉じたときは状態をリセット（次回オープン時に古いデータが一瞬出ないように）
   useEffect(() => {
-    if (!sessionKey) return;
-
-    let cancelled = false;
-
-    void (async () => {
-      await loadSets();
-      if (!cancelled) {
-        setLoadedSessionKey(sessionKey);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [sessionKey, loadSets]);
+    if (isOpen && exerciseId) {
+      loadSets();
+    } else if (!isOpen) {
+      setSets([]);
+      setIsLoaded(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, exerciseId, dateStr]);
 
   // 呼び出し側が使う公開 API
   return {

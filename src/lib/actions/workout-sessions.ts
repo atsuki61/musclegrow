@@ -40,7 +40,7 @@ export const saveWorkoutSession = authActionClient
         and(eq(workoutSessions.userId, userId), eq(workoutSessions.date, date))
       )
       .limit(1);
-
+    
     let sessionId: string;
 
     if (existingSession) {
